@@ -17,9 +17,9 @@ def main():
 
         cv2.imshow("Feed", frame)
 
-        #text = IU.GetLicenseFromImage(img)
+        text = IU.GetLicenseFromImage(img)
 
-        #print(text)
+        print(text)
 
         if cv2.waitKey(10) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
