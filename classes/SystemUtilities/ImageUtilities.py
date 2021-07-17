@@ -4,7 +4,7 @@ import cv2
 
 pytesseract.pytesseract.tesseract_cmd = "lib\\TesseractOCR\\tesseract.exe"
 
-def GetTextFromImage(license_plate):
+def GetLicenseFromImage(license_plate):
     valid_ascii_pattern = "([A-Z]|[0-9])"
 
     boxes = pytesseract.image_to_boxes(license_plate)
@@ -25,9 +25,9 @@ def GetTextFromImage(license_plate):
 
     return license_plate
 
-def RescaleImage(img, scale):
-    width = int(img.shape[1] * scale)
-    height = int(img.shape[0] * scale)
+def RescaleImage(img, scale_factor):
+    width = int(img.shape[1] * scale_factor)
+    height = int(img.shape[0] * scale_factor)
 
     dimensions = (width, height)
 

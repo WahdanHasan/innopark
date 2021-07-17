@@ -2,21 +2,29 @@ import cv2
 from classes.Camera.Camera import Camera
 import classes.SystemUtilities.ImageUtilities as IU
 
-x = Camera("data\\reference footage\\IP7_Test.mov", 0)
-img = cv2.imread("data\\reference footage\\example_1.PNG")
+def main():
 
-while True:
-    frame = x.GetNextFrame()
+    cam = Camera(rtsp_link="data\\reference footage\\IP7_Test.mov",
+                 camera_id=0)
 
-    frame = IU.RescaleImage(frame, 0.5)
+    img = cv2.imread("data\\reference footage\\example_1.PNG")
 
-    cv2.imshow("Feed", frame)
+    while True:
+        frame = cam.GetNextFrame()
 
-    #text = IU.GetTextFromImage(img)
+        frame = IU.RescaleImage(img=frame,
+                                scale_factor=0.5)
 
-    #print(text)
+        cv2.imshow("Feed", frame)
 
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        cv2.destroyAllWindows()
+        #text = IU.GetLicenseFromImage(img)
 
-cv2.waitKey(0)
+        #print(text)
+
+        if cv2.waitKey(10) & 0xFF == ord('q'):
+            cv2.destroyAllWindows()
+
+    cv2.waitKey(0)
+
+if __name__ == "__main__":
+    main()
