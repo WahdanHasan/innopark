@@ -8,7 +8,6 @@ class Camera:
         self.camera_id = camera_id
 
         # Link validation
-        # print(type(rtsp_link), isinstance(rtsp_link, str))
         if not (isinstance(rtsp_link, str) or isinstance(rtsp_link, int)):
             print('[ERROR]: camera RTSP link must be of string or integer datatype.', file=sys.stderr)
             return
@@ -21,6 +20,8 @@ class Camera:
             return
 
     def GetNextFrame(self):
+        # Returns the next frame from the video source
+
          _, frame = self.feed.read()
 
          return frame
