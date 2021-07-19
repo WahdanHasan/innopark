@@ -1,5 +1,7 @@
 import cv2
 import sys
+import classes.system_utilities.ImageUtilities as IU
+from classes.enum_classes.Enums import ImageResolution
 
 class Camera:
     def __init__(self, rtsp_link, camera_id):
@@ -19,12 +21,26 @@ class Camera:
             print('[ERROR]: camera with id ' + self.camera_id + " failed to start.", file=sys.stderr)
             return
 
-    def GetNextFrame(self):
+    def GetRawNextFrame(self):
         # Returns the next frame from the video source
 
          _, frame = self.feed.read()
 
          return frame
+
+    def GetScaledNextFrame(self):
+        # Returns the next frame from the video source post scaling based on the default scale factor
+
+        default_resolution = ImageResolution.SD.value
+
+        _, frame = self.feed.read()
+
+        frame = IU.RescaleImageToResolution(frame, default_resolution)
+
+        return frame
+
+
+
 
 
 
