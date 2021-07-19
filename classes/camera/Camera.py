@@ -35,7 +35,8 @@ class Camera:
 
         _, frame = self.feed.read()
 
-        frame = IU.RescaleImageToResolution(frame, default_resolution)
+        frame = IU.RescaleImageToResolution(img=frame,
+                                            new_dimensions=default_resolution)
 
         return frame
 
