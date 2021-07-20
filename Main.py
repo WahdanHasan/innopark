@@ -4,10 +4,10 @@ import classes.system_utilities.ImageUtilities as IU
 
 def main():
 
-    cam = Camera(rtsp_link="data\\reference footage\\IP6_Test_3.mov",
+    cam = Camera(rtsp_link="data\\reference footage\\videos\\Parking_Open_1.mp4",
                  camera_id=0)
 
-    img = cv2.imread("data\\reference footage\\example_1.PNG")
+    img = cv2.imread("data\\reference footage\\images\\example_1.PNG")
 
     while True:
         frame = cam.GetScaledNextFrame()
