@@ -9,6 +9,7 @@ def main():
 
     img = cv2.imread("data\\reference footage\\images\\example_1.PNG")
 
+
     while True:
         frame = cam.GetScaledNextFrame()
 

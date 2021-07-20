@@ -31,7 +31,7 @@ def OnLoad():
     temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
     temp_model.restore("data\\license plate detector\\license_plate_model").expect_partial()
 
-    license_category_index = label_map_util.create_license_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
+    license_category_index = label_map_util.create_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
 
 # This function executes when the class loads
 OnLoad()
