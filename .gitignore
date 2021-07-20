@@ -112,3 +112,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Custom folders
+tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.png
+tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.xml
