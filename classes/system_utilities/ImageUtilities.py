@@ -11,10 +11,22 @@ from object_detection.utils import visualization_utils as viz_utils
 # Global variable declarations
 license_detection_model = 0
 license_category_index = 0
+yolo_net = 0
+yolo_class_names = 0
+yolo_output_layer_names = 0
 
 
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
+
+    # Set tensorflow model memory allocation in megabytes
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.experimental.set_virtual_device_configuration(
+                gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=512)])
+        except RunTimeError as e:
+            print(e)
 
     # Initialize pytesseract cmd
     pytesseract.pytesseract.tesseract_cmd = "modules\\TesseractOCR\\tesseract.exe"
@@ -33,6 +45,28 @@ def OnLoad():
 
     license_category_index = label_map_util.create_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
 
+    # Initialize YOLOv3 model
+    global yolo_net
+    global yolo_class_names
+    global yolo_output_layer_names
+
+    classes_file = 'modules\\YOLOv3\\coco.names'
+
+    with open(classes_file, 'rt') as f:
+        yolo_class_names = f.read().rstrip('\n').split('\n')
+
+
+    model_config = 'modules\\YOLOv3\\yolov3-320.cfg'
+    model_weights = 'modules\\YOLOv3\\yolov3-320.weights'
+
+    yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
+    # Set the target device for computation
+    yolo_net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+    yolo_net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+
+    yolo_layer_names = yolo_net.getLayerNames()
+    yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
+
 # This function executes when the class loads
 OnLoad()
 
@@ -40,7 +74,8 @@ OnLoad()
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in the image.
     # Returns a True if at least 1 license was detected, otherwise False. Also returns a tuple pair of
-    # (Bounding box classes : normalized bounding boxes). It should be noted that the bounding boxes are normalized.
+    # (Bounding box classes :  bounding boxes).
+    # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
 
     # Declare variables
     detection_threshold = 0.8
@@ -78,22 +113,50 @@ def DetectLicenseInImage(image):
             is_one_license_above_threshold = True
 
     # Filter bounding boxes based on the filtered scores
-    normalized_bounding_boxes = detections['detection_boxes'][:len(scores)]
+    bounding_boxes = detections['detection_boxes'][:len(scores)]
 
     # Filter classes based on the filtered scores
     bounding_box_classes = detections['detection_classes'][:len(scores)]
 
     # Convert numpy array to list
     bounding_box_classes = bounding_box_classes.tolist()
-    normalized_bounding_boxes = normalized_bounding_boxes.tolist()
+    bounding_boxes = bounding_boxes.tolist()
 
-    # Convert class indexes to string values
+    # Convert class indexes to class names
     label_id_offset = 1
     for i in range(len(bounding_box_classes)):
         bounding_box_classes[i] = license_category_index[bounding_box_classes[i] + label_id_offset]['name']
 
+    # # Display licenses above threshold
+    # image_np_with_detections = image_np.copy()
+    #
+    # viz_utils.visualize_boxes_and_labels_on_image_array(
+    #     image_np_with_detections,
+    #     detections['detection_boxes'],
+    #     detections['detection_classes'] + label_id_offset,
+    #     detections['detection_scores'],
+    #     license_category_index,
+    #     use_normalized_coordinates=True,
+    #     max_boxes_to_draw=5,
+    #     min_score_thresh=detection_threshold,
+    #     agnostic_mode=False)
+    #
+    # cv2.imshow("Function: DetectLicenseInImage", image_np_with_detections)
 
-    return is_one_license_above_threshold, (bounding_box_classes, normalized_bounding_boxes)
+    # Convert the bounding box to [TL, BR] format
+    temp_bounding_boxes = []
+    for idx, box in enumerate(bounding_boxes):
+        top_x = int(box[1] * width)
+        top_y = int(box[0] * height)
+        bottom_x = int(box[3] * width)
+        bottom_y = int(box[2] * height)
+
+        temp_bounding_boxes.append([top_x, top_y, bottom_x, bottom_y])
+
+    bounding_boxes = temp_bounding_boxes
+
+
+    return is_one_license_above_threshold, (bounding_box_classes, bounding_boxes)
 
 def GetLicenseFromImage(license_plate):
     # Takes a cropped license plate to extract [A-Z] and [0-9] ascii characters from the image.
@@ -122,7 +185,96 @@ def GetLicenseFromImage(license_plate):
     for box in boxes:
         license_plate = license_plate + box[0]
 
+
     return license_plate
+
+def DetectObjectsInImage(image):
+    # The function takes an input image and outputs all of the objects it detects in the image.
+    # The output is in the the tuple of format (class name, confidence score, bounding box)
+    # The bounding box is output in the format of [TL, BR] with point [x, y]
+
+    height, width, _ = image.shape
+
+    # Convert image to blob for the yolo network
+    blob = ImageToBlob(image)
+
+    yolo_net.setInput(blob)
+
+    yolo_outputs = yolo_net.forward(yolo_output_layer_names)
+
+    # Declare variables
+    bounding_boxes = []
+    class_ids = []
+    confidence_scores = []
+    # Higher confidence threshold means that the detections with confidence above threshold will be shown
+    # Lower nms means that the threshold for overlapping bounding boxes is lowering meaning they filter out more
+    confidence_threshold = 0.5
+    nms_threshold = 0.5
+
+    # Obtain bounding boxes of the detections that are over the threshold value
+    for output in yolo_outputs:
+        for detection in output:
+            scores = detection[5:]
+            class_id = np.argmax(scores)
+            confidence = scores[class_id]
+
+            if confidence > confidence_threshold:
+                w, h = int(detection[2] * width), int(detection[3] * height)
+                x, y = int((detection[0]*width) - w/2), int((detection[1]*height) - h/2)
+
+                bounding_boxes.append([x, y, w, h])
+                class_ids.append(class_id)
+                confidence_scores.append(float(confidence))
+
+    # Determines indices to keep by filtering overlapping bounding boxes with the same class using the threshold
+    indices_to_keep = cv2.dnn.NMSBoxes(bounding_boxes, confidence_scores, confidence_threshold, nms_threshold)
+
+    # Filter detections based on indices to keep
+    temp_bounding_boxes = []
+    class_names = []
+    temp_confidence_scores = []
+    for index in indices_to_keep:
+        index = index[0]
+        box = bounding_boxes[index]
+
+        x, y, w, h = box[0], box[1], box[2], box[3]
+
+        temp_bounding_boxes.append([x, y, w, h])
+
+        # Get class ids corresponding class name
+        temp_class_name = yolo_class_names[class_ids[index]].upper()
+        class_names.append(temp_class_name)
+
+        # Convert confidence score to percentage out of 100
+        temp_confidence_scores.append(confidence_scores[index] * 100)
+
+    bounding_boxes = temp_bounding_boxes
+    confidence_scores = temp_confidence_scores
+
+    # # Show image with bounding boxes
+    # temp_image_to_show = image.copy()
+    # for i in range(len(bounding_boxes)):
+    #     box = bounding_boxes[i]
+    #     x, y, w, h = box[0], box[1], box[2], box[3]
+    #
+    #     cv2.rectangle(temp_image_to_show, (x, y), (x+w, y+h), (255, 0, 255), 1)
+    #     cv2.putText(temp_image_to_show, f'{yolo_class_names[class_ids[i]].upper()} {int(confidence_scores[i]*100)}%',
+    #                 (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+    # cv2.imshow("Function: DetectObjectsInImage", temp_image_to_show)
+
+
+    # Convert bounding boxes to [TL, BR] format
+    for i in range(len(bounding_boxes)):
+        bounding_boxes[i][2] = bounding_boxes[i][0] + bounding_boxes[i][2]
+        bounding_boxes[i][3] = bounding_boxes[i][1] + bounding_boxes[i][3]
+
+
+    return (class_names, confidence_scores, bounding_boxes)
+
+def ImageToBlob(image):
+    blob = cv2.dnn.blobFromImage(image, 1/255, (320, 320), [0, 0, 0], 1, crop=False)
+
+    return blob
 
 def RescaleImageToScale(img, scale_factor):
     # Takes an image and a scale_factor.
@@ -138,6 +290,7 @@ def RescaleImageToScale(img, scale_factor):
     rescaled_img = cv2.resize(src=img,
                               dsize=dimensions,
                               interpolation=cv2.INTER_AREA)
+
 
     return rescaled_img
 
@@ -175,7 +328,7 @@ def CropImage(img, bounding_set):
     return img
 
 def PlaceImage(base_image, img_to_place, center_x, center_y):
-    # From the center point, it figures out the top left and bottom right points based on the character width then it
+    # From the center point, it figures out the top left and bottom right points based on the image width then it
     # replaces the pixel points on the base with the image provided.
     # Returns the new image.
 
