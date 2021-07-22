@@ -1,6 +1,8 @@
 # InnoPark
  
-Required installations:
+*********************Required installations*********************
+
+CUDA, CuDNN, required libraries, object detection
 - Follow video till 5:40 (Go for GPU installation): https://www.youtube.com/watch?v=hHWkvEcDBO0
 - From this repository's SETUP folder, copy Script.bat onto your desktop.
 - Open Anaconda prompt.
@@ -18,3 +20,11 @@ Selecting the correct interpreter for the project:
 - Check 'Existing environment'
 - Select the 'innopark/python.exe' environment from the interpreter list.
 - Click ok, then click apply.
+
+*********************Optional installations*********************
+
+OpenCV for GPU (This is required for running YOLOv3 on GPU mode. By default, the CPU mode is used):
+- Follow this video: https://www.youtube.com/watch?v=YsmhKar8oOc
+  - Here are the 2 downloads for OpenCV: 
+    - https://github.com/opencv/opencv/archive/4.5.2.zip
+    - https://webwerks.dl.sourceforge.net/project/opencvlibrary/4.5.2/opencv-4.5.2-vc14_vc15.exe
