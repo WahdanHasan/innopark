@@ -1,6 +1,7 @@
 import cv2
 from classes.camera.Camera import Camera
-import classes.system_utilities.ImageUtilities as IU
+import classes.system_utilities.image_utilities.ObjectDetection as OD
+import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 def main():
 
@@ -16,13 +17,13 @@ def main():
 
         cv2.imshow("Feed", frame)
 
-        # IU.DetectObjectsInImage(frame)
-        # IU.DetectLicenseInImage(webcam_frame)
+        # OD.DetectObjectsInImage(frame)
+        # OD.DetectLicenseInImage(webcam_frame)
 
-        if cv2.waitKey(10) & 0xFF == ord('q'):
+        if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
 
-    cv2.waitKey(0)
+    cv2.waitKey(1)
 
 if __name__ == "__main__":
     main()

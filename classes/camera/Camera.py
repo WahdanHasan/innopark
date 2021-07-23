@@ -1,6 +1,6 @@
 import cv2
 import sys
-import classes.system_utilities.ImageUtilities as IU
+import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.enum_classes.Enums import ImageResolution
 
 class Camera:
