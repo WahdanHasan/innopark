@@ -17,8 +17,10 @@ def main():
 
         cv2.imshow("Feed", frame)
 
-        # OD.DetectObjectsInImage(frame)
+        OD.DetectObjectsInImage(frame)
         # OD.DetectLicenseInImage(webcam_frame)
+
+
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             cv2.destroyAllWindows()

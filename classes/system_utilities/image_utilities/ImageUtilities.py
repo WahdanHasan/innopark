@@ -2,19 +2,9 @@ import cv2
 import re as regex
 import numpy as np
 
-def OnLoad():
-    # All models and internal/external dependencies should be both loaded and initialized here
-    place_holder_variable = 0
-
-# This function executes when the class loads
-OnLoad()
-
-
-
-
-
 def ImageToBlob(image):
     blob = cv2.dnn.blobFromImage(image, 1/255, (320, 320), [0, 0, 0], 1, crop=False)
+
 
     return blob
 
@@ -44,6 +34,7 @@ def RescaleImageToResolution(img, new_dimensions):
                               dsize=new_dimensions,
                               interpolation=cv2.INTER_AREA)
 
+
     return rescaled_img
 
 def CropImage(img, bounding_set):
@@ -67,6 +58,7 @@ def CropImage(img, bounding_set):
     # Crop the image up until the overwritten region
     img = img[0:length, 0:width]
 
+
     return img
 
 def PlaceImage(base_image, img_to_place, center_x, center_y):
@@ -87,7 +79,18 @@ def PlaceImage(base_image, img_to_place, center_x, center_y):
     temp_image = base_image.copy()
     temp_image[top_y:bottom_y, left_x:right_x] = img_to_place
 
+
     return temp_image
+
+def SaveImage(image, name, extension='.png', path='data\\saves\\'):
+    # Takes an image and saves it
+    # It is recommended to use cv2.waitKey(0) when debugging after calling the function in order to prevent overwriting.
+
+    print("Saving image to " + name + extension + " to " + path + "...")
+
+    cv2.imwrite(path + name + extension, image)
+
+    print("Finished saving.")
 
 def CalculatePointPositionAfterTransform(point, M):
     # Calculates the new position of a point after transformation with set M
@@ -96,4 +99,38 @@ def CalculatePointPositionAfterTransform(point, M):
     point_transformed_x = (M[0][0] * point[0] + M[0][1] * point[1] + M[0][2]) / (M[2][0] * point[0] + M[2][1] * point[1] + M[2][2])
     point_transformed_y = (M[1][0] * point[0] + M[1][1] * point[1] + M[1][2]) / (M[2][0] * point[0] + M[2][1] * point[1] + M[2][2])
 
+
     return [int(point_transformed_x), int(point_transformed_y)]
+
+def GetFullBoundingBox(bounding_box):
+    # Takes a bounding box in the format of [TL, BR]
+    # Returns the full bounding box in the format of [TL, TR, BL, BR]
+
+    full_bounding_box = []
+
+    # Calculate top right points
+    top_right_x = bounding_box[1][0]
+    top_right_y = bounding_box[0][1]
+    top_right = [top_right_x, top_right_y]
+
+    # Calculate bottom left points
+    bottom_left_x = bounding_box[0][0]
+    bottom_left_y = bounding_box[1][1]
+    bottom_left = [bottom_left_x, bottom_left_y]
+
+    full_bounding_box.append([bounding_box[0], top_right, bottom_left, bounding_box[1]])
+
+
+    return full_bounding_box
+
+def GetBoundingBoxCenter(bounding_box):
+    # Takes a bounding box in the format of [TL, BR]
+    # Returns the center of the bounding box
+
+    center_x = bounding_box[1][0] - bounding_box[0][0]
+    center_y = bounding_box[1][1] - bounding_box[0][1]
+
+
+    return [center_x, center_y]
+
+

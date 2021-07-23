@@ -265,7 +265,6 @@ def DetectObjectsInImage(image):
                     (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
     cv2.imshow("Function: DetectObjectsInImage", temp_image_to_show)
 
-
     # Convert bounding boxes to [TL, BR] format
     for i in range(len(bounding_boxes)):
         bounding_boxes[i][2] = bounding_boxes[i][0] + bounding_boxes[i][2]
