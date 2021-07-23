@@ -191,7 +191,7 @@ def GetLicenseFromImage(license_plate):
 def DetectObjectsInImage(image):
     # The function takes an input image and outputs all of the objects it detects in the image.
     # The output is in the the tuple of format (class name, confidence score, bounding box)
-    # The bounding box is output in the format of [TL, BR] with point [x, y]
+    # The bounding box is output in the format of [TL, BR] with points [x, y]
 
     height, width, _ = image.shape
 
@@ -220,13 +220,13 @@ def DetectObjectsInImage(image):
 
             if confidence > confidence_threshold:
                 w, h = int(detection[2] * width), int(detection[3] * height)
-                x, y = int((detection[0]*width) - w/2), int((detection[1]*height) - h/2)
+                x, y = int((detection[0] * width) - w/2), int((detection[1] * height) - h/2)
 
                 bounding_boxes.append([x, y, w, h])
                 class_ids.append(class_id)
                 confidence_scores.append(float(confidence))
 
-    # Determines indices to keep by filtering overlapping bounding boxes with the same class using the threshold
+    # Determines indices to keep by filtering overlapping bounding boxes with the same object against the threshold
     indices_to_keep = cv2.dnn.NMSBoxes(bounding_boxes, confidence_scores, confidence_threshold, nms_threshold)
 
     # Filter detections based on indices to keep
@@ -258,8 +258,8 @@ def DetectObjectsInImage(image):
     #     x, y, w, h = box[0], box[1], box[2], box[3]
     #
     #     cv2.rectangle(temp_image_to_show, (x, y), (x+w, y+h), (255, 0, 255), 1)
-    #     cv2.putText(temp_image_to_show, f'{yolo_class_names[class_ids[i]].upper()} {int(confidence_scores[i]*100)}%',
-    #                 (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+    #     cv2.putText(temp_image_to_show, f'{yolo_class_names[class_ids[i]].upper()} {int(confidence_scores[i])}%',
+    #                 (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
     # cv2.imshow("Function: DetectObjectsInImage", temp_image_to_show)
 
 
