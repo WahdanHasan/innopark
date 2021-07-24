@@ -40,6 +40,46 @@ class Camera:
 
         return frame
 
+    def IsFeedActive(self):
+        return self.feed.isOpened()
+
+
+
+
+# Development only functions
+
+    def GetRawLoopingNextFrame(self):
+        # To be used when dealing with videos during development/demos.
+        # Loops the footage when it finishes
+        # Returns the next frame
+
+        ret, frame = self.feed.read()
+
+        if not ret:
+            self.feed = cv2.VideoCapture(self.rtsp_link)
+            ret, frame = self.feed.read()
+
+        return frame
+
+    def GetScaledLoopingNextFrame(self):
+        # To be used when dealing with videos during development/demos.
+        # Loops the footage when it finishes
+        # Returns the next frame after scaling it
+
+        default_resolution = ImageResolution.SD.value
+
+        ret, frame = self.feed.read()
+
+        if not ret:
+            self.feed = cv2.VideoCapture(self.rtsp_link)
+            ret, frame = self.feed.read()
+
+        frame = IU.RescaleImageToResolution(img=frame,
+                                            new_dimensions=default_resolution)
+
+
+        return frame
+
 
 
 

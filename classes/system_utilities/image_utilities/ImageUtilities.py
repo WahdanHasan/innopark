@@ -2,8 +2,8 @@ import cv2
 import re as regex
 import numpy as np
 
-def ImageToBlob(image):
-    blob = cv2.dnn.blobFromImage(image, 1/255, (320, 320), [0, 0, 0], 1, crop=False)
+def ImageToBlob(image, input_size):
+    blob = cv2.dnn.blobFromImage(image, 1/255, (input_size, input_size), [0, 0, 0], 1, crop=False)
 
 
     return blob
@@ -42,6 +42,8 @@ def CropImage(img, bounding_set):
     # This bounding set should be in the tuple (TopLeftPoint, BottomRightPoint) format.
     # Returns the cropped image
 
+    img_temp = img.copy()
+
     # Define Top Left and Bottom Right points to crop upon
     x_min = bounding_set[0][0]
     y_min = bounding_set[0][1]
@@ -53,13 +55,13 @@ def CropImage(img, bounding_set):
     length = y_max - y_min
 
     # Write the region of the image to be cropped back onto the image started from the origin
-    img[0:length, 0:width] = img[y_min:y_max, x_min:x_max]
+    img_temp[0:length, 0:width] = img[y_min:y_max, x_min:x_max]
 
     # Crop the image up until the overwritten region
-    img = img[0:length, 0:width]
+    img_temp = img_temp[0:length, 0:width]
 
 
-    return img
+    return img_temp
 
 def PlaceImage(base_image, img_to_place, center_x, center_y):
     # From the center point, it figures out the top left and bottom right points based on the image width then it
@@ -133,4 +135,42 @@ def GetBoundingBoxCenter(bounding_box):
 
     return [center_x, center_y]
 
+def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
+    # Takes an image and places bounding boxes on it from the detections.
+    # It should be noted that the bounding boxes must be in the [TL, BR] format
+    # Returns the image with all the drawn boxes on it.
 
+    temp_image = image.copy()
+
+    for i in range(len(bounding_boxes)):
+        temp_image = cv2.rectangle(img=temp_image,
+                                   pt1=bounding_boxes[i][0],
+                                   pt2=bounding_boxes[i][1],
+                                   color=color,
+                                   thickness=thickness)
+
+    return temp_image
+
+def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes, color=(255, 0, 255), thickness=1):
+    # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
+    # It should be noted that the bounding boxes must be in the [TL, BR] format
+    # Returns the image with all the drawn boxes on it.
+
+    temp_image = image.copy()
+
+    for i in range(len(class_names)):
+        temp_image = cv2.rectangle(img=temp_image,
+                                   pt1=bounding_boxes[i][0],
+                                   pt2=bounding_boxes[i][1],
+                                   color=color,
+                                   thickness=thickness)
+
+        temp_image = cv2.putText(img=temp_image,
+                                 text=f'{class_names[i]} {int(probabilities[i])}%',
+                                 org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
+                                 fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                                 fontScale=0.5,
+                                 color=(0, 0, 255),
+                                 thickness=1)
+
+    return temp_image

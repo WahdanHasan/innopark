@@ -15,7 +15,7 @@ license_category_index = 0
 yolo_net = 0
 yolo_class_names = 0
 yolo_output_layer_names = 0
-
+yolo_net_input_size = 0
 
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
@@ -50,6 +50,7 @@ def OnLoad():
     global yolo_net
     global yolo_class_names
     global yolo_output_layer_names
+    global yolo_net_input_size
 
     classes_file = 'modules\\YOLOv3\\coco.names'
 
@@ -59,6 +60,7 @@ def OnLoad():
 
     model_config = 'modules\\YOLOv3\\yolov3-320.cfg'
     model_weights = 'modules\\YOLOv3\\yolov3-320.weights'
+    yolo_net_input_size = 320
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation
@@ -75,12 +77,11 @@ OnLoad()
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in the image.
-    # Returns a True if at least 1 license was detected, otherwise False. Also returns a tuple pair of
-    # (Bounding box classes :  bounding boxes).
+    # Returns a True if at least 1 license was detected, otherwise False.
     # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
 
     # Declare variables
-    detection_threshold = 0.8
+    detection_threshold = 0.6
     height, width, _ = image.shape
 
     # Convert image to tensor flow format
@@ -111,7 +112,7 @@ def DetectLicenseInImage(image):
     scores = []
     for i in range(len(detections['detection_scores'])):
         if detections['detection_scores'][i] > detection_threshold:
-            scores.append(detections['detection_scores'][i])
+            scores.append(detections['detection_scores'][i] * 100)
             is_one_license_above_threshold = True
 
     # Filter bounding boxes based on the filtered scores
@@ -132,19 +133,6 @@ def DetectLicenseInImage(image):
     # Display licenses above threshold
     image_np_with_detections = image_np.copy()
 
-    viz_utils.visualize_boxes_and_labels_on_image_array(
-        image_np_with_detections,
-        detections['detection_boxes'],
-        detections['detection_classes'] + label_id_offset,
-        detections['detection_scores'],
-        license_category_index,
-        use_normalized_coordinates=True,
-        max_boxes_to_draw=5,
-        min_score_thresh=detection_threshold,
-        agnostic_mode=False)
-
-    cv2.imshow("Function: DetectLicenseInImage", image_np_with_detections)
-
     # Convert the bounding box to [TL, BR] format
     temp_bounding_boxes = []
     for idx, box in enumerate(bounding_boxes):
@@ -153,12 +141,11 @@ def DetectLicenseInImage(image):
         bottom_x = int(box[3] * width)
         bottom_y = int(box[2] * height)
 
-        temp_bounding_boxes.append([top_x, top_y, bottom_x, bottom_y])
+        temp_bounding_boxes.append([[top_x, top_y], [bottom_x, bottom_y]])
 
     bounding_boxes = temp_bounding_boxes
 
-
-    return is_one_license_above_threshold, (bounding_box_classes, bounding_boxes)
+    return is_one_license_above_threshold, bounding_box_classes, bounding_boxes, scores
 
 def GetLicenseFromImage(license_plate):
     # Takes a cropped license plate to extract [A-Z] and [0-9] ascii characters from the image.
@@ -190,16 +177,15 @@ def GetLicenseFromImage(license_plate):
 
     return license_plate
 
-
 def DetectObjectsInImage(image):
     # The function takes an input image and outputs all of the objects it detects in the image.
-    # The output is in the the tuple of format (class name, confidence score, bounding box)
     # The bounding box is output in the format of [TL, BR] with points [x, y]
 
     height, width, _ = image.shape
 
     # Convert image to blob for the yolo network
-    blob = IU.ImageToBlob(image)
+    blob = IU.ImageToBlob(image=image,
+                          input_size=yolo_net_input_size)
 
     yolo_net.setInput(blob)
 
@@ -212,9 +198,10 @@ def DetectObjectsInImage(image):
     # Higher confidence threshold means that the detections with confidence above threshold will be shown
     # Lower nms means that the threshold for overlapping bounding boxes is lowering meaning they filter out more
     confidence_threshold = 0.5
-    nms_threshold = 0.5
+    nms_threshold = 0.3
 
     # Obtain bounding boxes of the detections that are over the threshold value
+    is_one_detection_above_threshold = False
     for output in yolo_outputs:
         for detection in output:
             scores = detection[5:]
@@ -222,6 +209,8 @@ def DetectObjectsInImage(image):
             confidence = scores[class_id]
 
             if confidence > confidence_threshold:
+                is_one_detection_above_threshold = True
+
                 w, h = int(detection[2] * width), int(detection[3] * height)
                 x, y = int((detection[0] * width) - w/2), int((detection[1] * height) - h/2)
 
@@ -254,21 +243,12 @@ def DetectObjectsInImage(image):
     bounding_boxes = temp_bounding_boxes
     confidence_scores = temp_confidence_scores
 
-    # Show image with bounding boxes
-    temp_image_to_show = image.copy()
-    for i in range(len(bounding_boxes)):
-        box = bounding_boxes[i]
-        x, y, w, h = box[0], box[1], box[2], box[3]
-
-        cv2.rectangle(temp_image_to_show, (x, y), (x+w, y+h), (255, 0, 255), 1)
-        cv2.putText(temp_image_to_show, f'{yolo_class_names[class_ids[i]].upper()} {int(confidence_scores[i])}%',
-                    (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 0, 255), 1)
-    cv2.imshow("Function: DetectObjectsInImage", temp_image_to_show)
-
     # Convert bounding boxes to [TL, BR] format
     for i in range(len(bounding_boxes)):
         bounding_boxes[i][2] = bounding_boxes[i][0] + bounding_boxes[i][2]
         bounding_boxes[i][3] = bounding_boxes[i][1] + bounding_boxes[i][3]
 
+        bounding_boxes[i] = [[bounding_boxes[i][0], bounding_boxes[i][1]], [bounding_boxes[i][2], bounding_boxes[i][3]]]
 
-    return (class_names, confidence_scores, bounding_boxes)
+
+    return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
