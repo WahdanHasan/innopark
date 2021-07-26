@@ -7,7 +7,7 @@ import numpy as np
 
 def main():
 
-    cam_license = Camera(rtsp_link="data\\reference footage\\videos\\License_2.mp4",
+    cam_license = Camera(rtsp_link="data\\reference footage\\videos\\License_3.mp4",
                          camera_id=0)
     cam_parking = Camera(rtsp_link="data\\reference footage\\videos\\Parking_Open_1.mp4",
                          camera_id=0)
@@ -22,6 +22,16 @@ def main():
         frame_license = cam_license.GetScaledLoopingNextFrame()
         frame_parking = cam_parking.GetScaledLoopingNextFrame()
         # webcam_frame = webcam.GetScaledNextFrame()
+
+        license_return_status, license_classes, license_bounding_boxes, license_scores = OD.DetectLicenseInImage(frame_license)
+
+        if license_return_status == True:
+            bb_license = IU.DrawBoundingBoxAndClasses(image=frame_license,
+                                                      class_names=license_classes,
+                                                      probabilities=license_scores,
+                                                      bounding_boxes=license_bounding_boxes)
+
+            cv2.imshow("Drawn box license", bb_license)
 
 
         cv2.imshow("Feed License", frame_license)
