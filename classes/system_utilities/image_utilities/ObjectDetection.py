@@ -17,6 +17,7 @@ yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
 
+
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
 
@@ -69,6 +70,8 @@ def OnLoad():
 
     yolo_layer_names = yolo_net.getLayerNames()
     yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
+
+
 
 # This function executes when the class loads
 OnLoad()
@@ -252,3 +255,64 @@ def DetectObjectsInImage(image):
 
 
     return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
+
+
+
+
+
+
+
+
+
+
+
+
+
+# EXPERIMENTAL CODE
+
+class SubtractionModel:
+    # As this form of object detection builds on the output of a stationary camera, it is essentially tied to that
+    # camera. Due to this, we must treat it as a class of its own so that we may create multiple copies of it to be
+    # used on a per stationary camera basis.
+
+    def __init__(self):
+        # Initialize subtraction object detection model
+
+        self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=1000)
+        self.subtraction_model_output_mask = 0
+
+    def FeedSubtractionModel(self, image):
+        # This function is to be called once per iteration if DetectMovingObjects is being used.
+
+        self.subtraction_model_output_mask = self.subtraction_model.apply(image)
+
+        # Filter out shadows
+        _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
+
+    def DetectMovingObjects(self, area_threshold=100):
+        # Detect objects that have moved within the image.
+        # Returns the bounding boxes of all the objects detected.
+        # It is to be noted that if this function is to be used, FeedSubtractionModel must be called at least once beforehand
+
+        contours, _ = cv2.findContours(self.subtraction_model_output_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        bounding_boxes = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+
+            if area > area_threshold:
+                x, y, w, h = cv2.boundingRect(contour)
+
+                bounding_boxes.append([x, y, w, h])
+
+
+        # Convert bounding boxes to [TL, BR] format
+        for i in range(len(bounding_boxes)):
+            bounding_boxes[i][2] = bounding_boxes[i][0] + bounding_boxes[i][2]
+            bounding_boxes[i][3] = bounding_boxes[i][1] + bounding_boxes[i][3]
+
+            bounding_boxes[i] = [[bounding_boxes[i][0], bounding_boxes[i][1]],
+                                 [bounding_boxes[i][2], bounding_boxes[i][3]]]
+
+
+        return bounding_boxes

@@ -15,11 +15,7 @@ class Camera:
             return
 
         # Start camera feed
-        self.feed = cv2.VideoCapture(rtsp_link)
-
-        if not self.feed.isOpened():
-            print('[ERROR]: camera with id ' + self.camera_id + " failed to start.", file=sys.stderr)
-            return
+        self.ChangeFeed(rtsp_link=rtsp_link)
 
     def GetRawNextFrame(self):
         # Returns the next frame from the video source
@@ -43,8 +39,21 @@ class Camera:
     def IsFeedActive(self):
         return self.feed.isOpened()
 
+    def ChangeFeed(self, rtsp_link):
+        # Changes the rtsp link for the camera feed
 
+        self.rtsp_link = rtsp_link
 
+        self.feed = cv2.VideoCapture(rtsp_link)
+
+        if not self.feed.isOpened():
+            print('[ERROR]: camera with id ' + self.camera_id + " failed to start.", file=sys.stderr)
+            return
+
+    def ReleaseFeed(self):
+        # Releases the rtsp link for the camera feed
+
+        self.feed.release()
 
 # Development only functions
 

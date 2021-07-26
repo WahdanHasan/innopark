@@ -15,6 +15,8 @@ def main():
     # webcam = Camera(rtsp_link=0,
     #                 camera_id=0)
 
+    new_model = OD.SubtractionModel()
+
     start_time = time.time()
     seconds_before_display = 1  # displays the frame rate every 1 second
     counter = 0
@@ -23,21 +25,36 @@ def main():
         frame_parking = cam_parking.GetScaledLoopingNextFrame()
         # webcam_frame = webcam.GetScaledNextFrame()
 
-        license_return_status, license_classes, license_bounding_boxes, license_scores = OD.DetectLicenseInImage(frame_license)
+        # license_return_status, license_classes, license_bounding_boxes, license_scores = OD.DetectLicenseInImage(frame_license)
+        #
+        # if license_return_status == True:
+        #     bb_license = IU.DrawBoundingBoxAndClasses(image=frame_license,
+        #                                               class_names=license_classes,
+        #                                               probabilities=license_scores,
+        #                                               bounding_boxes=license_bounding_boxes)
+        #
+        #     cv2.imshow("Drawn box license", bb_license)
+        #
+        #     parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
+        #
+        #     if parking_return_status == True:
+        #         bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
+        #                                                   class_names=parking_classes,
+        #                                                   probabilities=parking_scores,
+        #                                                   bounding_boxes=parking_bounding_boxes)
+        #
+        #         cv2.imshow("Drawn box parking", bb_parking)
 
-        if license_return_status == True:
-            bb_license = IU.DrawBoundingBoxAndClasses(image=frame_license,
-                                                      class_names=license_classes,
-                                                      probabilities=license_scores,
-                                                      bounding_boxes=license_bounding_boxes)
+        new_model.FeedSubtractionModel(frame_parking)
 
-            cv2.imshow("Drawn box license", bb_license)
+        boxes = new_model.DetectMovingObjects()
 
+        t_i = IU.DrawBoundingBox(frame_parking, boxes)
+
+        cv2.imshow("ti", t_i)
 
         cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)
-
-
         counter += 1
         if (time.time() - start_time) > seconds_before_display:
             print("FPS: ", counter / (time.time() - start_time))
