@@ -27,4 +27,4 @@ OpenCV for GPU (This is required for running YOLOv3 on GPU mode. By default, the
 - Follow this video: https://www.youtube.com/watch?v=YsmhKar8oOc
   - Here are the 2 downloads for OpenCV: 
     - https://github.com/opencv/opencv/archive/4.5.2.zip
-    - https://webwerks.dl.sourceforge.net/project/opencvlibrary/4.5.2/opencv-4.5.2-vc14_vc15.exe
+    - https://github.com/opencv/opencv_contrib/archive/refs/tags/4.5.2.zip
