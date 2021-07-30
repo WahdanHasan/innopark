@@ -7,6 +7,7 @@ from object_detection.utils import config_util
 from object_detection.utils import label_map_util
 from object_detection.builders import model_builder
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+import classes.system_utilities.image_utilities.tracker as T
 from object_detection.utils import visualization_utils as viz_utils
 
 # Global variable declarations
@@ -16,7 +17,7 @@ yolo_net = 0
 yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
-
+tracker = T.EuclideanDistTracker()
 
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
@@ -288,6 +289,9 @@ class SubtractionModel:
 
         # Filter out shadows
         _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
+
+        cv2.imshow("Subtraction Mask", self.subtraction_model_output_mask)
+
 
     def DetectMovingObjects(self, area_threshold=100):
         # Detect objects that have moved within the image.
