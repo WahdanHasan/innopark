@@ -135,6 +135,16 @@ def GetBoundingBoxCenter(bounding_box):
 
     return [center_x, center_y]
 
+def GetFullBoundingBoxCenter(bounding_box):
+    # Takes a bounding box in the format of [TL, TR, BL, BR]
+    # Returns the center of the bounding box
+
+    center_x = bounding_box[3][0] - bounding_box[0][0]
+    center_y = bounding_box[3][1] - bounding_box[0][1]
+
+
+    return [center_x, center_y]
+
 def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format

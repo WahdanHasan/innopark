@@ -290,7 +290,6 @@ class SubtractionModel:
         # Filter out shadows
         _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
 
-        cv2.imshow("Subtraction Mask", self.subtraction_model_output_mask)
 
 
     def DetectMovingObjects(self, area_threshold=100):
@@ -318,5 +317,8 @@ class SubtractionModel:
             bounding_boxes[i] = [[bounding_boxes[i][0], bounding_boxes[i][1]],
                                  [bounding_boxes[i][2], bounding_boxes[i][3]]]
 
+
+        self.subtraction_model_output_mask = IU.DrawBoundingBox(self.subtraction_model_output_mask, bounding_boxes)
+        cv2.imshow("Subtraction Mask", self.subtraction_model_output_mask)
 
         return bounding_boxes
