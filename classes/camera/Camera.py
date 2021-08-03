@@ -22,25 +22,7 @@ class Camera:
 
         # Define variables
         self.frame = 0
-
-    def GetRawNextFrame(self):
-        # Returns the next frame from the video source
-
-         _, frame = self.feed.read()
-
-         return frame
-
-    def GetScaledNextFrame(self):
-        # Returns the next frame from the video source post scaling based on the default scale factor
-
-        default_resolution = ImageResolution.SD.value
-
-        _, frame = self.feed.read()
-
-        frame = IU.RescaleImageToResolution(img=frame,
-                                            new_dimensions=default_resolution)
-
-        return frame
+        self.StoreNextFrame()
 
     def StoreNextFrame(self):
         # Gets and stores the next frame
@@ -75,6 +57,25 @@ class Camera:
 
 # Development only functions
 
+    def GetRawNextFrame(self):
+        # Returns the next frame from the video source
+
+         _, frame = self.feed.read()
+
+         return frame
+
+    def GetScaledNextFrame(self):
+        # Returns the next frame from the video source post scaling based on the default scale factor
+
+        default_resolution = ImageResolution.SD.value
+
+        _, frame = self.feed.read()
+
+        frame = IU.RescaleImageToResolution(img=frame,
+                                            new_dimensions=default_resolution)
+
+        return frame
+
     def GetRawLoopingNextFrame(self):
         # To be used when dealing with videos during development/demos.
         # Loops the footage when it finishes
@@ -92,8 +93,6 @@ class Camera:
         # To be used when dealing with videos during development/demos.
         # Loops the footage when it finishes
         # Returns the next frame after scaling it
-
-
 
         ret, frame = self.feed.read()
 

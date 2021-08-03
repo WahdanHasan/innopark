@@ -24,7 +24,7 @@ class TrackedObject:
 
 class Tracker:
 
-    def __init(self, camera):
+    def __init__(self, camera):
         # The objects_to_track variable must be in the list format of [type, id, bounding_box]
         # If the object is a vehicle, its id must be its license
         # It should be noted that the bounding box must be in the [TL, TR, BL, BR] format
@@ -39,7 +39,7 @@ class Tracker:
         self.camera = camera
 
 
-    def UpdateTracker(self, new_bounding_boxes):  # Work off a camera id or something, don't leave the detection for the user.
+    def UpdateTracker(self, image):  # Work off a camera id or something, don't leave the detection for the user.
         x=10
 
     def DetectNewEntrants(self, image):
@@ -50,15 +50,25 @@ class Tracker:
 
         return_status, classes, bounding_boxes, scores = OD.DetectObjectsInImage(image=masked_image)
 
+
         return return_status, classes, bounding_boxes, scores
+
+    def AddObjectToTracker(self, type, id, bounding_box):
+        tracked_object = [type, id, bounding_box]
+
+        tracked_object = TrackedObject(tracked_object=tracked_object)
+
+        self.tracked_objects.append(tracked_object)
+
+    def RemoveObjectFromTracker(self, tracked_object):
+        self.tracked_objects.remove(tracked_object)
 
     def SubtractMaskFromImage(self, image, mask):
         # Takes an image and subtracts the provided mask from it
         # Returns the outcome of the subtraction
 
-        masked_image = cv2.abs(image, mask)
-        # masked_image = cv2.subtract(image, mask)
-        # masked_image = image - mask
+        masked_image = cv2.subtract(image, mask)
+
 
         return masked_image
 
@@ -83,10 +93,5 @@ class Tracker:
         # Takes a tracked object and removes its mask from the base mask
         # It should be noted that moving objects should continually remove their old mask and add their own
 
-        mask = cv2.abs(mask, tracked_object.mask)
-        # mask = cv2.subtract(mask, tracked_object.mask)
-        # mask = mask - tracked_object.mask
+        mask = cv2.subtract(mask, tracked_object.mask)
 
-
-
-    # def DetectNewEntrants(self, image):

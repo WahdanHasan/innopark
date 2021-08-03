@@ -9,7 +9,7 @@ def main():
 
     cam_license = Camera(rtsp_link="data\\reference footage\\videos\\License_3.mp4",
                          camera_id=0)
-    cam_parking = Camera(rtsp_link="data\\reference footage\\videos\\Parking_Open_1.mp4",
+    cam_parking = Camera(rtsp_link="data\\reference footage\\videos\\Parking_Open_2.mp4",
                          camera_id=0)
 
     # webcam = Camera(rtsp_link=0,
@@ -19,6 +19,11 @@ def main():
     start_time = time.time()
     seconds_before_display = 1  # displays the frame rate every 1 second
     counter = 0
+
+    frame_parking = cam_parking.GetScaledLoopingNextFrame()
+
+    old_gray = cv2.cvtColor(frame_parking, cv2.COLOR_BGR2GRAY)
+    mask = np.zeros_like(frame_parking)
     while True:
         frame_license = cam_license.GetScaledLoopingNextFrame()
         frame_parking = cam_parking.GetScaledLoopingNextFrame()
@@ -34,30 +39,31 @@ def main():
         #
         #     cv2.imshow("Drawn box license", bb_license)
         #
-        parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
-
-        if parking_return_status == True:
-            bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
-                                                      class_names=parking_classes,
-                                                      probabilities=parking_scores,
-                                                      bounding_boxes=parking_bounding_boxes)
-
-            cv2.imshow("Drawn box parking", bb_parking)
-
-        # new_model.FeedSubtractionModel(frame_parking)
+        # parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
         #
-        # boxes = new_model.DetectMovingObjects()
+        # if parking_return_status == True:
+        #     bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
+        #                                               class_names=parking_classes,
+        #                                               probabilities=parking_scores,
+        #                                               bounding_boxes=parking_bounding_boxes)
         #
-        # t_i = IU.DrawBoundingBox(frame_parking, boxes)
+        #     cv2.imshow("Drawn box parking", bb_parking)
 
-        # box_ids = OD.tracker.update(boxes)
+        new_model.FeedSubtractionModel(frame_parking)
 
-        # for box_id in box_ids:
-        #     x, y, w, h, id = box_id
-        #     cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
-        #     cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
+        boxes = new_model.DetectMovingObjects()
 
-        # cv2.imshow("Subtraction Detection", t_i)
+        t_i = IU.DrawBoundingBox(frame_parking, boxes)
+
+        box_ids = OD.tracker.update(boxes)
+
+        for box_id in box_ids:
+            x, y, w, h, id = box_id
+            cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
+            cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
+
+
+        cv2.imshow("Subtraction Detection", t_i)
         # cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)
         counter += 1
