@@ -17,6 +17,12 @@ class Camera:
         # Start camera feed
         self.ChangeFeed(rtsp_link=rtsp_link)
 
+        # Set default scaled resolution
+        self.default_resolution = ImageResolution.SD.value
+
+        # Define variables
+        self.frame = 0
+
     def GetRawNextFrame(self):
         # Returns the next frame from the video source
 
@@ -35,6 +41,18 @@ class Camera:
                                             new_dimensions=default_resolution)
 
         return frame
+
+    def StoreNextFrame(self):
+        # Gets and stores the next frame
+        # It should be noted that this function is to be called with the primary loop only.
+        # All processes that wish to use the current frame should use GetCurrentFrame
+
+        _, self.frame = self.feed.read()
+        self.frame = IU.RescaleImageToResolution(img=self.frame,
+                                                 new_dimensions=self.default_resolution)
+
+    def GetCurrentFrame(self):
+        return self.frame
 
     def IsFeedActive(self):
         return self.feed.isOpened()
@@ -75,7 +93,7 @@ class Camera:
         # Loops the footage when it finishes
         # Returns the next frame after scaling it
 
-        default_resolution = ImageResolution.SD.value
+
 
         ret, frame = self.feed.read()
 
@@ -84,7 +102,7 @@ class Camera:
             ret, frame = self.feed.read()
 
         frame = IU.RescaleImageToResolution(img=frame,
-                                            new_dimensions=default_resolution)
+                                            new_dimensions=self.default_resolution)
 
 
         return frame
