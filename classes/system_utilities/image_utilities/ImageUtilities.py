@@ -125,6 +125,14 @@ def GetFullBoundingBox(bounding_box):
 
     return full_bounding_box
 
+def GetPartialBoundingBox(bounding_box):
+    # Takes a bounding box in the format of [TL, TR, BL, BR]
+    # Returns the equivalent [TL, BR] format box
+
+    partial_bounding_box = [[bounding_box[0], bounding_box[1]], [bounding_box[2], bounding_box[3]]]
+
+    return partial_bounding_box
+
 def GetBoundingBoxCenter(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the center of the bounding box

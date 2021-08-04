@@ -6,3 +6,8 @@ class ImageResolution(Enum):
     HD = (1280, 720)
     SD = (720, 480)
 
+class ObjectStatus(Enum):
+    Moving = 0
+    Stationary = 1
+
+

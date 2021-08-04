@@ -1,75 +1,97 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+import cv2
+import numpy as np
+from classes.enum_classes.Enums import ObjectStatus
 
 class TrackedObject:
     def __init__(self, tracked_object):
-        self.type = []
-        self.type.append(tracked_object[0])
-        self.id = []
-        self.id.append(tracked_object[1])
+        self.type = tracked_object[0]
+        self.id = tracked_object[1]
         self.bounding_box = tracked_object[2]
         self.frames_since_last_seen = 0
         self.bounding_box_history = []
-
+        self.mask = 0
+        self.status = 0
 
     def UpdatePosition(self, new_bounding_box):
         old_bounding_box = self.bounding_box
         self.bounding_box = new_bounding_box
         self.bounding_box_history.append(old_bounding_box)
 
+    def UpdateStatus(self, status):
+        self.status = status
+
 class Tracker:
 
-     def __init(self, objects_to_track):
-         # The objects_to_track variable must be in the list format of [type, id, bounding_box]
-         # If the object is a vehicle, its id must be its license
-         # It should be noted that the bounding box must be in the [TL, TR, BL, BR] format
+    def __init__(self, camera):
+        # The objects_to_track variable must be in the list format of [type, id, bounding_box]
+        # If the object is a vehicle, its id must be its license
+        # It should be noted that the bounding box must be in the [TL, TR, BL, BR] format
 
-         self.tracked_objects = []
+        frame = camera.GetCurrentFrame()
+        height, width, _ = frame.shape
 
-         objects_size = len(objects_to_track)
+        self.base_mask = np.zeros((height, width, 1))
 
-         for i in range(objects_size):
-             temp_object = TrackedObject(objects_to_track[i])
+        self.tracked_objects = []
 
-             self.tracked_objects.append(temp_object)
-
-    def UpdateTracker(self, new_bounding_boxes):
+        self.camera = camera
 
 
-        # Find the center points for the new bounding boxes
-        new_box_center_point_list = []
-        new_bounding_boxes_length = len(new_bounding_boxes)
-        for i in range(new_bounding_boxes_length):
-            temp_center_point = IU.GetBoundingBoxCenter(new_bounding_boxes[i])
-            new_box_center_point_list.append(temp_center_point)
+    def UpdateTracker(self, image):  # Work off a camera id or something, don't leave the detection for the user.
+        x=10
+
+    def DetectNewEntrants(self, image):
+        # Returns new entrants within an image by running YOLO on the image after the application of the base mask
+        # This results in only untracked objects being detected
+
+        masked_image = self.SubtractMaskFromImage(image, self.base_mask)
+
+        return_status, classes, bounding_boxes, scores = OD.DetectObjectsInImage(image=masked_image)
 
 
-        tracked_objects_length = len(self.tracked_objects)
-        for i in range(tracked_objects_length):
+        return return_status, classes, bounding_boxes, scores
 
-            # Create a reference to the tracked object on the current iteration
-            tracked_object = self.tracked_objects[i]
+    def AddObjectToTracker(self, type, id, bounding_box):
+        tracked_object = [type, id, bounding_box]
 
-            # Get the tracked object's bounding box center point
-            tracked_object_center_point = IU.GetFullBoundingBoxCenter(tracked_object[2])
+        tracked_object = TrackedObject(tracked_object=tracked_object)
+
+        self.tracked_objects.append(tracked_object)
+
+    def RemoveObjectFromTracker(self, tracked_object):
+        self.tracked_objects.remove(tracked_object)
+
+    def SubtractMaskFromImage(self, image, mask):
+        # Takes an image and subtracts the provided mask from it
+        # Returns the outcome of the subtraction
+
+        masked_image = cv2.subtract(image, mask)
 
 
+        return masked_image
+
+    def AddToMask(self, tracked_object, mask):
+        # Takes a tracked object and adds its mask to the base mask
+        # It should be noted that moving objects should continually remove their old mask and add their own
+
+        if len(tracked_object.bounding_box) == 4:
+            bounding_box = IU.GetPartialBoundingBox(bounding_box=tracked_object.bounding_box)
+        else:
+            bounding_box = tracked_object.bounding_box
+
+        bounding_box_center = IU.GetBoundingBoxCenter(bounding_box=bounding_box)
+
+        self.base_mask = IU.PlaceImage(base_image=self.base_mask,
+                                       img_to_place=tracked_object.mask,
+                                       center_x=bounding_box_center[0],
+                                       center_y=bounding_box_center[1])
 
 
-    def GetNewObjectIndexes(self, object_ids, array_size):
-        # Takes the id array of the new objects and the size of the array
-        # Checks if a tracked object's ids exist
-        # Returns the indexes of the new objects
-        # *Comment so i dont forget*: I'll associate each object with its new position, left out boxes are what im
-        # finding through this function
+    def RemoveFromMask(self, tracked_object, mask):
+        # Takes a tracked object and removes its mask from the base mask
+        # It should be noted that moving objects should continually remove their old mask and add their own
 
-        new_object_indexes = []
-        for i in range (array_size):
-            for tracked_object_id in self.tracked_objects[1][i]:
-                for untracked_object_id in object_ids:
-                    if tracked_object_id == untracked_object_id:
-                        continue
-                    new_object_indexes.append(i)
-
-        return new_object_indexes
+        mask = cv2.subtract(mask, tracked_object.mask)
 
