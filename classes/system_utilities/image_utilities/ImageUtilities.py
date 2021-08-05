@@ -137,8 +137,8 @@ def GetBoundingBoxCenter(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the center of the bounding box
 
-    center_x = bounding_box[1][0] - bounding_box[0][0]
-    center_y = bounding_box[1][1] - bounding_box[0][1]
+    center_x = int((bounding_box[1][0] + bounding_box[0][0])/2)
+    center_y = int((bounding_box[1][1] + bounding_box[0][1])/2)
 
 
     return [center_x, center_y]

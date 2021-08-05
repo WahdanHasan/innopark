@@ -57,10 +57,10 @@ def main():
 
         box_ids = OD.tracker.update(boxes)
 
-        for box_id in box_ids:
-            x, y, w, h, id = box_id
-            cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
-            cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
+        # for box_id in box_ids:
+        #     x, y, w, h, id = box_id
+        #     cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
+        #     cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
 
 
         cv2.imshow("Subtraction Detection", t_i)

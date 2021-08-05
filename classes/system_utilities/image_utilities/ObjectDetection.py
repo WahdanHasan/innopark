@@ -288,7 +288,7 @@ class SubtractionModel:
         self.subtraction_model_output_mask = self.subtraction_model.apply(image)
 
         # Filter out shadows
-        _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
+        # _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
 
 
 
