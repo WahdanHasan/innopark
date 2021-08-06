@@ -16,6 +16,8 @@ class EuclideanDistTracker:
 
         # Get center point of new object
         for rect in objects_rect:
+            if len(rect) == 2:
+                return
             x, y, w, h = rect
             cx = (x + x + w) // 2
             cy = (y + y + h) // 2

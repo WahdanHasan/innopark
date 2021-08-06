@@ -39,31 +39,31 @@ def main():
         #
         #     cv2.imshow("Drawn box license", bb_license)
         #
-        # parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
+        parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
+
+        if parking_return_status == True:
+            bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
+                                                      class_names=parking_classes,
+                                                      probabilities=parking_scores,
+                                                      bounding_boxes=parking_bounding_boxes)
+
+            cv2.imshow("Drawn box parking", bb_parking)
+
+       # new_model.FeedSubtractionModel(frame_parking)
+
+        # boxes = new_model.DetectMovingObjects()
         #
-        # if parking_return_status == True:
-        #     bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
-        #                                               class_names=parking_classes,
-        #                                               probabilities=parking_scores,
-        #                                               bounding_boxes=parking_bounding_boxes)
+        # t_i = IU.DrawBoundingBox(frame_parking, boxes)
         #
-        #     cv2.imshow("Drawn box parking", bb_parking)
-
-        new_model.FeedSubtractionModel(frame_parking)
-
-        boxes = new_model.DetectMovingObjects()
-
-        t_i = IU.DrawBoundingBox(frame_parking, boxes)
-
-        box_ids = OD.tracker.update(boxes)
-
-        for box_id in box_ids:
-            x, y, w, h, id = box_id
-            cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
-            cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
+        # box_ids = OD.tracker.update(boxes)
+        #
+        # for box_id in box_ids:
+        #     x, y, w, h, id = box_id
+        #     cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
+        #     cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
 
 
-        cv2.imshow("Subtraction Detection", t_i)
+        #cv2.imshow("Subtraction Detection", t_i)
         # cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)
         counter += 1
