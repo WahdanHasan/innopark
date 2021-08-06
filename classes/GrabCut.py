@@ -4,7 +4,7 @@ import time
 
 
 #img = cv2.imread("data\\reference footage\\images\\Parked_Car.png")
-img = cv2.imread("D:\\ProgramData\\Grad Project\\InnoPark\\data\\reference footage\\images\\Parked_Car.png")
+img = cv2.imread("..\\data\\reference footage\\images\\Parked_Car.png")
 mask = np.zeros(img.shape[:2], np.uint8)
 
 #rect = (11, 16, 154, 119)

@@ -153,6 +153,15 @@ def GetFullBoundingBoxCenter(bounding_box):
 
     return [center_x, center_y]
 
+def GetDimensionsFromBoundingBox(bounding_box):
+    # Takes a bounding box in the format of [TL, BR]
+    # Returns the height and the width as a tuple
+
+    height = bounding_box[1][1] + bounding_box [0][1]
+    width = bounding_box[1][0] + bounding_box [0][0]
+
+    return (height, width)
+
 def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
