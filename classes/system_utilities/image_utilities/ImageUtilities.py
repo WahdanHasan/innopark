@@ -157,8 +157,8 @@ def GetDimensionsFromBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the height and the width as a tuple
 
-    height = bounding_box[1][1] + bounding_box [0][1]
-    width = bounding_box[1][0] + bounding_box [0][0]
+    height = bounding_box[1][1] + bounding_box[0][1]
+    width = bounding_box[1][0] + bounding_box[0][0]
 
     return (height, width)
 
