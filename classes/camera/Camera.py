@@ -1,10 +1,12 @@
 import cv2
 import sys
+from queue import Queue
+from threading import Thread
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.enum_classes.Enums import ImageResolution
 
 class Camera:
-    def __init__(self, rtsp_link, camera_id):
+    def __init__(self, rtsp_link, camera_id, buffer_size=1):
         # Assign local variables
         self.rtsp_link = rtsp_link
         self.camera_id = camera_id
@@ -15,7 +17,7 @@ class Camera:
             return
 
         # Start camera feed
-        self.ChangeFeed(rtsp_link=rtsp_link)
+        self.UpdateFeed(rtsp_link=rtsp_link)
 
         # Set default scaled resolution
         self.default_resolution = ImageResolution.SD.value
@@ -23,6 +25,40 @@ class Camera:
         # Define variables
         self.frame = 0
         self.StoreNextFrame()
+
+        # Queue threading stuff
+        self.queue_buffer_size = buffer_size
+        self.frame_queue = Queue(maxsize=buffer_size)
+        self.feed_stopped = False
+        self.StartFeedThread()
+
+    def StartFeedThread(self):
+        # Start a thread to keep polling the camera
+        polling_thread = Thread(target=self.UpdateFeedThread, args=())
+        polling_thread.daemon = True
+        polling_thread.start()
+        return self
+
+    def UpdateFeedThread(self):
+        # For use by a thread to keep polling the camera feed until stopped
+
+        while not self.feed_stopped:
+
+            # if self.frame_queue.full():
+            #     new_queue = Queue(self.queue_buffer_size)
+            #     new_queue.put(frame)
+            #     self.frame_queue = new_queue
+
+            # if not self.frame_queue.full():
+            _, frame = self.feed.read()
+
+            # Comment this out if not using video files
+            if not _:
+                self.UpdateFeed(self.rtsp_link)
+                continue
+
+            self.frame_queue.put(frame)
+
 
     def StoreNextFrame(self):
         # Gets and stores the next frame
@@ -39,7 +75,7 @@ class Camera:
     def IsFeedActive(self):
         return self.feed.isOpened()
 
-    def ChangeFeed(self, rtsp_link):
+    def UpdateFeed(self, rtsp_link):
         # Changes the rtsp link for the camera feed
 
         self.rtsp_link = rtsp_link
@@ -87,6 +123,7 @@ class Camera:
             self.feed = cv2.VideoCapture(self.rtsp_link)
             ret, frame = self.feed.read()
 
+
         return frame
 
     def GetScaledLoopingNextFrame(self):
@@ -94,11 +131,13 @@ class Camera:
         # Loops the footage when it finishes
         # Returns the next frame after scaling it
 
-        ret, frame = self.feed.read()
+        # ret, frame = self.feed.read()
+        #
+        # if not ret:
+        #     self.feed = cv2.VideoCapture(self.rtsp_link)
+        #     ret, frame = self.feed.read()
 
-        if not ret:
-            self.feed = cv2.VideoCapture(self.rtsp_link)
-            ret, frame = self.feed.read()
+        frame = self.frame_queue.get()
 
         frame = IU.RescaleImageToResolution(img=frame,
                                             new_dimensions=self.default_resolution)

@@ -6,6 +6,10 @@ from classes.enum_classes.Enums import ObjectStatus
 
 class TrackedObject:
     def __init__(self, tracked_object):
+        # The objects_to_track variable must be in the list format of [type, id, bounding_box]
+        # If the object is a vehicle, its id must be its license
+        # It should be noted that the bounding box must be in the [TL, TR, BL, BR] format
+
         self.type = tracked_object[0]
         self.id = tracked_object[1]
         self.bounding_box = tracked_object[2]
@@ -25,14 +29,13 @@ class TrackedObject:
 class Tracker:
 
     def __init__(self, camera):
-        # The objects_to_track variable must be in the list format of [type, id, bounding_box]
-        # If the object is a vehicle, its id must be its license
-        # It should be noted that the bounding box must be in the [TL, TR, BL, BR] format
 
         frame = camera.GetCurrentFrame()
         height, width, _ = frame.shape
 
-        self.base_mask = np.zeros((height, width, 1))
+        self.base_mask = np.zeros((height, width, 3), dtype='uint8')
+        # self.base_mask = map(tuple, self.base_mask)
+        # self.base_mask = tuple(self.base_mask)
 
         self.tracked_objects = []
 
@@ -72,7 +75,7 @@ class Tracker:
 
         return masked_image
 
-    def AddToMask(self, tracked_object, mask):
+    def AddToMask(self, tracked_object):
         # Takes a tracked object and adds its mask to the base mask
         # It should be noted that moving objects should continually remove their old mask and add their own
 
@@ -89,9 +92,23 @@ class Tracker:
                                        center_y=bounding_box_center[1])
 
 
-    def RemoveFromMask(self, tracked_object, mask):
+    def RemoveFromMask(self, tracked_object): # Change this in the future to not subtract adjacent masks
         # Takes a tracked object and removes its mask from the base mask
         # It should be noted that moving objects should continually remove their old mask and add their own
 
-        mask = cv2.subtract(mask, tracked_object.mask)
+        if len(tracked_object.bounding_box) == 4:
+            bounding_box = IU.GetPartialBoundingBox(bounding_box=tracked_object.bounding_box)
+        else:
+            bounding_box = tracked_object.bounding_box
+
+        bounding_box_center = IU.GetBoundingBoxCenter(bounding_box=bounding_box)
+
+        tracked_object_mask_height, tracked_object_mask_width, _ = tracked_object.mask.shape
+
+        tracked_object.mask = np.zeros((tracked_object_mask_height, tracked_object_mask_width, 3), dtype='uint8')
+
+        self.base_mask = IU.PlaceImage(base_image=self.base_mask,
+                                       img_to_place=tracked_object.mask,
+                                       center_x=bounding_box_center[0],
+                                       center_y=bounding_box_center[1])
 
