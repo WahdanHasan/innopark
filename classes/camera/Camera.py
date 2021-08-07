@@ -10,6 +10,7 @@ class Camera:
         # Assign local variables
         self.rtsp_link = rtsp_link
         self.camera_id = camera_id
+        self.default_resolution = ImageResolution.SD.value
 
         # Link validation
         if not (isinstance(rtsp_link, str) or isinstance(rtsp_link, int)):
@@ -17,39 +18,31 @@ class Camera:
             return
 
         # Start camera feed
+        self.feed = 0
         self.UpdateFeed(rtsp_link=rtsp_link)
 
-        # Set default scaled resolution
-        self.default_resolution = ImageResolution.SD.value
-
-        # Define variables
+        # LIFO Queue threading initializations and start
         self.frame = 0
-        self.StoreNextFrame()
-
-        # Queue threading stuff
         self.queue_buffer_size = buffer_size
         self.frame_queue = Queue(maxsize=buffer_size)
         self.feed_stopped = False
         self.StartFeedThread()
 
     def StartFeedThread(self):
-        # Start a thread to keep polling the camera
-        polling_thread = Thread(target=self.UpdateFeedThread, args=())
+        # Start a daemon thread to keep polling the camera
+
+        polling_thread = Thread(target=self.PollFeedThread, args=())
         polling_thread.daemon = True
         polling_thread.start()
+
+
         return self
 
-    def UpdateFeedThread(self):
+    def PollFeedThread(self):
         # For use by a thread to keep polling the camera feed until stopped
 
         while not self.feed_stopped:
 
-            # if self.frame_queue.full():
-            #     new_queue = Queue(self.queue_buffer_size)
-            #     new_queue.put(frame)
-            #     self.frame_queue = new_queue
-
-            # if not self.frame_queue.full():
             _, frame = self.feed.read()
 
             # Comment this out if not using video files
@@ -59,23 +52,7 @@ class Camera:
 
             self.frame_queue.put(frame)
 
-
-    def StoreNextFrame(self):
-        # Gets and stores the next frame
-        # It should be noted that this function is to be called with the primary loop only.
-        # All processes that wish to use the current frame should use GetCurrentFrame
-
-        _, self.frame = self.feed.read()
-        self.frame = IU.RescaleImageToResolution(img=self.frame,
-                                                 new_dimensions=self.default_resolution)
-
-    def GetCurrentFrame(self):
-        return self.frame
-
-    def IsFeedActive(self):
-        return self.feed.isOpened()
-
-    def UpdateFeed(self, rtsp_link):
+    def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
         # Changes the rtsp link for the camera feed
 
         self.rtsp_link = rtsp_link
@@ -84,66 +61,38 @@ class Camera:
 
         if not self.feed.isOpened():
             print('[ERROR]: camera with id ' + self.camera_id + " failed to start.", file=sys.stderr)
-            return
+
+    def StopFeedThread(self):
+        # Stop the current feed
+
+        self.feed_stopped = True
 
     def ReleaseFeed(self):
         # Releases the rtsp link for the camera feed
 
+        self.StopFeedThread()
         self.feed.release()
 
-# Development only functions
+    def IsFeedActive(self):
+        return self.feed.isOpened()
 
     def GetRawNextFrame(self):
-        # Returns the next frame from the video source
+        # Returns the next frame from the feed queue
 
-         _, frame = self.feed.read()
+        frame = self.frame_queue.get()
 
-         return frame
+        return frame
 
     def GetScaledNextFrame(self):
-        # Returns the next frame from the video source post scaling based on the default scale factor
-
-        default_resolution = ImageResolution.SD.value
-
-        _, frame = self.feed.read()
-
-        frame = IU.RescaleImageToResolution(img=frame,
-                                            new_dimensions=default_resolution)
-
-        return frame
-
-    def GetRawLoopingNextFrame(self):
-        # To be used when dealing with videos during development/demos.
-        # Loops the footage when it finishes
-        # Returns the next frame
-
-        ret, frame = self.feed.read()
-
-        if not ret:
-            self.feed = cv2.VideoCapture(self.rtsp_link)
-            ret, frame = self.feed.read()
-
-
-        return frame
-
-    def GetScaledLoopingNextFrame(self):
-        # To be used when dealing with videos during development/demos.
-        # Loops the footage when it finishes
-        # Returns the next frame after scaling it
-
-        # ret, frame = self.feed.read()
-        #
-        # if not ret:
-        #     self.feed = cv2.VideoCapture(self.rtsp_link)
-        #     ret, frame = self.feed.read()
+        # Returns the next frame from the feed queue post scaling based on the default scale factor
 
         frame = self.frame_queue.get()
 
         frame = IU.RescaleImageToResolution(img=frame,
                                             new_dimensions=self.default_resolution)
 
-
         return frame
+
 
 
 

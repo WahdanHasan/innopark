@@ -5,7 +5,13 @@ from classes.camera.Camera import Camera
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 
+<<<<<<< HEAD
 def getBlackMask(img, bbox):
+=======
+#img = cv2.imread("data\\reference footage\\images\\Parked_Car.png")
+img = cv2.imread("..\\data\\reference footage\\images\\Parked_Car.png")
+mask = np.zeros(img.shape[:2], np.uint8)
+>>>>>>> 1c111f395fe0b9dbf0067cffc9dff600cb446f52
 
 	# create an empty mask according to the shape of img
 	mask = np.zeros(img.shape[:2], np.uint8)
