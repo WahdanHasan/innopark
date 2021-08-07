@@ -24,10 +24,17 @@ def getBlackMask(img, bbox):
 	# apply GrabCut using the the bounding box segmentation method
 	# mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
 	bbox_converted = [resized_bbox[0][0], resized_bbox[0][1], resized_bbox[1][0], resized_bbox[1][1]]
-	#resized_bbox = [20, 40, 19, 79]
+
 	(mask, _, _) = cv2.grabCut(cropped_img, mask, bbox_converted, bgModel, fgModel, iterCount=7, mode=cv2.GC_INIT_WITH_RECT)
 
+
 	outputMask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")
+	output = cv2.bitwise_and(cropped_img, cropped_img, mask=outputMask)
+	cv2.imshow("Input", cropped_img)
+	cv2.imshow("GrabCut Mask", outputMask)
+	cv2.imshow("GrabCut Output", output)
+	cv2.waitKey(1)
+
 	return outputMask
 
 def getCroppedImageAndEnlargedBbox(img, bbox):
@@ -87,7 +94,9 @@ def main():
 		# cv2.imshow('mask', valueMask)
 
 		mask = getBlackMask(frame_parking, bbox)
-		cv2.imshow('mask', mask)
+
+
+		#cv2.imshow('mask', mask)
 
 		#output = cv2.bitwise_and(img, img, mask=outputMask)
 
