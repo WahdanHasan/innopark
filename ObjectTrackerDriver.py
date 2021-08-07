@@ -54,7 +54,7 @@ def main():
     x = 0
     while True:
         x = x + 1
-        frame_parking = cam_parking.GetScaledLoopingNextFrame()
+        frame_parking = cam_parking.GetScaledNextFrame()
 
         subtracted_from_mask = tracker.SubtractMaskFromImage(frame_parking, tracker.base_mask)
         if x == 1000:
