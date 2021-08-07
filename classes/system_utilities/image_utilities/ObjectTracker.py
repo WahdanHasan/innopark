@@ -30,8 +30,7 @@ class Tracker:
 
     def __init__(self, camera):
 
-        frame = camera.GetCurrentFrame()
-        height, width, _ = frame.shape
+        height, width = camera.default_resolution[1], camera.default_resolution[0]
 
         self.base_mask = np.zeros((height, width, 3), dtype='uint8')
         # self.base_mask = map(tuple, self.base_mask)
