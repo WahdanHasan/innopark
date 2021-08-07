@@ -4,14 +4,12 @@ import time
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.camera.Camera import Camera
 
-#img = cv2.imread("data\\reference footage\\images\\Parked_Car.png")
-
-def getBlackMask(img, bbox):
-	# get cropped img
-	cropped_img, enlarged_bbox = getCroppedImageAndEnlargedBbox(img, bbox)
+def GetBlackMask(img, bbox):
+	# crop the image using a slightly larger bbox
+	cropped_img, enlarged_bbox = GetCroppedImageAndEnlargedBbox(img, bbox)
 
 	#get the resized bbox
-	resized_bbox = getResizedBbox(bbox, enlarged_bbox)
+	resized_bbox = GetResizedBbox(bbox, enlarged_bbox)
 
 	# create an empty mask according to the shape of img
 	mask = np.zeros(cropped_img.shape[:2], np.uint8)
@@ -20,24 +18,24 @@ def getBlackMask(img, bbox):
 	bgModel = np.zeros((1, 65), np.float64)
 	fgModel = np.zeros((1, 65), np.float64)
 
+	# convert [TL, BR] to [TL_x, TL_y, BR_x, BR_y]
+	bbox_converted = [resized_bbox[0][0], resized_bbox[0][1], resized_bbox[1][0], resized_bbox[1][1]]
 
 	# apply GrabCut using the the bounding box segmentation method
 	# mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
-	bbox_converted = [resized_bbox[0][0], resized_bbox[0][1], resized_bbox[1][0], resized_bbox[1][1]]
+	(mask, _, _) = cv2.grabCut(cropped_img, mask, bbox_converted, bgModel, fgModel, iterCount=1, mode=cv2.GC_INIT_WITH_RECT)
 
-	(mask, _, _) = cv2.grabCut(cropped_img, mask, bbox_converted, bgModel, fgModel, iterCount=7, mode=cv2.GC_INIT_WITH_RECT)
-
-
+	# make the definite and probable backgrounds white
+	# make the definite and probable foregrounds black, in our case, it's the car
 	outputMask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")
-	output = cv2.bitwise_and(cropped_img, cropped_img, mask=outputMask)
-	cv2.imshow("Input", cropped_img)
-	cv2.imshow("GrabCut Mask", outputMask)
-	cv2.imshow("GrabCut Output", output)
-	cv2.waitKey(1)
+	#output = cv2.bitwise_and(cropped_img, cropped_img, mask=outputMask)
+	# cv2.imshow("Input", cropped_img)
+	# cv2.imshow("GrabCut Mask", outputMask)
+	# cv2.imshow("GrabCut Output", output)
 
 	return outputMask
 
-def getCroppedImageAndEnlargedBbox(img, bbox):
+def GetCroppedImageAndEnlargedBbox(img, bbox):
 	percentage = 0.1
 	height, width, _ = img.shape
 
@@ -62,7 +60,7 @@ def getCroppedImageAndEnlargedBbox(img, bbox):
 
 	return cropped_img, bbox2
 
-def getResizedBbox(bbox, enlarged_bbox):
+def GetResizedBbox(bbox, enlarged_bbox):
 	TL = [bbox[0][0]-enlarged_bbox[0][0], bbox[0][1]-enlarged_bbox[0][1]]
 	BR = [bbox[1][0] - enlarged_bbox[0][0], bbox[1][1]-enlarged_bbox[0][1]]
 
@@ -83,23 +81,8 @@ def main():
 	while True:
 		frame_parking = cam_parking.GetScaledNextFrame()
 
-		#frame_parking_with_bbox = IU.DrawBoundingBox(frame_parking, [bbox])
-
-		# values = (cv2.GC_BGD, cv2.GC_PR_BGD, cv2.GC_FGD, cv2.GC_PR_FGD)
-		# # loop over the possible GrabCut mask values
-		# for (value) in values:
-		# 	# construct a mask that for the current value
-		# 	valueMask = (mask == value).astype("uint8") * 255
-		#
-		# cv2.imshow('mask', valueMask)
-
-		mask = getBlackMask(frame_parking, bbox)
-
-
-		#cv2.imshow('mask', mask)
-
-		#output = cv2.bitwise_and(img, img, mask=outputMask)
-
+		mask = GetBlackMask(frame_parking, bbox)
+		cv2.imshow('mask', mask)
 
 		counter += 1
 		if (time.time() - start_time) > seconds_before_display:
