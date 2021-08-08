@@ -25,7 +25,7 @@ def getBlackMask(img, bbox):
 	# mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
 	bbox_converted = [resized_bbox[0][0], resized_bbox[0][1], resized_bbox[1][0], resized_bbox[1][1]]
 
-	(mask, _, _) = cv2.grabCut(cropped_img, mask, bbox_converted, bgModel, fgModel, iterCount=7, mode=cv2.GC_INIT_WITH_RECT)
+	(mask, _, _) = cv2.grabCut(cropped_img, mask, bbox_converted, bgModel, fgModel, iterCount=1, mode=cv2.GC_INIT_WITH_RECT)
 
 
 	outputMask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")

@@ -27,8 +27,8 @@ while True:
                                                               15, 0.08))
 
     for i in range(len(new_pts)):
-        cv2.circle(frame2, (int(new_pts[i][0][0]), int(new_pts[i][0][1])), 2, (0, 255, 0), 2)
-    combined = cv2.addWeighted(frame2, 0.7, mask, 0.3, 0.1)
+        cv2.circle(mask, (int(new_pts[i][0][0]), int(new_pts[i][0][1])), 2, (0, 255, 0), 2)
+    combined = cv2.addWeighted(mask, 0.7, mask, 0.3, 0.1)
 
     cv2.imshow("new win", mask)
     cv2.imshow("new", frame2)
