@@ -9,7 +9,7 @@ root.title("InnoPark")
 global counter
 counter = 0
 
-img = cv2.imread("C:\\Users\\hassa\\PycharmProjects\\untitled1\\data\\parking_lot_1.png")
+img = cv2.imread("..\\..\\..\\data\\reference footage\\images\\parking_lot_1.png")
 global temp
 image_copy = img.copy()
 drawing = False
@@ -282,6 +282,7 @@ def createWindow():
     cv2.setMouseCallback('Image', draw_circle)
 
 def radioClicked():
+    return
     radio_btn = radio_var.get()
     if (radio_btn == 1 or radio_btn == 2 or radio_btn == 3 or radio_btn == 4):
         loadGUI()
@@ -346,7 +347,9 @@ def createMenu():
     reset_btn = Button(root, text="Reset", command=reset)
     reset_btn.grid(row=12, column=0, pady=(7, 0), padx=(10, 30), sticky="w")
 
+    print ("Hi")
     root.mainloop()
+    print ("bye")
 
 def loadGUI():
 
