@@ -195,6 +195,8 @@ def InitializeMenu():
 
 def MouseClickCallBack(event, x, y, flags, param):
     # When the user clicks on the image, the appropriate bounding box point is modified
+    valid = 0
+    idx = 0
 
     if event != cv2.EVENT_LBUTTONDOWN:
         return
@@ -204,6 +206,36 @@ def MouseClickCallBack(event, x, y, flags, param):
 
     # Write new bounding box value
     bounding_box[index] = [x, y]
+
+    for idx, _ in enumerate(bounding_box):
+        if bounding_box[idx] != invalid_point:
+            valid += 1
+            print(valid)
+
+    # Check for bounding box pt intersection
+    if valid > 3:
+        if (bounding_box[1][0] < min(bounding_box[0][0], bounding_box[2][0])):
+            print("Lines cannot intersect1")
+            bounding_box[index] = invalid_point
+        if ((bounding_box[1][0] < max(bounding_box[2][0], bounding_box[3][0]) and bounding_box[1][1] > max(bounding_box[2][1], bounding_box[3][1]))):
+            print("Lines cannot intersect2")
+            bounding_box[index] = invalid_point
+        if (bounding_box[2][0] > max(bounding_box[1][0], bounding_box[3][0])):
+            print("Lines cannot intersect3")
+            bounding_box[index] = invalid_point
+        if ((bounding_box[2][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[2][1] < max(bounding_box[0][1], bounding_box[1][1]))):
+            print("Lines cannot intersect4")
+            bounding_box[index] = invalid_point
+        if (bounding_box[0][0] > max(bounding_box[1][0], bounding_box[3][0])):
+            print("Lines cannot intersect5")
+            bounding_box[index] = invalid_point
+        if (bounding_box[3][0] < max(bounding_box[0][0], bounding_box[2][0])):
+            print("Lines cannot intersect6")
+            bounding_box[index] = invalid_point
+        if ((bounding_box[3][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[3][1] < max(bounding_box[0][1], bounding_box[1][1]))):
+            print("Lines cannot intersect7")
+            bounding_box[index] = invalid_point
+    print(bounding_box)
 
     # Redraw image
     image = base_image.copy()
