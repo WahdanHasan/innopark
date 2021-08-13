@@ -252,3 +252,40 @@ def DetectObjectsInImage(image):
 
 
     return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
+
+def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
+    #takes two full bounding boxes
+    #uses the TL, BR points to get intersection, area and IoU
+
+    acceptable_threshold = 0.6
+
+    #get x,y coordinates of TL, BR
+    xA = max(parking_bounding_box[0][0], car_bounding_box[0][0])                                                #A = [[283, 330], [346,329], [309, 365], [381,360]]                                                                                                            #B = [[282, 331], [347, 330], [307, 366], [379, 364]]
+    yA = max(parking_bounding_box[0][1], car_bounding_box[0][1])
+
+    xB = min(parking_bounding_box[3][0], car_bounding_box[3][0])
+    yB = min(parking_bounding_box[3][1], car_bounding_box[3][1])
+
+    #check whether intersection exists first
+    if (xA > xB or yA > yB):
+        print ("No intersection")
+        return -1
+
+    #get area of intersecting width and height
+    intersecting_area = max(0, xB - xA) * max(0, yB - yA)
+
+    #get the area of both bounding boxes separately
+    parking_bounding_box_area = (parking_bounding_box[3][0] - parking_bounding_box[0][0]) * (parking_bounding_box[3][1] - parking_bounding_box[0][1])
+    car_bounding_box_area = (car_bounding_box[3][0] - car_bounding_box[0][0]) * (car_bounding_box[3][1] - car_bounding_box[0][1])
+
+    #calculate IoU
+    #union = area - intersecting area
+    iou = intersecting_area / float(parking_bounding_box_area + car_bounding_box_area - intersecting_area)
+
+    # return the intersection over union value
+    print(iou)
+
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
