@@ -24,6 +24,7 @@ def main():
 
     old_gray = cv2.cvtColor(frame_parking, cv2.COLOR_BGR2GRAY)
     mask = np.zeros_like(frame_parking)
+    bbox = [[217, 406], [319, 479]]
     while True:
         frame_license = cam_license.GetScaledNextFrame()
         frame_parking = cam_parking.GetScaledNextFrame()
@@ -39,15 +40,15 @@ def main():
         #
         #     cv2.imshow("Drawn box license", bb_license)
         #
-        parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
-
-        if parking_return_status == True:
-            bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
-                                                      class_names=parking_classes,
-                                                      probabilities=parking_scores,
-                                                      bounding_boxes=parking_bounding_boxes)
-
-            cv2.imshow("Drawn box parking", bb_parking)
+        # parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
+        #
+        # if parking_return_status == True:
+        #     bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
+        #                                               class_names=parking_classes,
+        #                                               probabilities=parking_scores,
+        #                                               bounding_boxes=parking_bounding_boxes)
+        #
+        #     cv2.imshow("Drawn box parking", bb_parking)
 
         # new_model.FeedSubtractionModel(frame_parking)
         #
@@ -62,7 +63,9 @@ def main():
         #     cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
         #     cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
 
+        mask = OD.CreateInvertedMask(frame_parking, bbox)
 
+        cv2.imshow("MASK", mask)
         # cv2.imshow("Subtraction Detection", t_i)
         # cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)

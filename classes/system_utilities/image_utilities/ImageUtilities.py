@@ -104,6 +104,43 @@ def CalculatePointPositionAfterTransform(point, M):
 
     return [int(point_transformed_x), int(point_transformed_y)]
 
+def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
+    # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
+    # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)
+
+    # Create new bbox
+    increased_bbox = [[bbox[0][0], bbox[0][1]], [bbox[1][0], bbox[1][1]]]
+
+    # Increase the top left point while making sure it does not go out of bounds, if it does, set it to max bound
+    for j in range(2):
+        increased_bbox[0][j] = int(increased_bbox[0][j] - (increased_bbox[0][j] * increase_factor))
+        if increased_bbox[0][j] < 0:
+            increased_bbox[0][j] = 0
+
+    # Increase the bottom right point while making sure it does not go out of bounds, if it does, set it to max bound
+    increased_bbox[1][0] = int(increased_bbox[1][0] + (increased_bbox[1][0] * increase_factor))
+    if increased_bbox[1][0] > img_dimensions[1]:
+        increased_bbox[1][0] = img_dimensions[1]
+
+    increased_bbox[1][1] = int(increased_bbox[1][1] + (increased_bbox[1][1] * increase_factor))
+    if increased_bbox[1][1] > img_dimensions[0]:
+        increased_bbox[1][1] = img_dimensions[0]
+
+    return increased_bbox
+
+def GetBBInRespectTo(bbox, bbox_of_new_parent):
+    # Takes a bounding box and updates its local coordinates in respect to the bounding box of the new parent provided.
+    # This is to be used when getting a bounding box's local points in respect to a larger bounding box. the bounding
+    # box in this case would be a subset of the larger bounding box.
+    # Returns the bbox's new local point values
+
+    TL = [bbox[0][0] - bbox_of_new_parent[0][0], bbox[0][1] - bbox_of_new_parent[0][1]]
+    BR = [bbox[1][0] - bbox_of_new_parent[0][0], bbox[1][1] - bbox_of_new_parent[0][1]]
+
+    local_bb = [[TL[0], TL[1]], [BR[0], BR[1]]]
+
+    return local_bb
+
 def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the full bounding box in the format of [TL, TR, BL, BR]
