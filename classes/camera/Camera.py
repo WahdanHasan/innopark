@@ -60,7 +60,7 @@ class Camera:
         self.feed = cv2.VideoCapture(rtsp_link)
 
         if not self.feed.isOpened():
-            print('[ERROR]: camera with id ' + self.camera_id + " failed to start.", file=sys.stderr)
+            print('[ERROR]: camera with id ' + str(self.camera_id) + " failed to start.", file=sys.stderr)
 
     def StopFeedThread(self):
         # Stop the current feed
