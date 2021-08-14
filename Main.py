@@ -24,6 +24,7 @@ def main():
 
     old_gray = cv2.cvtColor(frame_parking, cv2.COLOR_BGR2GRAY)
     mask = np.zeros_like(frame_parking)
+    bbox = [[217, 406], [319, 479]]
     while True:
         frame_license = cam_license.GetScaledNextFrame()
         frame_parking = cam_parking.GetScaledNextFrame()
@@ -62,9 +63,11 @@ def main():
         #     cv2.putText(frame_parking, str(id), (x, y - 15), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
         #     cv2.rectangle(frame_parking, (x, y), (x+w, y+h), (0, 255, 0), 1)
 
+        mask = OD.CreateInvertedMask(frame_parking, bbox)
 
+        cv2.imshow("MASK", mask)
         # cv2.imshow("Subtraction Detection", t_i)
-        cv2.imshow("Feed License", frame_license)
+        # cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)
         counter += 1
         if (time.time() - start_time) > seconds_before_display:

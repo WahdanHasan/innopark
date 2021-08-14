@@ -231,6 +231,11 @@ def DetectObjectsInImage(image):
     temp_confidence_scores = []
     for index in indices_to_keep:
         index = index[0]
+
+        # Filter detections by classes
+        if yolo_class_names[class_ids[index]] != 'car' and yolo_class_names[class_ids[index]] != 'truck':
+            continue
+
         box = bounding_boxes[index]
 
         x, y, w, h = box[0], box[1], box[2], box[3]
@@ -257,7 +262,87 @@ def DetectObjectsInImage(image):
 
     return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
 
+def CreateInvertedMask(img, bbox):
+    # Takes a full image and the bounding box of the object of interest within it.
+    # Returns the inverted mask of the object contained within the bounding box
 
+    # Increase bounding box
+    increased_bbox = IU.GetIncreasedBB(img_dimensions=img.shape[:2],
+                                       bbox=bbox)
+
+    # Get a cropped image based on the increased bounding box
+    increased_bbox_img = IU.CropImage(img=img,
+                                      bounding_set=increased_bbox)
+
+    # Get the bounding box points in respect to increased bounding box (irt = in respect to)
+    bbox_irt_increased_bbox = IU.GetBBInRespectTo(bbox=bbox,
+                                                  bbox_of_new_parent=increased_bbox)
+
+    # Create a black mask based on the cropped image dimensions
+    mask = np.zeros(increased_bbox_img.shape[:2], dtype=np.uint8)
+
+    # Create bg and fg standard model arrays. These are for grabcut's internal use.
+    bg_model = np.zeros((1, 65), np.float64)
+    fg_model = np.zeros((1, 65), np.float64)
+
+
+    # Apply grabcut to image
+    # Convert bb to opencv format
+    increased_bbox_converted = [bbox_irt_increased_bbox[0][0],
+                                bbox_irt_increased_bbox[0][1],
+                                bbox_irt_increased_bbox[1][0],
+                                bbox_irt_increased_bbox[1][1]]
+
+    # mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
+    (mask, _, _) = cv2.grabCut(img=increased_bbox_img,
+                               mask=mask,
+                               rect=increased_bbox_converted,
+                               bgdModel=bg_model,
+                               fgdModel=fg_model,
+                               iterCount=1,
+                               mode=cv2.GC_INIT_WITH_RECT)
+
+    # Define output mask based on mask output values from grabcut
+    output_mask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")
+    cv2.imshow("EEE", increased_bbox_img)
+    return output_mask
+
+def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
+    #takes two full bounding boxes
+    #uses the TL, BR points to get intersection, area and IoU
+
+    acceptable_threshold = 0.6
+
+    #get x,y coordinates of TL, BR
+    xA = max(parking_bounding_box[0][0], car_bounding_box[0][0])                                                #A = [[283, 330], [346,329], [309, 365], [381,360]]                                                                                                            #B = [[282, 331], [347, 330], [307, 366], [379, 364]]
+    yA = max(parking_bounding_box[0][1], car_bounding_box[0][1])
+
+    xB = min(parking_bounding_box[3][0], car_bounding_box[3][0])
+    yB = min(parking_bounding_box[3][1], car_bounding_box[3][1])
+
+    #check whether intersection exists first
+    if (xA > xB or yA > yB):
+        print ("No intersection")
+        return -1
+
+    #get area of intersecting width and height
+    intersecting_area = max(0, xB - xA) * max(0, yB - yA)
+
+    #get the area of both bounding boxes separately
+    parking_bounding_box_area = (parking_bounding_box[3][0] - parking_bounding_box[0][0]) * (parking_bounding_box[3][1] - parking_bounding_box[0][1])
+    car_bounding_box_area = (car_bounding_box[3][0] - car_bounding_box[0][0]) * (car_bounding_box[3][1] - car_bounding_box[0][1])
+
+    #calculate IoU
+    #union = area - intersecting area
+    iou = intersecting_area / float(parking_bounding_box_area + car_bounding_box_area - intersecting_area)
+
+    # return the intersection over union value
+    print(iou)
+
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
 
 
 
@@ -322,3 +407,4 @@ class SubtractionModel:
         cv2.imshow("Subtraction Mask", self.subtraction_model_output_mask)
 
         return bounding_boxes
+
