@@ -1,7 +1,6 @@
 import cv2
 import sys
-from queue import Queue
-from threading import Thread
+from imutils.video import VideoStream
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.enum_classes.Enums import ImageResolution
 
@@ -21,72 +20,35 @@ class Camera:
         self.feed = 0
         self.UpdateFeed(rtsp_link=rtsp_link)
 
-        # LIFO Queue threading initializations and start
-        self.frame = 0
-        self.queue_buffer_size = buffer_size
-        self.frame_queue = Queue(maxsize=buffer_size)
-        self.feed_stopped = False
-        self.StartFeedThread()
-
-    def StartFeedThread(self):
-        # Start a daemon thread to keep polling the camera
-
-        polling_thread = Thread(target=self.PollFeedThread, args=())
-        polling_thread.daemon = True
-        polling_thread.start()
-
-
-        return self
-
-    def PollFeedThread(self):
-        # For use by a thread to keep polling the camera feed until stopped
-
-        while not self.feed_stopped:
-
-            _, frame = self.feed.read()
-
-            # Comment this out if not using video files
-            if not _:
-                self.UpdateFeed(self.rtsp_link)
-                continue
-
-            self.frame_queue.put(frame)
-
     def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
         # Changes the rtsp link for the camera feed
 
         self.rtsp_link = rtsp_link
 
-        self.feed = cv2.VideoCapture(rtsp_link)
+        self.feed = VideoStream(rtsp_link)
 
-        if not self.feed.isOpened():
-            print('[ERROR]: camera with id ' + str(self.camera_id) + " failed to start.", file=sys.stderr)
+        self.feed.start()
 
-    def StopFeedThread(self):
-        # Stop the current feed
+        # if not self.feed.isOpened():
+        #     print('[ERROR]: camera with id ' + str(self.camera_id) + " failed to start.", file=sys.stderr)
 
-        self.feed_stopped = True
 
     def ReleaseFeed(self):
         # Releases the rtsp link for the camera feed
 
-        self.StopFeedThread()
-        self.feed.release()
-
-    def IsFeedActive(self):
-        return self.feed.isOpened()
+        self.feed.stop()
 
     def GetRawNextFrame(self):
         # Returns the next frame from the feed queue
 
-        frame = self.frame_queue.get()
+        frame = self.feed.read()
 
         return frame
 
     def GetScaledNextFrame(self):
         # Returns the next frame from the feed queue post scaling based on the default scale factor
 
-        frame = self.frame_queue.get()
+        frame = self.feed.read()
 
         frame = IU.RescaleImageToResolution(img=frame,
                                             new_dimensions=self.default_resolution)

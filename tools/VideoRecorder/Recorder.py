@@ -1,95 +1,96 @@
 from classes.camera.Camera import Camera
+import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
 import time
+from queue import Queue
+from threading import Thread
 
-cv2.namedWindow("EE")
-fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-
-# Connect to cameras
-print("Initializing cameras 1")
-cam_1 = Camera(rtsp_link="http://192.168.0.144:4747/video?1920x1080",
-               camera_id=0)
-cam_1_out = cv2.VideoWriter('ip7plus_recording.avi', fourcc, cam_1.feed.get(cv2.CAP_PROP_FPS), (cam_1.GetRawNextFrame().shape[1], cam_1.GetRawNextFrame().shape[0]))
-
-print("Initializing cameras 2")
-cam_2 = Camera(rtsp_link="http://192.168.0.139:4747/video?1920x1080",
-               camera_id=1)
-cam_2_out = cv2.VideoWriter('ip7_recording.avi', fourcc, cam_2.feed.get(cv2.CAP_PROP_FPS), (cam_2.GetRawNextFrame().shape[1], cam_2.GetRawNextFrame().shape[0]))
-
-# print("Initializing cameras 3")
-# cam_3 = Camera(rtsp_link="http://192.168.0.197:4747/video?1920x1080",
-#                camera_id=3)
-# cam_3_out = cv2.VideoWriter('s4_recording.avi', fourcc, cam_3.feed.get(cv2.CAP_PROP_FPS), (cam_3.GetRawNextFrame().shape[1], cam_3.GetRawNextFrame().shape[0]))
-
-# Initialize array of cameras and video writers
-cameras = [cam_1, cam_2]
-video_writers = [cam_1_out, cam_2_out]
-
-
-print("Started feed...")
-start_time = time.time()
-seconds_before_display = 1  # displays the frame rate every 1 second
-counter = 0
-
-# Initialize list
-frames = []
+cam_1 = 0
+cam_2 = 0
+cam_3 = 0
+cam_4 = 0
+cameras = [cam_1, cam_2, cam_3]
 cam_count = len(cameras)
-for i in range(cam_count):
-    frames.append(0)
 
-while True:
-    # Read frames from cameras
+cam_1_out = 0
+cam_2_out = 0
+cam_3_out = 0
+cam_4_out = 0
+video_writers = [cam_1_out, cam_2_out, cam_3_out, cam_4_out]
+
+
+cam_1_frames = Queue(maxsize=0)
+cam_2_frames = Queue(maxsize=0)
+cam_3_frames = Queue(maxsize=0)
+cam_4_frames = Queue(maxsize=0)
+cam_frames = [cam_1_frames, cam_2_frames, cam_3_frames, cam_4_frames]
+
+def main():
+
+    cv2.namedWindow("EE")
+    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+
+    global video_writers
+    global cameras
+
+    # Connect to cameras
+    print("Initializing cameras 1")
+    cameras[0] = Camera(rtsp_link="http://192.168.0.144:4747/video?1920x1080",
+                        camera_id=0)
+    video_writers[0] = cv2.VideoWriter('ip7plus_recording.avi', fourcc, 30.0, (1920, 1080))
+
+    print("Initializing cameras 2")
+    cameras[1] = Camera(rtsp_link="http://192.168.0.139:4747/video?1920x1080",
+                        camera_id=1)
+    video_writers[1] = cv2.VideoWriter('ip7_recording.avi', fourcc, 30.0, (1920, 1080))
+
+    print("Initializing cameras 4")
+    cameras[2] = Camera(rtsp_link="http://192.168.0.137:4747/video?1920x1080",
+                        camera_id=2)
+    video_writers[2] = cv2.VideoWriter('ip11_recording.avi', fourcc, 30.0, (1920, 1080))
+
+    # print("Initializing cameras 3")
+    # cameras[3] = Camera(rtsp_link="http://192.168.0.197:4747/video?1920x1080",
+    #                     camera_id=3)
+    # video_writers[3] = cv2.VideoWriter('s4_recording.avi', fourcc, 30.0, (1920, 1080))
+
+
+    threads = [0, 0, 0, 0]
+    print("Starting video writer threads...")
     for i in range(cam_count):
-        frames[i] = cameras[i].GetRawNextFrame()
-        # cv2.imshow(str(i), frames[i])
+        threads[i] = Thread(target=WriteVideo, args=(i,))
+        threads[i].daemon = True
+        threads[i].start()
 
-    # Write frames to video file
-    for i in range(cam_count):
-        video_writers[i].write(frames[i])
+    print("Started feed...")
+    start_time = time.time()
+    seconds_before_display = 1  # displays the frame rate every 1 second
+    counter = 0
 
-    # Log fps to console
-    counter += 1
-    if (time.time() - start_time) > seconds_before_display:
-        print("FPS: ", counter / (time.time() - start_time))
-        counter = 0
-        start_time = time.time()
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        # Release video writers and cameras
+
+    while True:
+        # Read frames from cameras
         for i in range(cam_count):
-            video_writers[i].release()
-            cameras[i].ReleaseFeed()
+            temp_frame = cameras[i].GetRawNextFrame()
+            cam_frames[i].put(temp_frame)
 
-        cv2.destroyAllWindows()
-        break
+        # Log fps to console
+        counter += 1
+        if (time.time() - start_time) > seconds_before_display:
+            print("FPS: ", counter / (time.time() - start_time))
+            counter = 0
+            start_time = time.time()
 
-# import cv2
-# import numpy as np
-# import classes.system_utilities.image_utilities.ImageUtilities as IU
-# import time
-#
-# url = "http://192.168.0.197:4747/video?1920x1080"
-# # url2= "http://192.168.0.139:4747/video?1920x1080"
-#
-# cap = cv2.VideoCapture(url)
-# # cap2 = cv2.VideoCapture(url2)
-#
-# print("Started feed...")
-# start_time = time.time()
-# seconds_before_display = 1  # displays the frame rate every 1 second
-# counter = 0
-#
-# while True:
-#     _, frame = cap.read()
-#     # _, frame2 = cap2.read()
-#     cv2.imshow("x", frame)
-#     # cv2.imshow("y", frame2)
-#
-#     counter += 1
-#     if (time.time() - start_time) > seconds_before_display:
-#         print("FPS: ", counter / (time.time() - start_time))
-#         counter = 0
-#         start_time = time.time()
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#         cv2.destroyAllWindows()
-#         break
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            for i in range(cam_count):
+                cameras[i].ReleaseFeed()
+            cv2.destroyAllWindows()
+            break
+
+def WriteVideo(index):
+    while True:
+        video_writers[index].write(cam_frames[index].get())
+
+if __name__ == "__main__":
+    main()
