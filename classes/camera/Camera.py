@@ -5,10 +5,11 @@ import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.enum_classes.Enums import ImageResolution
 
 class Camera:
-    def __init__(self, rtsp_link, camera_id, buffer_size=1):
+    def __init__(self, rtsp_link, camera_id, name=""):
         # Assign local variables
         self.rtsp_link = rtsp_link
         self.camera_id = camera_id
+        self.name = name
         self.default_resolution = ImageResolution.SD.value
 
         # Link validation
@@ -28,10 +29,6 @@ class Camera:
         self.feed = VideoStream(rtsp_link)
 
         self.feed.start()
-
-        # if not self.feed.isOpened():
-        #     print('[ERROR]: camera with id ' + str(self.camera_id) + " failed to start.", file=sys.stderr)
-
 
     def ReleaseFeed(self):
         # Releases the rtsp link for the camera feed

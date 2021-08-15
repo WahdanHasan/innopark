@@ -116,3 +116,6 @@ dmypy.json
 # Custom folders
 tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.png
 tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.xml
+tools/VideoRecorder/recordings
+tools/VideoRecorder/saved
+tools/VideoRecorder/tests
