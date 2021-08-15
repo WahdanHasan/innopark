@@ -104,6 +104,33 @@ def CalculatePointPositionAfterTransform(point, M):
 
     return [int(point_transformed_x), int(point_transformed_y)]
 
+def ConcatenatePictures(img_set):
+    # The images provided must be of identical dimensions
+    # Returns the images concatenated in a 3 column format
+    image_height, image_width, _ = img_set[0].shape
+    image_count = len(img_set)
+
+    columns = 3
+    base_width = int(img_set[0].shape[1] * columns)
+
+    rows = int(np.ceil(image_count / columns))
+
+    base_height = img_set[0].shape[0] * rows
+
+    img_base = np.zeros((base_height, base_width, 3), dtype=np.uint8)
+
+    if image_count < columns:
+        columns = image_count
+
+    for i in range(rows):
+        for j in range(columns):
+            if (i*columns) + j >= image_count:
+                break
+            img_base[(i * image_height):((i+1) * image_height), (j * image_width):((j+1) * image_width)] = img_set[(i*columns) + j]
+
+    cv2.imshow("EE", img_base)
+
+
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)

@@ -1,4 +1,6 @@
 from classes.camera.Camera import Camera
+import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.enum_classes.Enums import ImageResolution
 import sys
 import cv2
 import time
@@ -38,17 +40,17 @@ def main():
 
     # Input camera links
     cam_links = [
-                 # "http://192.168.0.144:4747/video?1920x1080",
+                 "http://192.168.0.144:4747/video?1920x1080",
                  "http://192.168.0.139:4747/video?1920x1080",
-                 # "http://192.168.0.137:4747/video?1920x1080",
+                 "http://192.168.0.137:4747/video?1920x1080",
                  # "http://192.168.0.197:4747/video?1920x1080"
                  ]
 
     # Input camera link names
     cam_names = [
-                 # "IP7plus",
+                 "IP7plus",
                  "IP7",
-                 # "IP11",
+                 "IP11",
                  # "S4"
                  ]
 
@@ -79,7 +81,10 @@ def main():
         threads[i].daemon = True
         threads[i].start()
 
-    # Create empty array for storing temporary frames
+    # Allocate memory for temporary frames
+    temp_frames = []
+    for i in range(cam_count):
+        temp_frames.append(0)
 
     # Start feed
     print("Started feed...")
@@ -88,7 +93,7 @@ def main():
     seconds_before_display = 1  # displays the frame rate every 1 second
     counter = 0
 
-    temp_frames = [0, 0, 0, 0]
+
     while True:
         # Read frames from cameras
         for i in range(cam_count):
@@ -101,9 +106,14 @@ def main():
 
         # Show frame previews if previews are on
         if show_feed:
+            # for i in range(cam_count):
+            #     temp_frames[i] = IU.RescaleImageToResolution(img=temp_frames[i],
+            #                                                  new_dimensions=ImageResolution.SD.value)
+            # IU.ConcatenatePictures(temp_frames)
             for i in range(cam_count):
+                temp_frames[i] = IU.RescaleImageToResolution(img=temp_frames[i],
+                                                             new_dimensions=ImageResolution.SD.value)
                 cv2.imshow(str(i), temp_frames[i])
-
         # Log fps to console
         counter += 1
         if (time.time() - fps_start_time) > seconds_before_display:
