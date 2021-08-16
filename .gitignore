@@ -114,8 +114,8 @@ dmypy.json
 .pyre/
 
 # Custom folders
-tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.png
-tools/DataGenerator/Data/DataGenerator/Generated_Licenses/*.xml
-tools/VideoRecorder/recordings
-tools/VideoRecorder/saved
-tools/VideoRecorder/tests
+tools/DataGenerator/Data/DataGenerator/Generated_Licenses/
+tools/DataGenerator/Data/DataGenerator/Generated_Licenses/
+tools/VideoRecorder/recordings/
+tools/VideoRecorder/saved/
+tools/VideoRecorder/tests/
