@@ -9,8 +9,12 @@ from threading import Thread
 
 
 is_recording = False
+is_fps_boost = False
+preview_index = 0
 show_feed = False
-window_name = "Video Recorder Options"
+options_window_name = "Video Recorder Options"
+preview_window_name = "Live Preview Cam "
+concatenated_window_name = "Concatenated Preview"
 recording_start_time = 0
 recording_end_time = 0
 
@@ -35,15 +39,13 @@ def main():
     # Allocate memory for cameras array
     cameras = []
 
-    # Create options GUI
-    CreateGUI()
-
     # Input camera links
     cam_links = [
                  "http://192.168.0.144:4747/video?1920x1080",
                  "http://192.168.0.139:4747/video?1920x1080",
                  "http://192.168.0.137:4747/video?1920x1080",
-                 # "http://192.168.0.197:4747/video?1920x1080"
+                 "http://192.168.0.187:4747/video?1920x1080",
+                 "http://192.168.0.197:4747/video?1920x1080"
                  ]
 
     # Input camera link names
@@ -51,11 +53,15 @@ def main():
                  "IP7plus",
                  "IP7",
                  "IP11",
-                 # "S4"
+                 "IPA",
+                 "S4"
                  ]
 
     # Get amount of cameras
     cam_count = len(cam_links)
+
+    # Create options GUI
+    CreateGUI()
 
     # Initialize cameras and cam_frames queue
     for i in range(cam_count):
@@ -86,6 +92,12 @@ def main():
     for i in range(cam_count):
         temp_frames.append(0)
 
+    # Set recording variables
+    recording_fps_target = 60
+    recording_start = time.time()
+    seconds_before_next_capture = 1/recording_fps_target
+    counter_x = 0
+
     # Start feed
     print("Started feed...")
     program_start_time = time.time()
@@ -100,20 +112,37 @@ def main():
             temp_frames[i] = cameras[i].GetRawNextFrame()
 
         # Add frames to queue if recording is on
-        if is_recording:
-            for i in range(cam_count):
-                cam_frames[i].put(temp_frames[i])
+        counter_x += 1
+        if (time.time() - recording_start) > seconds_before_next_capture:
+            recording_start = time.time()
+            if is_recording:
+                for i in range(cam_count):
+                    cam_frames[i].put(temp_frames[i])
 
-        # Show frame previews if previews are on
-        if show_feed:
-            # for i in range(cam_count):
-            #     temp_frames[i] = IU.RescaleImageToResolution(img=temp_frames[i],
-            #                                                  new_dimensions=ImageResolution.SD.value)
-            # IU.ConcatenatePictures(temp_frames)
+        # Show concatenated frame previews
+        if show_feed and not is_fps_boost:
             for i in range(cam_count):
                 temp_frames[i] = IU.RescaleImageToResolution(img=temp_frames[i],
-                                                             new_dimensions=ImageResolution.SD.value)
-                cv2.imshow(str(i), temp_frames[i])
+                                                             new_dimensions=ImageResolution.NTSC.value)
+            concatenated_feed = IU.ConcatenatePictures(temp_frames)
+
+            cv2.imshow(concatenated_window_name, concatenated_feed)
+        else:
+            try:
+                cv2.destroyWindow(concatenated_window_name)
+            except:
+                x=10
+
+        # Show single frame preview
+        if is_fps_boost:
+            cv2.imshow(preview_window_name, temp_frames[preview_index])
+        else:
+            try:
+                cv2.destroyWindow(preview_window_name)
+            except:
+                x=10
+
+
         # Log fps to console
         counter += 1
         if (time.time() - fps_start_time) > seconds_before_display:
@@ -125,45 +154,44 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
 
             # Waits for all of the writer threads to finish writing the frames currently in the queue.
-            print("Waiting for video writing threads to finish... ")
+            print("Waiting for video writing threads to finish... ", file=sys.stderr)
             can_quit = False
             while not can_quit:
+                can_quit = True
                 for i in range(cam_count):
-                    if cam_frames[i].empty():
-                        can_quit = True
+                    if not cam_frames[i].empty():
+                        can_quit = False
                         break
 
-                    # Put the main thread to sleep for 1 second
-                    time.sleep(1)
+                # Put the main thread to sleep for 1 second
+                time.sleep(1)
 
             # Release cameras and video writers
-            print("Releasing resources... ")
+            print("Releasing resources... ", file=sys.stderr)
             for i in range(cam_count):
                 cameras[i].ReleaseFeed()
 
             cv2.destroyAllWindows()
             break
 
-    print("System run time: " + str(int(time.time()-program_start_time)) + " seconds.")
-    print("The program will now exit.")
+    print("System run time: " + str(int(time.time()-program_start_time)) + " seconds.", file=sys.stderr)
+    print("The program will now exit.", file=sys.stderr)
 
-def WriteVideo(index):
-    while True:
-        try:
-            video_writers[index].write(cam_frames[index].get())
-        except:
-            continue
+
 
 def CreateGUI():
 
+    cv2.namedWindow(options_window_name)
+    cv2.resizeWindow(options_window_name, (500, 120))
 
-    cv2.namedWindow(window_name)
+    cv2.createTrackbar('Recording', options_window_name, 0, 1, RecordingCallBack)
+    cv2.setTrackbarPos('Recording', options_window_name, 0)
 
-    cv2.createTrackbar('Recording', window_name, 0, 1, RecordingCallBack)
-    cv2.setTrackbarPos('Recording', window_name, 0)
+    cv2.createTrackbar('FPreview', options_window_name, 0, 1, ShowFeedCallBack)
+    cv2.setTrackbarPos('FPreview', options_window_name, 0)
 
-    cv2.createTrackbar('Preview', window_name, 0, 1, ShowFeedCallBack)
-    cv2.setTrackbarPos('Preview', window_name, 0)
+    cv2.createTrackbar('SPreview', options_window_name, 0, cam_count, LivePreviewCallBack)
+    cv2.setTrackbarPos('SPreview', options_window_name, 0)
 
 def RecordingCallBack(option):
     # Start the video writers when the option is 1 and stop them when the option is 0 (this saves the video)
@@ -175,8 +203,11 @@ def RecordingCallBack(option):
     if option == 0:
         is_recording = False
         recording_end_time = time.time()
-        StopVideoWriters()
-        print("Recording time was " + str(int(recording_end_time - recording_start_time)) + " seconds.", file=sys.stderr)
+        # StopVideoWriters()
+        t1 = Thread(target=StopVideoWriters, args=())
+        t1.daemon = True
+        t1.start()
+        print("Recording time was " + str(round(recording_end_time - recording_start_time, 2)) + " seconds.", file=sys.stderr)
         print("The recordings will be saved and become available once the queue has finished.", file=sys.stderr)
         print("Kindly move these files out to avoid overwriting them.", file=sys.stderr)
     elif option == 1:
@@ -193,17 +224,52 @@ def ShowFeedCallBack(option):
     elif option == 1:
         show_feed = True
 
+def LivePreviewCallBack(option):
+    global is_fps_boost
+    global preview_index
+
+    if option == 0:
+        is_fps_boost = False
+    elif option == 1:
+        is_fps_boost = True
+
+    preview_index = option - 1
+
 def StartVideoWriters(cam_names):
     # Set video codec
-    fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
     for i in range(cam_count):
         video_writers[i] = cv2.VideoWriter("recordings\\" + cam_names[i] + "_recording.avi", fourcc, 30.0, (1920, 1080))
 
+def WriteVideo(index):
+    while True:
+        try:
+            video_writers[index].write(cam_frames[index].get())
+        except:
+            continue
+
 def StopVideoWriters():
 
-    for i in range(cam_count):
+    # for i in range(cam_count):
+    #     video_writers[i].release()
+
+    can_quit = False
+    while not can_quit:
+        can_quit = True
+        for i in range(cam_count):
+            if not cam_frames[i].empty():
+                can_quit = False
+                break
+
+        # Put the main thread to sleep for 1 second
+        time.sleep(1)
+
+    for j in range(cam_count):
         video_writers[i].release()
+
+    print("Finished saving!", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()

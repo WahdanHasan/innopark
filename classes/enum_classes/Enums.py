@@ -5,6 +5,8 @@ class ImageResolution(Enum):
     FHD = (1920, 1080)
     HD = (1280, 720)
     SD = (720, 480)
+    NTSC = (320, 240)
+    QCIF = (176, 144)
 
 class ObjectStatus(Enum):
     Moving = 0

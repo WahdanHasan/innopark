@@ -88,11 +88,11 @@ def SaveImage(image, name, extension='.png', path='data\\saves\\'):
     # Takes an image and saves it
     # It is recommended to use cv2.waitKey(0) when debugging after calling the function in order to prevent overwriting.
 
-    print("Saving image to " + name + extension + " to " + path + "...")
+    # print("Saving image to " + name + extension + " to " + path + "...")
 
     cv2.imwrite(path + name + extension, image)
 
-    print("Finished saving.")
+    # print("Finished saving.")
 
 def CalculatePointPositionAfterTransform(point, M):
     # Calculates the new position of a point after transformation with set M
@@ -107,10 +107,15 @@ def CalculatePointPositionAfterTransform(point, M):
 def ConcatenatePictures(img_set):
     # The images provided must be of identical dimensions
     # Returns the images concatenated in a 3 column format
+
     image_height, image_width, _ = img_set[0].shape
     image_count = len(img_set)
 
     columns = 3
+
+    if image_count < columns:
+        columns = image_count
+
     base_width = int(img_set[0].shape[1] * columns)
 
     rows = int(np.ceil(image_count / columns))
@@ -119,8 +124,7 @@ def ConcatenatePictures(img_set):
 
     img_base = np.zeros((base_height, base_width, 3), dtype=np.uint8)
 
-    if image_count < columns:
-        columns = image_count
+
 
     for i in range(rows):
         for j in range(columns):
@@ -128,7 +132,8 @@ def ConcatenatePictures(img_set):
                 break
             img_base[(i * image_height):((i+1) * image_height), (j * image_width):((j+1) * image_width)] = img_set[(i*columns) + j]
 
-    cv2.imshow("EE", img_base)
+
+    return img_base
 
 
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
