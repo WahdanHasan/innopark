@@ -41,20 +41,20 @@ def main():
 
     # Input camera links
     cam_links = [
-                 "http://192.168.0.144:4747/video?1920x1080",
-                 "http://192.168.0.139:4747/video?1920x1080",
-                 "http://192.168.0.137:4747/video?1920x1080",
-                 "http://192.168.0.187:4747/video?1920x1080",
-                 "http://192.168.0.197:4747/video?1920x1080"
+                 "http://10.115.0.35:4747/video?1920x1080",
+                 # "http://192.168.0.139:4747/video?1920x1080",
+                 # "http://192.168.0.137:4747/video?1920x1080",
+                 # "http://192.168.0.187:4747/video?1920x1080",
+                 # "http://192.168.0.197:4747/video?1920x1080"
                  ]
 
     # Input camera link names
     cam_names = [
                  "IP7plus",
-                 "IP7",
-                 "IP11",
-                 "IPA",
-                 "S4"
+                 # "IP7",
+                 # "IP11",
+                 # "IPA",
+                 # "S4"
                  ]
 
     # Get amount of cameras
@@ -265,7 +265,7 @@ def StopVideoWriters():
         # Put the main thread to sleep for 1 second
         time.sleep(1)
 
-    for j in range(cam_count):
+    for i in range(cam_count):
         video_writers[i].release()
 
     print("Finished saving!", file=sys.stderr)
