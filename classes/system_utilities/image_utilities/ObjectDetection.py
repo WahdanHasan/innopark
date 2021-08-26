@@ -364,7 +364,7 @@ class SubtractionModel:
     def __init__(self):
         # Initialize subtraction object detection model
 
-        self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=1000)
+        self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=100)
         self.subtraction_model_output_mask = 0
 
     def FeedSubtractionModel(self, image):
