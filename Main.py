@@ -50,13 +50,13 @@ def main():
         #
         #     cv2.imshow("Drawn box parking", bb_parking)
 
-        new_model.FeedSubtractionModel(frame_parking)
-
-        boxes = new_model.DetectMovingObjects()
-
-        t_i = IU.DrawBoundingBox(frame_parking, boxes)
-
-        box_ids = OD.tracker.update(boxes)
+        # new_model.FeedSubtractionModel(frame_parking)
+        #
+        # boxes = new_model.DetectMovingObjects()
+        #
+        # t_i = IU.DrawBoundingBox(frame_parking, boxes)
+        #
+        # box_ids = OD.tracker.update(boxes)
 
         # for box_id in box_ids:
         #     x, y, w, h, id = box_id
@@ -66,7 +66,7 @@ def main():
         # mask = OD.CreateInvertedMask(frame_parking, bbox)
         #
         # cv2.imshow("MASK", mask)
-        cv2.imshow("Subtraction Detection", t_i)
+        # cv2.imshow("Subtraction Detection", t_i)
         # cv2.imshow("Feed License", frame_license)
         cv2.imshow("Feed Parking", frame_parking)
         counter += 1

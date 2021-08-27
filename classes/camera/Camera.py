@@ -21,7 +21,7 @@ class Camera:
         self.feed = 0
         self.UpdateFeed(rtsp_link=rtsp_link)
 
-    def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
+    def UpdateFeed(self, rtsp_link):
         # Changes the rtsp link for the camera feed
 
         self.rtsp_link = rtsp_link
