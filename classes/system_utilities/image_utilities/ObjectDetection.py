@@ -28,7 +28,7 @@ def OnLoad():
         try:
             tf.config.experimental.set_virtual_device_configuration(
                 gpus[0], [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=512)])
-        except RunTimeError as e:
+        except RuntimeError as e:
             print(e)
 
     # Initialize pytesseract cmd
