@@ -70,6 +70,8 @@ old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 #bbox = [[38, 247], [530,419]] #car_pass_full
 bbox = [[170, 207], [644,395]] #car_leg_full
 #bbox = [[400, 611], [564,716]] #bbox of Parking_Open_2
+bbox_tl = [170, 207]
+bbox_br = [644, 395]
 
 # initialize array
 old_points = np.zeros((1, 2))
@@ -78,7 +80,7 @@ def GetBboxGoodFeatures(bbox, gray):
     cropped_frame = IU.CropImage(gray, bbox)
 
     points = cv2.goodFeaturesToTrack(cropped_frame, mask=None,
-                                       maxCorners=1,
+                                       maxCorners=2,
                                        qualityLevel=0.03,
                                        minDistance=7,
                                        blockSize=3)
@@ -127,6 +129,17 @@ while True:
     # return status as 1 (if next_points are found) and 0 (if none are found)
     # None is for the mask
     # ** lk_params - passing a dictionary
+
+    # print("bbox before: TL - ", bbox_tl, "| BR - ", bbox_br)
+    # print("predicted estimates:", (int(x), int(y)))
+    # bbox_tl[0] = int(bbox_tl[0] + (int(x) - x_old))
+    # bbox_tl[1] = int(bbox_tl[1] + (int(y) - y_old))
+    # bbox_br[0] = int(bbox_br[0] + (int(x) - x_old))
+    # bbox_br[1] = int(bbox_br[1] + (int(y) - y_old))
+    # print("bbox after: TL - ", bbox_tl, "| BR - ", bbox_br)
+    # # cv2.rectangle(frame, (bbox_tl[0], bbox_tl[1]), (bbox_br[0], bbox_br[1]), (255, 0, 0), 2)
+    # frame = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
+    #
     new_points, status, error = cv2.calcOpticalFlowPyrLK(old_gray, new_gray, old_points, None, **lk_params)
 
     # select good points
@@ -139,6 +152,23 @@ while True:
     #     a, b = new_points[i].ravel()
     #     cv2.circle(frame, (int(a), int(b)), 2, (0, 255, 0), 2)
 
+    # draw new bbox
+    # x to the right, increases
+    # y to up, decreases
+    change = ((old_points[1][0][0] - new_points[1][0][0]), (old_points[1][0][1] - new_points[1][0][1]))
+    if (int(change[0]) !=0): # if there's no significant change, don't move box
+        bbox_tl[0] = int(bbox_tl[0] - change[0])
+        bbox_br[0] = int(bbox_br[0] - change[0])
+        #bbox_tl[1] = int(bbox_tl[1] - change[1])
+        #bbox_br[1] = int(bbox_br[1] - change[1])
+        print("CHANGE HAPPENED")
+
+    print("old points: ", old_points, "new points: ", new_points)
+    print("CHANGE: ", change)
+    print("bbox_tl: ", bbox_tl, "bbox_br: ", bbox_br, "\n\n")
+    frame1 = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
+    #cv2.waitKey(100)
+
     # draw the tracks
     for i, (new, old) in enumerate(zip(good_new, good_old)):
        a, b = new.ravel()
@@ -150,11 +180,13 @@ while True:
        frame = cv2.circle(frame, (a, b), 2, (0, 255, 0), 2)
 
     frame = cv2.add(frame, mask)
-    cv2.imshow("Frame1", frame)
+    cv2.imshow("Frame", frame)
+    cv2.imshow("Frame_bbox", frame1)
     # update previous frame and old points
     # so every new frame is being compared to its previous frame
     old_gray = new_gray.copy()
     old_points = new_points.reshape(-1, 1, 2)
+    #old_point_move_bbox = (old_points[0][0][0], old_points[0][0][1])
 
     counter += 1
     if (time.time() - start_time) > seconds_before_display:

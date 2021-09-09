@@ -1,6 +1,7 @@
 import numpy as np
+import cv2 as cv2
 
-class KF(object):
+class KalmanFilter2D(object):
     def __init__(self, dt, x_control_acc_value, y_control_acc_value,
                  std_acc, x_std_measurement, y_std_measurement) -> None:
 
@@ -8,7 +9,7 @@ class KF(object):
 
         self._dt = dt
 
-        self._control_acc_value = np.matrix([[x_control_acc_value, y_control_acc_value]])
+        self._control_acc_value = np.matrix([[x_control_acc_value], [y_control_acc_value]])
         self._std_acc = std_acc
         self._x_std_measurement = x_std_measurement
         self._y_std_measurement = y_std_measurement
@@ -25,7 +26,7 @@ class KF(object):
 
 
         self._Q = np.matrix([[(self._dt**4)/4, 0, (self._dt**3)/2, 0],
-                             [0, (self._dt**4)/4, 0, (self.dt**3)/2],
+                             [0, (self._dt**4)/4, 0, (self._dt**3)/2],
                              [(self._dt**3)/2, 0, self._dt**2, 0],
                              [0, (self._dt**3)/2, 0, self._dt**2]]) * self._std_acc**2
 
@@ -44,7 +45,10 @@ class KF(object):
         self._x = new_x
         self._P = new_P
 
-        return self._x[:2] #doesnt this mean same thing as [0:2]?
+        converted_x = self._x[:2].tolist()
+        #print("prediction set ", converted_x)
+
+        return converted_x
 
     def update(self, measurement_value) -> np.matrix:
         z = measurement_value
@@ -64,7 +68,12 @@ class KF(object):
         self._x = new_x
         self._P = new_P
 
-        return self.x[:2]
+        # converting matrix to np array
+        #converted_x = np.asarray(self._x[:1]).reshape(-1)
+
+        converted_x = self._x[:2].tolist()
+        #print("update set: ", converted_x)
+        return converted_x
 
     @property
     def transformation_matrix(self) -> np.matrix:
