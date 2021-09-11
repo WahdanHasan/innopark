@@ -70,8 +70,8 @@ old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 #bbox = [[38, 247], [530,419]] #car_pass_full
 bbox = [[170, 207], [644,395]] #car_leg_full
 #bbox = [[400, 611], [564,716]] #bbox of Parking_Open_2
-bbox_tl = [170, 207]
-bbox_br = [644, 395]
+# bbox_tl = [170, 207]
+# bbox_br = [644, 395]
 
 # initialize array
 old_points = np.zeros((1, 2))
@@ -80,7 +80,7 @@ def GetBboxGoodFeatures(bbox, gray):
     cropped_frame = IU.CropImage(gray, bbox)
 
     points = cv2.goodFeaturesToTrack(cropped_frame, mask=None,
-                                       maxCorners=2,
+                                       maxCorners=5,
                                        qualityLevel=0.03,
                                        minDistance=7,
                                        blockSize=3)
@@ -88,10 +88,10 @@ def GetBboxGoodFeatures(bbox, gray):
     # draw the points
     for i in range(len(points)):
         a, b = points[i].ravel()
-        out_img3 = cv2.circle(cropped_frame, (int(a), int(b)), 2, (0, 0, 255), 2)
-
-    cv2.imshow('img3', out_img3)
-    cv2.waitKey(0)
+    #     out_img3 = cv2.circle(cropped_frame, (int(a), int(b)), 2, (0, 0, 255), 2)
+    #
+    # cv2.imshow('img3', out_img3)
+    # cv2.waitKey(0)
 
     # translate old_points of bbox to the non-cropped frame
     for i in range(len(points)):
@@ -105,8 +105,35 @@ def GetBboxGoodFeatures(bbox, gray):
 
     return points
 
+def boundOpticalFlowPoints(frame, points):
+    height, width = frame.shape[:2]
+    leftMost_x = width
+    rightMost_x = 0
+    top_y = height
+    bottom_y = 0
+    for i in range(len(points)):
+        a, b = points[i].ravel()
+        if a < leftMost_x:
+            leftMost_x = a
+        if b < top_y:
+            top_y = b
+        if a > rightMost_x:
+            rightMost_x = a
+        if b > bottom_y:
+            bottom_y = b
+
+    print("leftMost: ", leftMost_x, "| rightMost: ", rightMost_x, "| top_y: ", top_y, "| bottom_y: ", bottom_y)
+    bbox_tl = [int(leftMost_x), int(top_y)]
+    bbox_br = [int(rightMost_x), int(bottom_y)]
+    out_img3 = cv2.circle(frame, (int(bbox_tl[0]), int(bbox_tl[1])), 2, (0, 255, 0), 10)
+    out_img4 = cv2.circle(out_img3, (int(bbox_br[0]), int(bbox_br[1])), 2, (0, 255, 0), 10)
+    cv2.imshow('img4', out_img4)
+
+    return bbox_tl, bbox_br
 
 old_points = GetBboxGoodFeatures(bbox, old_gray)
+bbox_tl, bbox_br = boundOpticalFlowPoints(frame, old_points)
+
 # plot keypoints on the image
 
 # Create a random color
@@ -142,6 +169,7 @@ while True:
     #
     new_points, status, error = cv2.calcOpticalFlowPyrLK(old_gray, new_gray, old_points, None, **lk_params)
 
+
     # select good points
     if new_points is not None:
         good_new = new_points[status==1]
@@ -157,10 +185,11 @@ while True:
     # y to up, decreases
     change = ((old_points[1][0][0] - new_points[1][0][0]), (old_points[1][0][1] - new_points[1][0][1]))
     if (int(change[0]) !=0): # if there's no significant change, don't move box
-        bbox_tl[0] = int(bbox_tl[0] - change[0])
-        bbox_br[0] = int(bbox_br[0] - change[0])
-        #bbox_tl[1] = int(bbox_tl[1] - change[1])
-        #bbox_br[1] = int(bbox_br[1] - change[1])
+        bbox_tl, bbox_br = boundOpticalFlowPoints(frame, good_new)
+        # bbox_tl[0] = int(bbox_tl[0] - change[0])
+        # bbox_br[0] = int(bbox_br[0] - change[0])
+        # #bbox_tl[1] = int(bbox_tl[1] - change[1])
+        # #bbox_br[1] = int(bbox_br[1] - change[1])
         print("CHANGE HAPPENED")
 
     print("old points: ", old_points, "new points: ", new_points)
