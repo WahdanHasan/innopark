@@ -30,7 +30,7 @@ def Load(camera):
     # Get base image to display
     global base_image
     # base_image = camera.GetScaledNextFrame()
-    base_image = cv2.imread("..\\..\\..\\data\\reference footage\\images\\parking_lot_1.png")
+    base_image = cv2.imread("..\\..\\..\\data\\reference footage\\images\\Frame_Parking.png")
 
     # Create the window for display and set the mouse event function for it
     cv2.namedWindow(image_window_name)
@@ -43,7 +43,7 @@ def Load(camera):
 
     # Once tkinter thread is stopped, destroy cv2 window and then return the parking space ids and bounding boxes
     cv2.destroyWindow(image_window_name)
-    return (parking_space_ids, bounding_boxes)
+    return parking_space_ids, bounding_boxes
 
 def DrawImage(image):
     # Redraw the image provided after drawing lines and points on it
@@ -286,4 +286,9 @@ def Error():
     screen.title("Error!")
     Label(screen, text="The radio buttons have to be used and parking ID field have to be filled!", fg="red").pack()
 
-Load(5)
+parking_space_ids, bounding_boxes = Load(5)
+
+print("Parking space ids")
+print(parking_space_ids)
+print("Bounding boxes")
+print(bounding_boxes)

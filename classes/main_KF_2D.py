@@ -129,7 +129,7 @@ while True:
     bbox_br[1] = int(bbox_br[1] + (int(y) - y_old))
     print("bbox after: TL - ", bbox_tl, "| BR - ", bbox_br)
     #cv2.rectangle(frame, (bbox_tl[0], bbox_tl[1]), (bbox_br[0], bbox_br[1]), (255, 0, 0), 2)
-    frame = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
+    frame = IU.DrawBoundingBoxes(frame, [[bbox_tl, bbox_br]])
 
     cv2.imshow("Frame bbox", frame)
     cv2.waitKey(100)

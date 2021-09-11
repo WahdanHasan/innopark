@@ -195,7 +195,7 @@ while True:
     print("old points: ", old_points, "new points: ", new_points)
     print("CHANGE: ", change)
     print("bbox_tl: ", bbox_tl, "bbox_br: ", bbox_br, "\n\n")
-    frame1 = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
+    frame1 = IU.DrawBoundingBoxes(frame, [[bbox_tl, bbox_br]])
     #cv2.waitKey(100)
 
     # draw the tracks

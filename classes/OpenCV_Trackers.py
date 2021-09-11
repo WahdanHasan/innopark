@@ -19,7 +19,7 @@ def main():
     tracker_types = ['BOOSTING', 'MIL', 'KCF', 'CSRT', 'TLD', 'MEDIANFLOW', 'MOSSE']
 
     # Change the index to change the tracker type
-    tracker_type = tracker_types[2]
+    tracker_type = tracker_types[6]
 
     if tracker_type == 'BOOSTING':
         tracker = cv2.legacy_TrackerBoosting.create()
@@ -42,15 +42,18 @@ def main():
     # bbox = (222, 398, 312, 476)
     # bbox = (130, 181, 482, 353)
     bbox = (170, 207, 644, 395)
+
+    # # bbox = (130, 181, 482, 353)
+    # bbox = (36, 260, 534, 414)
     #bbox = [[170, 207], [644, 395]]
 
 
     bbox_partial = [[[bbox[0], bbox[1]], [bbox[2], bbox[3]]]]
-    t_i = IU.DrawBoundingBox(frame, bbox_partial)
+    t_i = IU.DrawBoundingBoxes(frame, bbox_partial)
     cv2.imshow(tracker_type, t_i)
 
     ok = tracker.init(frame, bbox)
-
+    cv2.waitKey(0)
     fps = 0
     while True:
         _, frame = cap.read()
@@ -74,7 +77,7 @@ def main():
         bbox = bbox_t
         bbox_partial = [[[bbox[0], bbox[1]], [bbox[2], bbox[3]]]]
 
-        t_i = IU.DrawBoundingBox(frame, bbox_partial)
+        t_i = IU.DrawBoundingBoxes(frame, bbox_partial)
 
         # Display Info
         cv2.putText(t_i, tracker_type + " Tracker", (150, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
