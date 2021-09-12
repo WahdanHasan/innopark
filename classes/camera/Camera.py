@@ -21,6 +21,8 @@ class Camera:
         self.feed = 0
         self.UpdateFeed(rtsp_link=rtsp_link)
 
+        print('Started camera with id ' + str(self.camera_id))
+
     def UpdateFeed(self, rtsp_link):
         # Changes the rtsp link for the camera feed
 
