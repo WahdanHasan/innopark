@@ -30,7 +30,7 @@ def OnLoad():
 
     model_config = 'modules\\YOLOv3\\yolov3-320.cfg'
     model_weights = 'modules\\YOLOv3\\yolov3-320.weights'
-    yolo_net_input_size = 320
+    yolo_net_input_size = 256
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation
@@ -255,21 +255,20 @@ class SubtractionModel:
     # camera. Due to this, we must treat it as a class of its own so that we may create multiple copies of it to be
     # used on a per stationary camera basis.
 
-    def __init__(self):
+    def __init__(self, detectShadows=False):
         # Initialize subtraction object detection model
 
         self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=100)
+        self.subtraction_model.setDetectShadows(detectShadows)
         self.subtraction_model_output_mask = 0
 
-    def FeedSubtractionModel(self, image):
+    def FeedSubtractionModel(self, image, learningRate=-1):
         # This function is to be called once per iteration if DetectMovingObjects is being used.
 
-        self.subtraction_model_output_mask = self.subtraction_model.apply(image)
+        self.subtraction_model_output_mask = self.subtraction_model.apply(image, learningRate=learningRate)
 
         # Filter out shadows
-        _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
-
-
+        # _, self.subtraction_model_output_mask = cv2.threshold(self.subtraction_model_output_mask, 254, 255, cv2.THRESH_BINARY)
 
     def DetectMovingObjects(self, area_threshold=100):
         # Detect objects that have moved within the image.
@@ -302,3 +301,5 @@ class SubtractionModel:
 
         return bounding_boxes
 
+    def GetOutput(self):
+        return self.subtraction_model_output_mask

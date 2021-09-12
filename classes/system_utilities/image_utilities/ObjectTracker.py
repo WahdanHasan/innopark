@@ -32,54 +32,15 @@ class TrackedObject:
 
     def StartTracking(self, pipe):
 
-        # frame = pipe.recv()
-        #
-        # cropped_frame = IU.CropImage(frame, self.bb)
-        #
-        # old_gray = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
-        #
-        # old_pts = cv2.goodFeaturesToTrack(old_gray, 10, 0.01, 10)
-        #
-        # lk_params = dict(winSize=(100, 100),
-        #                  # to avoid aperature problems, make it smaller, but in turn points dont re-allocate correctly
-        #                  maxLevel=100,
-        #                  criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
         while True:
-            # frame = pipe.recv()
-            #
-            # cropped_frame = IU.CropImage(frame, self.bb)
-            #
-            # new_gray = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2GRAY)
-            #
-            #
-            # new_pts, status, err = cv2.calcOpticalFlowPyrLK(old_gray,
-            #                                                 new_gray,
-            #                                                 old_pts,
-            #                                                 None,
-            #                                                 **lk_params)
-            #
-            # avg_x = 0
-            # avg_y = 0
-            # for i in range(len(new_pts)):
-            #     x, y = new_pts[i].ravel()
-            #     x_o, y_o = old_pts[i].ravel()
-            #     # cv2.circle(cropped_frame, (int(x), int(y)), 3, 255, -1)
-            #     avg_x += abs(x - x_o)
-            #     avg_y += abs(y - y_o)
-            #
-            # avg_x = int(avg_x/len(new_pts))
-            # avg_y = int(avg_y/len(new_pts))
-            #
-            # # print(str(avg_x) + " " + str(avg_y))
-            #
-            # self.bb = [[self.bb[0][0] + avg_x, self.bb[0][1] + avg_y], [self.bb[1][0] + avg_x, self.bb[1][1] + avg_y]]
-            #
-            # frame = IU.DrawBoundingBoxes(frame, [self.bb])
-            frame = pipe.recv()
-            pipe.send(self.bb)
-            # cv2.imshow("me smoll process frame ", frame)
-            # OD.CreateInvertedMask()
 
+            [frame, mask] = pipe.recv()
+            # cv2.imshow("me smoll process frame ", frame)
+            # OD.CreateInvertedMask(frame, self.bb)
+
+            # pipe.send(self.bb)
+            # cv2.imshow("frame", frame)
+            # cv2.imshow("mask", mask)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
@@ -166,9 +127,10 @@ class Tracker:
 
     def Update(self, camera_rtsp, camera_id):
 
-        tracked_objects = []
-        tracked_object_processes = []
-        tracked_object_pipes = []
+        old_tracked_boxes = []
+        new_tracked_boxes = []
+
+        old_ids = []
 
         # Initialize camera
         cam = Camera(rtsp_link=camera_rtsp,
@@ -178,47 +140,56 @@ class Tracker:
         height, width = cam.default_resolution[1], cam.default_resolution[0]
 
         self.base_mask = np.zeros((height, width, 3), dtype='uint8')
-        # self.base_mask = map(tuple, self.base_mask)
-        # self.base_mask = tuple(self.base_mask)
 
         # Debug variables
         start_time = time.time()
         seconds_before_display = 1
         counter = 0
 
+        subtraction_model = OD.SubtractionModel()
 
-        only_one = False
+        id_ctr = 0
+
         # Main loop
         while True:
 
             frame = cam.GetScaledNextFrame()
+
+            subtraction_model.FeedSubtractionModel(frame, 0.0001)
+
             # Detect new entrants
             return_status, detected_ids, detected_bbs = self.DetectNewEntrants(frame)
 
+            old_box_centers = []
+            new_box_centers = []
 
-            if return_status and (not only_one):
-                for i in range(len(detected_ids)):
-                    conn1, conn2 = Pipe()
+            for i in range(len(old_tracked_boxes)):
+                old_box_centers.append(IU.GetBoundingBoxCenter(old_tracked_boxes[i]))
 
-                    temp_tracked_object, temp_tracked_object_process = self.CreateNewTrackedObjectProcess(detected_ids[i], detected_bbs[i], conn2)
+            for i in range(len(detected_bbs)):
+                new_box_centers.append(IU.GetBoundingBoxCenter(detected_bbs[i]))
 
-                    tracked_objects.append(temp_tracked_object)
-                    tracked_object_pipes.append(conn1)
-                    tracked_object_processes.append(temp_tracked_object_process)
+            for i in range(len(detected_bbs)):
+                for j in range(len(old_tracked_boxes)):
+                    a = np.array(detected_bbs[i])
+                    b = np.array(old_tracked_boxes[j])
+                    if np.linalg.norm(abs(a - b)) < 10:
+                        print("YES")
 
-                only_one = True
-                print("Detected only one : " + str(return_status))
 
-            for i in range(len(tracked_object_pipes)):
-                tracked_object_pipes[i].send(frame)
 
-            for i in range(len(tracked_object_pipes)):
-                tracked_object_pipes[i].recv()
-
+            old_tracked_boxes = detected_bbs
 
             frame_processed = IU.DrawBoundingBoxes(image=frame,
                                                    bounding_boxes=detected_bbs,
                                                    thickness=2)
+
+            return_status, classes, bounding_boxes = self.DetectNewEntrants(frame)
+
+            if return_status:
+                for i in range(len(classes)):
+                    temp_id =10
+
 
             # Information code
             if self.is_debug_mode:
