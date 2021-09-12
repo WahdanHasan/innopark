@@ -176,8 +176,6 @@ def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the full bounding box in the format of [TL, TR, BL, BR]
 
-    full_bounding_box = []
-
     # Calculate top right points
     top_right_x = bounding_box[1][0]
     top_right_y = bounding_box[0][1]
@@ -188,10 +186,7 @@ def GetFullBoundingBox(bounding_box):
     bottom_left_y = bounding_box[1][1]
     bottom_left = [bottom_left_x, bottom_left_y]
 
-    full_bounding_box.append([bounding_box[0], top_right, bottom_left, bounding_box[1]])
-
-
-    return full_bounding_box
+    return [bounding_box[0], top_right, bottom_left, bounding_box[1]]
 
 def GetPartialBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, TR, BL, BR]
@@ -269,7 +264,6 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
         cv2.line(temp_image, bounding_boxes[i][2], bounding_boxes[i][3], temp_color, thickness)
 
     return temp_image
-
 
 def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes, color=(255, 0, 255), thickness=1):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.

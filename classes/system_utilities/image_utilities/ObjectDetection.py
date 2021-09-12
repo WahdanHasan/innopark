@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from shapely.geometry import box, Polygon
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 import classes.system_utilities.image_utilities.tracker as T
 
@@ -68,7 +69,7 @@ def DetectObjectsInImage(image):
     confidence_scores = []
     # Higher confidence threshold means that the detections with confidence above threshold will be shown
     # Lower nms means that the threshold for overlapping bounding boxes is lowering meaning they filter out more
-    confidence_threshold = 0.5
+    confidence_threshold = 0.8
     nms_threshold = 0.3
 
     # Obtain bounding boxes of the detections that are over the threshold value
@@ -211,6 +212,32 @@ def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
     else:
         return False
 
+def IsCarInParkingBBN(parking_bounding_box, car_bounding_box):
+    # Takes 2 bounding boxes, one for the car, one for the parking spot
+    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+    # be in the format of [TL, BR]
+    # Returns true if overlapping, false otherwise
+
+    acceptable_threshold = 0.3
+
+    # Define each polygon
+    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+    temp_car_bb = IU.GetFullBoundingBox(car_bounding_box)
+    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+    polygon1_shape = Polygon(temp_parking_bb)
+    polygon2_shape = Polygon(temp_car_bb)
+
+    # Calculate intersection and union, and the IOU
+    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+
+    iou = polygon_intersection / polygon_union
+
+    # print(iou)
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
 
 
 

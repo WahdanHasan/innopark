@@ -1,5 +1,5 @@
 import cv2
-from classes.camera.Camera import Camera
+from classes.camera.CameraBuffered import Camera
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 import time
@@ -8,7 +8,7 @@ import numpy as np
 def main():
     # cam_license = Camera(rtsp_link="data\\reference footage\\videos\\License_3.mp4",
     #                      camera_id=0)
-    cam_parking = Camera(rtsp_link="data\\reference footage\\test journey\\IP7B_recording.avi",
+    cam_parking = Camera(rtsp_link="data\\reference footage\\test journey\\Entrance_Top.mp4",
                          camera_id=0)
     #
     # # webcam = Camera(rtsp_link=0,
@@ -74,7 +74,7 @@ def main():
             counter = 0
             start_time = time.time()
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(100) & 0xFF == ord('q'):
             cv2.destroyAllWindows()
             break
 
