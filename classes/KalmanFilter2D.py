@@ -37,6 +37,8 @@ class KalmanFilter2D(object):
 
         self._P = np.eye(self._A.shape[1])
 
+        
+
     def predict(self) -> np.matrix:
         new_x = self._A.dot(self._x) + self._B.dot(self._control_acc_value)
 
