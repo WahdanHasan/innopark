@@ -131,6 +131,20 @@ def boundOpticalFlowPoints(frame, points):
 
     return bbox_tl, bbox_br
 
+def convert_bbox_to_z(bbox):
+    """
+    Takes a bounding box in the form [x1,y1,x2,y2] and returns z in the form
+    [x,y,s,r] where x,y is the centre of the box and s is the scale/area and r is
+    the aspect ratio
+    """
+    w = bbox[2]-bbox[0]
+    h = bbox[3]-bbox[1]
+    x = bbox[0]+w/2.
+    y = bbox[1]+h/2.
+    s = w*h    #scale is just area
+    r = w/float(h)
+    return np.array([x,y,s,r]).reshape((4,1))
+
 old_points = GetBboxGoodFeatures(bbox, old_gray)
 bbox_tl, bbox_br = boundOpticalFlowPoints(frame, old_points)
 
@@ -155,58 +169,30 @@ while True:
     #Lucas Kenade
     # return status as 1 (if next_points are found) and 0 (if none are found)
     # None is for the mask
-    # ** lk_params - passing a dictionary
 
-    # print("bbox before: TL - ", bbox_tl, "| BR - ", bbox_br)
-    # print("predicted estimates:", (int(x), int(y)))
-    # bbox_tl[0] = int(bbox_tl[0] + (int(x) - x_old))
-    # bbox_tl[1] = int(bbox_tl[1] + (int(y) - y_old))
-    # bbox_br[0] = int(bbox_br[0] + (int(x) - x_old))
-    # bbox_br[1] = int(bbox_br[1] + (int(y) - y_old))
-    # print("bbox after: TL - ", bbox_tl, "| BR - ", bbox_br)
-    # # cv2.rectangle(frame, (bbox_tl[0], bbox_tl[1]), (bbox_br[0], bbox_br[1]), (255, 0, 0), 2)
-    # frame = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
-    #
     new_points, status, error = cv2.calcOpticalFlowPyrLK(old_gray, new_gray, old_points, None, **lk_params)
 
-
-    # select good points
-    if new_points is not None:
-        good_new = new_points[status==1]
-        good_old = old_points[status==1]
-
-    # #draw the points
-    # for i in range(len(new_points)):
-    #     a, b = new_points[i].ravel()
-    #     cv2.circle(frame, (int(a), int(b)), 2, (0, 255, 0), 2)
+    #draw the points
+    for i in range(len(new_points)):
+        a, b = new_points[i].ravel()
+        cv2.circle(frame, (int(a), int(b)), 2, (0, 255, 0), 2)
 
     # draw new bbox
     # x to the right, increases
     # y to up, decreases
     change = ((old_points[1][0][0] - new_points[1][0][0]), (old_points[1][0][1] - new_points[1][0][1]))
     if (int(change[0]) !=0): # if there's no significant change, don't move box
-        bbox_tl, bbox_br = boundOpticalFlowPoints(frame, good_new)
-        # bbox_tl[0] = int(bbox_tl[0] - change[0])
-        # bbox_br[0] = int(bbox_br[0] - change[0])
-        # #bbox_tl[1] = int(bbox_tl[1] - change[1])
-        # #bbox_br[1] = int(bbox_br[1] - change[1])
+        # bbox_tl, bbox_br = boundOpticalFlowPoints(frame, new_points)
+        bbox_tl[0] = int(bbox_tl[0] - change[0])
+        bbox_br[0] = int(bbox_br[0] - change[0])
+        #bbox_tl[1] = int(bbox_tl[1] - change[1])
+        #bbox_br[1] = int(bbox_br[1] - change[1])
         print("CHANGE HAPPENED")
 
     print("old points: ", old_points, "new points: ", new_points)
     print("CHANGE: ", change)
     print("bbox_tl: ", bbox_tl, "bbox_br: ", bbox_br, "\n\n")
-    frame1 = IU.DrawBoundingBoxes(frame, [[bbox_tl, bbox_br]])
-    #cv2.waitKey(100)
-
-    # draw the tracks
-    for i, (new, old) in enumerate(zip(good_new, good_old)):
-       a, b = new.ravel()
-       c, d = old.ravel()
-       a = int(a); b = int(b); c = int(c); d = int(d)
-       # draws a line connecting old point with new point
-       mask = cv2.line(mask, (a, b), (c, d), (0, 0, 255), 1)
-       # draws new point
-       frame = cv2.circle(frame, (a, b), 2, (0, 255, 0), 2)
+    frame1 = IU.DrawBoundingBox(frame, [[bbox_tl, bbox_br]])
 
     frame = cv2.add(frame, mask)
     cv2.imshow("Frame", frame)
@@ -215,7 +201,6 @@ while True:
     # so every new frame is being compared to its previous frame
     old_gray = new_gray.copy()
     old_points = new_points.reshape(-1, 1, 2)
-    #old_point_move_bbox = (old_points[0][0][0], old_points[0][0][1])
 
     counter += 1
     if (time.time() - start_time) > seconds_before_display:
