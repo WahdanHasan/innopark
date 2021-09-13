@@ -12,4 +12,10 @@ class ObjectStatus(Enum):
     Moving = 0
     Stationary = 1
 
+class EntrantSide(Enum):
+    TOP = "top"
+    BOTTOM = "bottom"
+    LEFT = "left"
+    RIGHT = "right"
+
 

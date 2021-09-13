@@ -4,15 +4,30 @@ import time
 from classes.camera.Camera import Camera
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
-cap = Camera(rtsp_link="C:\\Users\\wahda\\PycharmProjects\\InnoPark\\data\\reference footage\\videos\\Car_Pass3.mp4",
+cap = Camera(rtsp_link="E:\\PycharmProjects\\InnoPark\\data\\reference footage\\videos\\Car_Pass3.mp4",
              camera_id=0)
 
 
-old_pts = np.array([[200, 140], [200, 160]], dtype="float32").reshape(-1, 1, 2)
-
+# old_pts = np.array([[200, 140], [200, 160]], dtype="float32").reshape(-1, 1, 2)
 frame = cap.GetScaledNextFrame()
 
 old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+bbox = [[192, 114], [247, 180]]
+
+cropped = IU.CropImage(frame, bbox)
+cropped_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
+
+old_pts = cv2.goodFeaturesToTrack(cropped_gray, 100, 0.5, 10)
+
+# bbox_p = [[int(bbox[0][0]/720), int(bbox[0][1]/480)], [int(bbox[1][0]/720), int(bbox[1][1]/480)]]
+
+
+for i in range(len(old_pts)):
+    old_pts[i][0][0] = float(old_pts[i][0][0] + bbox[0][0])
+    old_pts[i][0][1] = float(old_pts[i][0][1] + bbox[0][1])
+
+
 mask = np.zeros_like(frame)
 
 start_time = time.time()

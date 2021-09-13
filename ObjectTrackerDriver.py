@@ -17,7 +17,7 @@ def main():
 
     tracker = OT.Tracker(cam_parking)
     bounding_box = [[217, 406], [319, 479]]
-    tracked_object = OT.TrackedObject([0, "A35020", bounding_box])
+    tracked_object = OT.TrackedObjectProcess([0, "A35020", bounding_box])
     tracked_object.mask = parked_car_mask
 
     tracker.AddToMask(tracked_object)
