@@ -135,7 +135,6 @@ def ConcatenatePictures(img_set):
 
     return img_base
 
-
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)
@@ -177,8 +176,6 @@ def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the full bounding box in the format of [TL, TR, BL, BR]
 
-    full_bounding_box = []
-
     # Calculate top right points
     top_right_x = bounding_box[1][0]
     top_right_y = bounding_box[0][1]
@@ -189,16 +186,13 @@ def GetFullBoundingBox(bounding_box):
     bottom_left_y = bounding_box[1][1]
     bottom_left = [bottom_left_x, bottom_left_y]
 
-    full_bounding_box.append([bounding_box[0], top_right, bottom_left, bounding_box[1]])
-
-
-    return full_bounding_box
+    return [bounding_box[0], top_right, bottom_left, bounding_box[1]]
 
 def GetPartialBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, TR, BL, BR]
     # Returns the equivalent [TL, BR] format box
 
-    partial_bounding_box = [[bounding_box[0], bounding_box[1]], [bounding_box[2], bounding_box[3]]]
+    partial_bounding_box = [bounding_box[0], bounding_box[3]]
 
     return partial_bounding_box
 
@@ -231,7 +225,15 @@ def GetDimensionsFromBoundingBox(bounding_box):
 
     return (height, width)
 
-def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
+def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
+
+    temp_image = image.copy()
+
+    cv2.line(temp_image, point_a, point_b, color, thickness)
+
+    return temp_image
+
+def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -244,6 +246,22 @@ def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
                                    pt2=bounding_boxes[i][1],
                                    color=color,
                                    thickness=thickness)
+
+    return temp_image
+
+def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
+    # Takes an image and places the parking space bounding boxes on it from the detections
+    # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
+    # Returns the image with all the boxes and their appropriate colors drawn on it.
+
+    temp_image = image.copy()
+
+    for i in range(len(bounding_boxes)):
+        temp_color = (0, 0, 255) if are_occupied[i] else (0, 255, 0)
+        cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][1], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][2], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][1], bounding_boxes[i][3], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][2], bounding_boxes[i][3], temp_color, thickness)
 
     return temp_image
 

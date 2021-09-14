@@ -61,7 +61,7 @@ def main():
             tracker.RemoveFromMask(tracked_object)
         base_mask = tracker.base_mask
 
-        frame_parking = IU.DrawBoundingBox(frame_parking, [tracked_object.bounding_box])
+        frame_parking = IU.DrawBoundingBoxes(frame_parking, [tracked_object.bounding_box])
 
         dst = cv2.Canny(frame_parking, 50, 200, None, 3)
 

@@ -39,13 +39,15 @@ def main():
     # Allocate memory for cameras array
     cameras = []
 
+    width = 1280
+    height = 720
     # Input camera links
     cam_links = [
-                 # "http://192.168.0.110:4747/video?1920x1080",
-                 "http://192.168.0.139:4747/video?1920x1080",
-                 "http://192.168.0.103:4747/video?1920x1080",
-                 # "http://192.168.0.197:4747/video?1920x1080",
-                 "http://192.168.0.178:4747/video?1920x1080"
+                 "http://192.168.0.129:4747/video?"+ str(width) + "x" + str(height),
+                 "http://192.168.0.138:4747/video?"+ str(width) + "x" + str(height),
+                 "http://192.168.0.115:4747/video?"+ str(width) + "x" + str(height),
+                 # "http://192.168.0.197:4747/video?"+ str(width) + "x" + str(height),
+                 "http://192.168.0.178:4747/video?"+ str(width) + "x" + str(height)
                  ]
     # cam_links = [
     #              "http://192.168.0.110:4747/video?1920x1080",
@@ -57,7 +59,7 @@ def main():
 
     # Input camera link names
     cam_names = [
-                 # "IP7plus",
+                 "IP7plus",
                  "IP7B",
                  "IP7W",
                  # "S4",
@@ -247,7 +249,7 @@ def StartVideoWriters(cam_names):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
 
     for i in range(cam_count):
-        video_writers[i] = cv2.VideoWriter("recordings\\" + cam_names[i] + "_recording.avi", fourcc, 30.0, (1920, 1080))
+        video_writers[i] = cv2.VideoWriter("recordings\\" + cam_names[i] + "_recording.avi", fourcc, 30.0, (1280, 720))
 
 def WriteVideo(index):
     while True:
