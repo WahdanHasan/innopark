@@ -1,5 +1,4 @@
 import cv2
-import re as regex
 import numpy as np
 
 def ImageToBlob(image, input_size):

@@ -1,7 +1,7 @@
-import classes.system_utilities.image_utilities.ObjectTracker as OT
-from classes.system_utilities.parking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
 
-import time
+import classes.system_utilities.tracking_utilities.TrackedObject as TO
+from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
+
 import multiprocessing
 import cv2
 # #
@@ -21,7 +21,7 @@ def main():
     broker_process = StartBroker(send_voyager_request_queue, get_voyager_request_queue)
 
     pool_queue, pool_process = StartTrackedObjectPool()
-
+    import classes.system_utilities.tracking_utilities.ObjectTracker as OT
     # tracker_1 = OT.Tracker(is_debug_mode=False)
     tracker_2 = OT.Tracker(tracked_object_pool_queue=pool_queue,
                            get_voyager_request_queue=get_voyager_request_queue,
@@ -73,8 +73,8 @@ def StartBroker(voyager_input_queue, voyager_output_queue):
 
 def StartTrackedObjectPool():
 
-    tracked_object_pool = OT.TrackedObjectPoolManager()
-    pool_queue = tracked_object_pool.Initialize()
+    tracked_object_pool = TO.TrackedObjectPoolManager()
+    pool_queue = tracked_object_pool.Initialize(pool_size=30)
     pool_process = multiprocessing.Process(target=tracked_object_pool.Start)
     pool_process.start()
 

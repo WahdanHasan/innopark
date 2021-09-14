@@ -8,7 +8,7 @@ class ImageResolution(Enum):
     NTSC = (320, 240)
     QCIF = (176, 144)
 
-class ObjectStatus(Enum):
+class TrackedObjectStatus(Enum):
     Moving = 0
     Stationary = 1
 

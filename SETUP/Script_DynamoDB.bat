@@ -1,1 +1,0 @@
-conda activate innopark && python -m pip install awscli && python -m pip install boto3==1.18.11 && aws configure

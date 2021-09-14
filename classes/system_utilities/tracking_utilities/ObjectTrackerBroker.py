@@ -3,8 +3,12 @@ from threading import Thread
 from classes.enum_classes.Enums import EntrantSide
 
 class ObjectTrackerBroker:
+    # Facilitates the exchange of tracked objects between object trackers
+
+    # TODO: The broker should facilitate transfer of tracked object process pipes rather than just ids
     def __init__(self):
 
+        # Adjacency matrix of cameras with their id in the correct spot
         self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
                                  [-1, -1, 2, -1],
                                  [-1, -1, 1, 3],
@@ -23,12 +27,14 @@ class ObjectTrackerBroker:
         self.output_listener_thread_stopped = 0
 
     def Start(self, send_voyager_request_queue, get_voyager_request_queue):
+        # Starts 2 threads that listen for requests from object trackers
+
         print("Started process")
         self.voyager_input_queue = send_voyager_request_queue
         self.voyager_output_queue = get_voyager_request_queue
 
 
-        self.input_listener_thread = Thread(target=self.PutVoyagerRequests)
+        self.input_listener_thread = Thread(target=self.PutVoyagerRequestHandler)
         self.input_listener_thread_stopped = False
         self.input_listener_thread.daemon = True
         self.input_listener_thread.start()
@@ -42,7 +48,9 @@ class ObjectTrackerBroker:
         self.output_listener_thread.join()
 
 
-    def PutVoyagerRequests(self):
+    def PutVoyagerRequestHandler(self):
+        # Handles requests from trackers to notify the broker about an object that left the tracker
+
         print("input thread started")
         while not self.input_listener_thread_stopped:
             (sender_camera_id, voyager_id, exit_direction) = self.voyager_input_queue.get()
@@ -54,6 +62,8 @@ class ObjectTrackerBroker:
 
 
     def GetVoyagerRequestHandler(self):
+        # Handles requests from trackers to check with the broker if it knows who their new entrant is
+
         print("Output thread started")
         while not self.output_listener_thread_stopped:
             (recipient_camera_id, arrival_direction, pipe) = self.voyager_output_queue.get()

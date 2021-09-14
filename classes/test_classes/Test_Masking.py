@@ -2,7 +2,7 @@ import cv2
 from classes.camera.Camera import Camera
 # import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.system_utilities.image_utilities.ObjectTracker as OT
+import classes.system_utilities.tracking_utilities.ObjectTracker as OT
 
 import time
 import numpy as np
