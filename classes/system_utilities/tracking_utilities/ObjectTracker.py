@@ -78,8 +78,6 @@ class Tracker:
             subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
 
             # Detect new entrants
-            # return_status, detected_classes, detected_bbs = self.DetectNewEntrants(image=frame)
-
             return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame)
 
             if return_status and (not only_one):
@@ -99,7 +97,7 @@ class Tracker:
 
 
             for i in range(len(tracked_object_pipes)):
-                tracked_object_pipes[i].send(frame)
+                tracked_object_pipes[i].send((frame, subtraction_model.GetOutput()))
 
             # Information code
             if self.is_debug_mode:
@@ -150,9 +148,6 @@ class Tracker:
                 index_of_closest = i
 
         return sides_string[index_of_closest]
-
-    def UpdateTracker(self, image):  # Work off a camera id or something, don't leave the detection for the user.
-        x=10
 
     def DetectNewEntrants(self, image):
         # Returns new entrants within an image by running YOLO on the image after the application of the base mask

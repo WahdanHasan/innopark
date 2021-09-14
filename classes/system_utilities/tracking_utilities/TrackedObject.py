@@ -1,4 +1,5 @@
 import cv2
+import copy
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 from multiprocessing import Process, Pipe, Queue
@@ -89,12 +90,14 @@ class TrackedObjectProcess:
         self.bb = 0
         self.pipe = 0
         self.should_keep_tracking = False
+        self.old_gray = 0
         self.old_gray_cropped = 0
         self.old_points_cropped = 0
+        self.new_gray = 0
         self.new_gray_cropped = 0
         self.new_points_cropped = 0
-        self.lk_params = dict(winSize=(100, 100),
-                              maxLevel=100,
+        self.lk_params = dict(
+                              maxLevel=50,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
     def AwaitInstructions(self, pipe):
@@ -119,7 +122,13 @@ class TrackedObjectProcess:
 
         temp_cropped = IU.CropImage(frame, self.bb)
         self.old_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
-        self.old_points_cropped = cv2.goodFeaturesToTrack(self.old_gray_cropped, 100, 0.5, 10)
+        self.old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        self.old_points_cropped = cv2.goodFeaturesToTrack(self.old_gray_cropped, 100, 0.4, 10)
+
+        for i in range(len(self.old_points_cropped)):
+            self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
+            self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
+
 
     def StartTracking(self, pipe):
         # Continues tracking the object until the object tracker sends -1 through the pipe.
@@ -133,54 +142,16 @@ class TrackedObjectProcess:
                 self.should_keep_tracking = False
                 continue
 
-            frame = instructions
+            frame, mask = instructions
 
-            temp_cropped = IU.CropImage(frame, self.bb)
-            self.new_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
+            frame = self.UpdateBoundingBoxPosition(frame)
+            print(mask.shape)
+            cropped_mask = IU.CropImage(mask, self.bb)
 
-            new_pts, status, err = cv2.calcOpticalFlowPyrLK(self.old_gray_cropped,
-                                                            self.new_gray_cropped,
-                                                            self.old_points_cropped,
-                                                            None,
-                                                            winSize=(100, 100),
-                                                            maxLevel=10,
-                                                            criteria=(
-                                                            cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-
-            # new_pts, status, err = cv2.calcOpticalFlowPyrLK(self.old_gray_cropped,
-            #                                                 self.new_gray_cropped,
-            #                                                 self.old_points_cropped,
-            #                                                 None, maxLevel=10,
-            #                                                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
-            #                                                           15, 0.08))
-
-            avg_x = 0
-            avg_y = 0
-            for i in range(len(new_pts)):
-                x, y = new_pts[i].ravel()
-                x_o, y_o = self.old_points_cropped[i].ravel()
-                t_x = x + self.bb[0][0]
-                t_y = y + self.bb[0][1]
-                cv2.circle(frame, (int(t_x), int(t_y)), 3, (0, 255, 0), -1)
-                avg_x += x - x_o
-                avg_y += y - y_o
-
-            avg_x = int(avg_x/len(new_pts))
-            avg_y = int(avg_y/len(new_pts))
-            self.bb = [[self.bb[0][0] + avg_x, self.bb[0][1] + avg_y], [self.bb[1][0] + avg_x, self.bb[1][1] + avg_y]]
-            frame = IU.DrawBoundingBoxes(frame, [self.bb])
             cv2.imshow("me smoll process frame ", frame)
-            cv2.imshow("me smoll process frame cropped", temp_cropped)
-            # cv2.waitKey(0)
-            # cv2.waitKey(2000)
-            # OD.CreateInvertedMask(frame, self.bb)
-            # print(frame)
-            self.old_gray_cropped = self.new_gray_cropped
-            self.old_points_cropped = new_pts
+            cv2.imshow("me smoll process frame mask", mask)
+            cv2.imshow("me smoll process frame mask cropped", cropped_mask)
 
-            # pipe.send(self.bb)
-            # cv2.imshow("frame", frame)
-            # cv2.imshow("mask", mask)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
@@ -188,3 +159,35 @@ class TrackedObjectProcess:
         print("Stopped running")
 
         self.AwaitInstructions(pipe=None)
+
+    def UpdateBoundingBoxPosition(self, frame):
+
+        # temp_cropped = IU.CropImage(frame, self.bb)
+        self.new_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        new_pts, status, err = cv2.calcOpticalFlowPyrLK(self.old_gray,
+                                                        self.new_gray,
+                                                        self.old_points_cropped,
+                                                        None,
+                                                        **self.lk_params)
+
+        avg_x = 0
+        avg_y = 0
+        for i in range(len(new_pts)):
+            x, y = new_pts[i].ravel()
+            x_o, y_o = self.old_points_cropped[i].ravel()
+
+            cv2.circle(frame, (int(x), int(y)), 3, (0, 255, 0), -1)
+            avg_x += (x - x_o)
+            avg_y += (y - y_o)
+
+        avg_x = avg_x / len(new_pts)
+        avg_y = avg_y / len(new_pts)
+
+        self.bb = [[self.bb[0][0] + avg_x, self.bb[0][1] + avg_y], [self.bb[1][0] + avg_x, self.bb[1][1] + avg_y]]
+
+        self.old_gray = copy.deepcopy(self.new_gray)
+        self.old_points_cropped = copy.deepcopy(new_pts)
+
+        return IU.DrawBoundingBoxes(frame, [
+            [[int(self.bb[0][0]), int(self.bb[0][1])], [int(self.bb[1][0]), int(self.bb[1][1])]]])

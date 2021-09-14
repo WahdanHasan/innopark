@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import math
+import copy
 import time
 from classes.camera.Camera import Camera
 import classes.system_utilities.image_utilities.ImageUtilities as IU
@@ -13,7 +15,7 @@ frame = cap.GetScaledNextFrame()
 
 old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-bbox = [[192, 114], [247, 180]]
+bbox = [[190, 114], [250, 180]]
 
 cropped = IU.CropImage(frame, bbox)
 cropped_gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
@@ -49,12 +51,35 @@ while True:
         cv2.circle(frame2, (int(new_pts[i][0][0]), int(new_pts[i][0][1])), 2, (0, 255, 0), 2)
     combined = cv2.addWeighted(mask, 0.7, mask, 0.3, 0.1)
 
+    avg_x = 0
+    avg_y = 0
+    for i in range(len(new_pts)):
+        x, y = new_pts[i].ravel()
+        x_o, y_o = old_pts[i].ravel()
+        # t_x = x + self.bb[0][0]
+        # t_y = y + self.bb[0][1]
+        cv2.circle(frame, (int(x), int(y)), 3, (0, 255, 0), -1)
+        avg_x += (x - x_o)
+        avg_y += (y - y_o)
+
+    avg_x = avg_x / len(new_pts)
+    avg_y = avg_y / len(new_pts)
+    print(str(avg_x) + " " + str(avg_y))
+
+    bbox = [[bbox[0][0] + avg_x, bbox[0][1] + avg_y], [bbox[1][0] + avg_x, bbox[1][1] + avg_y]]
+
+    frame2 = cv2.rectangle(img=frame2,
+                               pt1=[int(bbox[0][0]),int(bbox[0][1])],
+                               pt2=[int(bbox[1][0]),int(bbox[1][1])],
+                               color=(0, 255, 0),
+                               thickness=2)
+
     cv2.imshow("new win", mask)
     cv2.imshow("new", frame2)
     # cv2.imshow("wind", combined)
 
-    old_gray = new_gray.copy()
-    old_pts = new_pts.copy()
+    old_gray = copy.deepcopy(new_gray)
+    old_pts = copy.deepcopy(new_pts)
     counter += 1
     if (time.time() - start_time) > seconds_before_display:
         print("FPS: ", counter / (time.time() - start_time))

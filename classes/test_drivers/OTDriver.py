@@ -15,6 +15,18 @@ import cv2
 # #
 def main():
 
+    # mm = cv2.imread("data\\mm_2.png")
+    #
+    # import classes.system_utilities.image_utilities.ObjectDetection as OD
+    # import classes.system_utilities.image_utilities.ImageUtilities as IU
+    #
+    # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=mm)
+    #
+    # mm = IU.DrawBoundingBoxAndClasses(mm, classes, _,bounding_boxes)
+    #
+    # cv2.imshow("EEE", mm)
+    # cv2.waitKey(0)
+
     get_voyager_request_queue = multiprocessing.Queue()
     send_voyager_request_queue = multiprocessing.Queue()
 
@@ -74,7 +86,7 @@ def StartBroker(voyager_input_queue, voyager_output_queue):
 def StartTrackedObjectPool():
 
     tracked_object_pool = TO.TrackedObjectPoolManager()
-    pool_queue = tracked_object_pool.Initialize(pool_size=5)
+    pool_queue = tracked_object_pool.Initialize(pool_size=1)
     pool_process = multiprocessing.Process(target=tracked_object_pool.Start)
     pool_process.start()
 
