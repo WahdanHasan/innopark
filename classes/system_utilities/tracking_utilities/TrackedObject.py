@@ -73,6 +73,8 @@ class TrackedObjectPoolManager:
 
         return temp_pipe, temp_tracked_object_process
 
+    # def ReturnTrackedObject(self, tracked_object_):
+
     def DestroyPool(self):
         # Destroys all processes stored in the pool
 
@@ -125,13 +127,13 @@ class TrackedObjectProcess:
 
         while self.should_keep_tracking:
 
-            frame = pipe.recv()
+            instructions = pipe.recv()
 
-            # if isinstance(instructions, int):
-            #     self.should_keep_tracking = False
-            #     continue
-            # else:
-            #     frame = instructions
+            if isinstance(instructions, int):
+                self.should_keep_tracking = False
+                continue
+
+            frame = instructions
 
             temp_cropped = IU.CropImage(frame, self.bb)
             self.new_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
