@@ -21,16 +21,6 @@ Selecting the correct interpreter for the project:
 - Select the 'innopark/python.exe' environment from the interpreter list.
 - Click ok, then click apply.
 
-Installing and configuring Amazon DynamoDB:
-- From this repository's SETUP folder, copy Script_DynamoDB.bat onto your desktop.
-- Open Anaconda prompt.
-- Navigate to 'desktop'. (Command from user directory: 'cd desktop')
-- Execute Script_DynamoDB.bat. (Command from the same directory as file: 'Script_DynamoDB.bat')
-- Enter 'AKIAYYMYAPJ7XZUTZXO5' for the AWS Access Key ID.
-- Enter 'mHFkWNScaPugpcbdONNb17fcdZbD7dt+pFsvJWH1' for the AWS Secret Access Key.
-- Enter 'eu-west-1' for the Default region name.
-- Just hit enter on the Default output format.
-
 *********************Optional installations*********************
 
 OpenCV for GPU (This is required for running YOLOv3 on GPU mode. By default, the CPU mode is used):
