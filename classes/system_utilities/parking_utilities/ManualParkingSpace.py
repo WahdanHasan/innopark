@@ -1,7 +1,7 @@
 from tkinter import *
 import cv2
 
-image_window_name = "Parking Space Manual"
+image_window_name = "parking Space Manual"
 tkinter_thread = 0
 radio_button_index = 0
 parking_space_id = 0
@@ -22,7 +22,7 @@ def Load(camera):
 
     tkinter_thread = Tk()
     tkinter_thread.geometry("350x330") # This should scale with window size
-    tkinter_thread.title("InnoPark Manual Parking")
+    tkinter_thread.title("InnoPark Manual parking")
 
     radio_button_index = IntVar()
     parking_space_id = StringVar()
@@ -288,7 +288,7 @@ def Error():
 
 parking_space_ids, bounding_boxes = Load(5)
 
-print("Parking space ids")
+print("parking space ids")
 print(parking_space_ids)
 print("Bounding boxes")
 print(bounding_boxes)

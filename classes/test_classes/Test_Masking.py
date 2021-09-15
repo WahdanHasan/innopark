@@ -68,7 +68,7 @@ def main():
         cv2.imshow("OTD: canny", dst)
         cv2.imshow("OTD: Subtracted", subtracted_from_mask)
         cv2.imshow("OTD: Base Mask", base_mask)
-        cv2.imshow("OTD: Parking Feed", frame_parking)
+        cv2.imshow("OTD: parking Feed", frame_parking)
         counter += 1
         if (time.time() - start_time) > seconds_before_display:
             print("FPS: ", counter / (time.time() - start_time))

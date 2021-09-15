@@ -84,7 +84,7 @@ def main():
         cv2.putText(t_i, "FPS : " + str(int(fps)), (150, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 3)
 
         cv2.imshow(tracker_type, t_i)
-        #cv2.imshow("Feed Parking", frame)
+        #cv2.imshow("Feed parking", frame)
         counter += 1
 
         if cv2.waitKey(1) & 0xFF == ord('q'):

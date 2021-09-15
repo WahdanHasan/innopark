@@ -217,7 +217,7 @@ def IsCarInParkingBBN(parking_bounding_box, car_bounding_box):
     # be in the format of [TL, BR]
     # Returns true if overlapping, false otherwise
 
-    acceptable_threshold = 0.3
+    acceptable_threshold = 0.08
 
     # Define each polygon
     temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]

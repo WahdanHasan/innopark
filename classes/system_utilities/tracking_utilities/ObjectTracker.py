@@ -5,15 +5,18 @@ import time
 import numpy as np
 from multiprocessing import Process, Pipe, Queue, shared_memory
 from classes.camera.CameraBuffered import Camera
-from classes.enum_classes.Enums import EntrantSide
-from classes.enum_classes.Enums import ObjectTrackerPipeStatus
+from classes.helper_classes.Enums import EntrantSide
+from classes.helper_classes.Enums import ObjectTrackerPipeStatus
+from classes.helper_classes.Enums import TrackedObjectStatus
+from classes.helper_classes.Enums import ParkingStatus
+from classes.helper_classes import Constants
 
 
 class ParkingSpace:
     def __init__(self):
         self.id = -1
         self.bb = []
-        self.is_occupied = False
+        self.status = ParkingStatus.NOT_OCCUPIED.value
 
     def UpdateId(self, new_id):
         self.id = new_id
@@ -22,8 +25,14 @@ class ParkingSpace:
         # [TL, TR, BL, BR]
         self.bb = new_bb
 
-    def UpdateStatus(self, is_occupied):
-        self.is_occupied = is_occupied
+    def UpdateStatus(self, status):
+        self.status = status
+
+    def GetBB(self):
+        return self.bb
+
+    def GetStatus(self):
+        return self.status
 
 
 class Tracker:
@@ -54,6 +63,9 @@ class Tracker:
 
         subtraction_model = OD.SubtractionModel()
         tracked_object_pipes = []
+        tracked_object_bbs_shared_memory = []
+        tracked_object_movement_status = []
+        receive_pipe, send_pipe = Pipe()
 
         # Initialize camera
         cam = Camera(rtsp_link=camera_rtsp,
@@ -78,12 +90,10 @@ class Tracker:
         start_time = time.time()
         seconds_before_display = 1
         counter = 0
-
-
-
-        receive_pipe, send_pipe = Pipe()
-
         only_one = False
+
+
+
         # Main loop
         while True:
             # Write new frame into shared memory space
@@ -95,10 +105,24 @@ class Tracker:
             # Write new mask into shared memory space
             mask[:] = subtraction_model.GetOutput()[:]
 
-
-            # Send signal to tracked object processes to read frame and mask
+            # Send signal to tracked object processes to read frame and mask if the object is moving
             for i in range(len(tracked_object_pipes)):
+                if tracked_object_movement_status[i] == TrackedObjectStatus.Stationary.value:
+                    continue
+
                 tracked_object_pipes[i].send(ObjectTrackerPipeStatus.CanRead)
+
+            # Check if non-parked tracked object's are inside of a parking
+            for i in range(len(self.parking_spaces)):
+                if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
+                    continue
+
+                for j in range(len(tracked_object_bbs_shared_memory)):
+                    if OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist()):
+                        tracked_object_movement_status[j] = TrackedObjectStatus.Stationary.value
+                        self.parking_spaces[i].UpdateStatus(ParkingStatus.OCCUPIED.value)
+
+
 
 
             # Detect new entrants
@@ -106,31 +130,62 @@ class Tracker:
 
             if return_status and (not only_one):
                 for i in range(len(detected_classes)):
+                    # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
                     entered_object_side = self.GetEntrantSide(detected_bbs[i], height, width)
                     self.get_voyager_request_queue.put((camera_id, entered_object_side, send_pipe))
                     entered_object_id = receive_pipe.recv()
-
+                    # Request for a tracked object to represent the new entrant from the tracked object pool
                     self.tracked_object_pool_queue.put(send_pipe)
-                    (temp_pipe) = receive_pipe.recv()
-                    # TODO: Generate random id if the id is "none"
-                    temp_pipe.send((detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
-                    tracked_object_pipes.append(temp_pipe)
-                    # break
 
+                    # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
+                    (temp_pipe, temp_shared_memory_bb) = receive_pipe.recv()
+
+                    # Create an array reference to the tracked object's shared memory bounding box
+                    temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb.buf)
+                    # TODO: Generate random id if the id is "none"
+
+                    # Send the tracked object instructions on the object it is supposed to represent
+                    temp_pipe.send((detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
+
+                    # Add the tracked object pipe and shared memory reference to local arrays
+                    tracked_object_pipes.append(temp_pipe)
+                    tracked_object_bbs_shared_memory.append(temp_shared_memory_array)
+                    tracked_object_movement_status.append(TrackedObjectStatus.Moving.value)
+
+                # Only create 1 tracked object in total (this is for debugging and while we wait for the tracker to be finished)
                 only_one = True
 
-
+            # print(only_one)
             # Information code
             if self.is_debug_mode:
+                # Print fps rate of tracker
                 counter += 1
                 if (time.time() - start_time) > seconds_before_display:
                     print("Camera " + str(camera_id) + " FPS: ", counter / (time.time() - start_time))
                     counter = 0
                     start_time = time.time()
 
-                frame_processed = IU.DrawBoundingBoxes(image=frame,
-                                                       bounding_boxes=detected_bbs,
-                                                       thickness=2)
+
+                # frame_processed = IU.DrawBoundingBoxes(image=frame,
+                #                                        bounding_boxes=detected_bbs,
+                #                                        thickness=2)
+
+                temp_parking_boxes = []
+                temp_parking_box_statuses = []
+                for i in range(len(self.parking_spaces)):
+                    temp_parking_boxes.append(self.parking_spaces[i].GetBB())
+                    temp_parking_box_statuses.append(self.parking_spaces[i].GetStatus())
+
+                frame_processed = IU.DrawParkingBoxes(image=frame,
+                                                      bounding_boxes=temp_parking_boxes,
+                                                      are_occupied=temp_parking_box_statuses)
+
+                temp_tracked_boxes = []
+                for i in range(len(tracked_object_bbs_shared_memory)):
+                    temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
+
+                frame_processed = IU.DrawBoundingBoxes(image=frame_processed,
+                                                       bounding_boxes=temp_tracked_boxes)
 
                 cv2.imshow("Camera " + str(camera_id) + " Live Feed", frame)
                 cv2.imshow("Camera " + str(camera_id) + " Processed Feed", frame_processed)
@@ -180,11 +235,6 @@ class Tracker:
 
 
         return return_status, classes, bounding_boxes
-
-    # def AddObjectToTracker(self, name, identifier, bounding_box):
-    #     tracked_object = [name, identifier, bounding_box]
-    #
-    #     self.tracked_objects.append(TrackedObjectProcess(tracked_object=tracked_object))
 
     def RemoveObjectFromTracker(self, tracked_object):
         self.tracked_objects.remove(tracked_object)

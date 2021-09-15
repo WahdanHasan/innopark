@@ -67,7 +67,7 @@ def main():
         # cv2.imshow("MASK", mask)
         cv2.imshow("Subtraction Detection", t_i)
     #     # cv2.imshow("Feed License", frame_license)
-        cv2.imshow("Feed Parking", frame_parking)
+        cv2.imshow("Feed parking", frame_parking)
         counter += 1
         if (time.time() - start_time) > seconds_before_display:
             print("FPS: ", counter / (time.time() - start_time))

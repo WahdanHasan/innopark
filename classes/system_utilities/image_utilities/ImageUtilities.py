@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from classes.helper_classes.Enums import ParkingStatus
+
 
 def ImageToBlob(image, input_size):
     blob = cv2.dnn.blobFromImage(image, 1/255, (input_size, input_size), [0, 0, 0], 1, crop=False)
@@ -140,7 +142,6 @@ def FloatBBToIntBB(bb):
     # Returns the int version of the bounding box
 
     return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
-
 
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.

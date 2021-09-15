@@ -1,6 +1,6 @@
 from classes.camera.Camera import Camera
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.enum_classes.Enums import ImageResolution
+from classes.helper_classes.Enums import ImageResolution
 import sys
 import cv2
 import time
@@ -183,7 +183,7 @@ def main():
             cv2.destroyAllWindows()
             break
 
-    print("System run time: " + str(int(time.time()-program_start_time)) + " seconds.", file=sys.stderr)
+    print("system run time: " + str(int(time.time()-program_start_time)) + " seconds.", file=sys.stderr)
     print("The program will now exit.", file=sys.stderr)
 
 

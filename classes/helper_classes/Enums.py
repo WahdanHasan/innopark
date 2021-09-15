@@ -21,4 +21,8 @@ class EntrantSide(Enum):
 class ObjectTrackerPipeStatus(Enum):
     CanRead = True
 
+class ParkingStatus(Enum):
+    OCCUPIED = True
+    NOT_OCCUPIED = False
+
 

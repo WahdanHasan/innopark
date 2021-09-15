@@ -40,9 +40,9 @@ def main():
                            send_voyager_request_queue=send_voyager_request_queue,
                            is_debug_mode=True)
     #
-    # tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
-    # tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
-    # tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
+    tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
+    tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
+    tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
     #
     # tracker_1.Start(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
     #                 camera_id=1)

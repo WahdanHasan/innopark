@@ -1,4 +1,4 @@
-from classes.enum_classes.Enums import EntrantSide
+from classes.helper_classes.Enums import EntrantSide
 
 import sys
 from threading import Thread
@@ -30,7 +30,7 @@ class ObjectTrackerBroker:
     def Start(self, send_voyager_request_queue, get_voyager_request_queue):
         # Starts 2 threads that listen for requests from object trackers
 
-        print("[ObjectTrackerBroker] Process Started.", file=sys.stderr)
+        print("[ObjectTrackerBroker] Starting Broker.", file=sys.stderr)
         self.voyager_input_queue = send_voyager_request_queue
         self.voyager_output_queue = get_voyager_request_queue
 
