@@ -3,9 +3,10 @@ import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
 import time
 import numpy as np
-from multiprocessing import Process, Pipe, Queue
+from multiprocessing import Process, Pipe, Queue, shared_memory
 from classes.camera.CameraBuffered import Camera
 from classes.enum_classes.Enums import EntrantSide
+from classes.enum_classes.Enums import ObjectTrackerPipeStatus
 
 
 class ParkingSpace:
@@ -35,6 +36,8 @@ class Tracker:
         self.send_voyager_request_queue = send_voyager_request_queue
         self.is_debug_mode = is_debug_mode
         self.tracked_object_pool_queue = tracked_object_pool_queue
+        self.shared_memory_manager_frame = 0
+        self.shared_memory_manager_mask = 0
 
     def Start(self, camera_rtsp, camera_id):
         # All parking spots should be instantiated prior to calling this function
@@ -49,12 +52,23 @@ class Tracker:
 
     def Update(self, camera_rtsp, camera_id):
 
+        subtraction_model = OD.SubtractionModel()
         tracked_object_pipes = []
 
         # Initialize camera
         cam = Camera(rtsp_link=camera_rtsp,
                      camera_id=camera_id)
 
+        # Create shared memory space for frame and mask
+        frame = cam.GetScaledNextFrame()
+        subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
+        mask = subtraction_model.GetOutput()
+
+        self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True, size=frame.nbytes)
+        self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True, size=mask.nbytes)
+
+        frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
+        mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)
 
         height, width = cam.default_resolution[1], cam.default_resolution[0]
 
@@ -65,17 +79,27 @@ class Tracker:
         seconds_before_display = 1
         counter = 0
 
-        subtraction_model = OD.SubtractionModel()
+
 
         receive_pipe, send_pipe = Pipe()
 
         only_one = False
         # Main loop
         while True:
+            # Write new frame into shared memory space
+            frame[:] = cam.GetScaledNextFrame()[:]
 
-            frame = cam.GetScaledNextFrame()
-
+            # Feed subtraction model
             subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
+
+            # Write new mask into shared memory space
+            mask[:] = subtraction_model.GetOutput()[:]
+
+
+            # Send signal to tracked object processes to read frame and mask
+            for i in range(len(tracked_object_pipes)):
+                tracked_object_pipes[i].send(ObjectTrackerPipeStatus.CanRead)
+
 
             # Detect new entrants
             return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame)
@@ -89,15 +113,12 @@ class Tracker:
                     self.tracked_object_pool_queue.put(send_pipe)
                     (temp_pipe) = receive_pipe.recv()
                     # TODO: Generate random id if the id is "none"
-                    temp_pipe.send((detected_bbs[i], entered_object_id, frame))
+                    temp_pipe.send((detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
                     tracked_object_pipes.append(temp_pipe)
                     # break
 
                 only_one = True
 
-
-            for i in range(len(tracked_object_pipes)):
-                tracked_object_pipes[i].send((frame, subtraction_model.GetOutput()))
 
             # Information code
             if self.is_debug_mode:

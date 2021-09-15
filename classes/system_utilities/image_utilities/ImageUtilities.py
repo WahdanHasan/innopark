@@ -134,6 +134,14 @@ def ConcatenatePictures(img_set):
 
     return img_base
 
+def FloatBBToIntBB(bb):
+    # Accepts a bounding box of float values into a bounding box of int values
+    # It should be noted that the bounding box provided must be in the [TL, BR] format
+    # Returns the int version of the bounding box
+
+    return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
+
+
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)

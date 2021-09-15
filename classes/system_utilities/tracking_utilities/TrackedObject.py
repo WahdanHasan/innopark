@@ -1,7 +1,10 @@
+import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.enum_classes.Enums import ObjectTrackerPipeStatus
+
+import sys
 import cv2
 import copy
-import classes.system_utilities.image_utilities.ImageUtilities as IU
-
+import numpy as np
 from multiprocessing import Process, Pipe, Queue
 
 class TrackedObjectPoolManager:
@@ -35,7 +38,7 @@ class TrackedObjectPoolManager:
             self.tracked_object_process_pipes.append(temp_pipe)
             self.tracked_object_process_active_statuses.append(False)
 
-        print("Started pool manager")
+        print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
         while self.should_continue_accepting_requests:
             (sender_pipe) = self.request_queue.get()
 
@@ -43,7 +46,7 @@ class TrackedObjectPoolManager:
 
             sender_pipe.send(temp_pipe)
 
-        print("Stopped pool manager")
+        print("[TrackedObjectPoolManager] Stopped pool manager", file=sys.stderr)
 
     def CreateTrackedObjectProcess(self):
         # Creates a tracked object process and opens a pipe to it
@@ -96,6 +99,12 @@ class TrackedObjectProcess:
         self.new_gray = 0
         self.new_gray_cropped = 0
         self.new_points_cropped = 0
+        self.frame_shared_memory = 0
+        self.mask_shared_memory = 0
+        self.frame_shape = 0
+        self.mask_shape = 0
+        self.frame = 0
+        self.mask = 0
         self.lk_params = dict(
                               maxLevel=50,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
@@ -106,29 +115,38 @@ class TrackedObjectProcess:
         if self.pipe == 0:
             self.pipe = pipe
 
-        (new_bb, new_object_id, base_frame) = pipe.recv()
+        (new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = pipe.recv()
 
-        self.Initialize(new_object_id, new_bb, base_frame)
+
+
+        self.Initialize(new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
         self.StartTracking(self.pipe)
 
-    def Initialize(self, object_id, bb, frame):
+    def Initialize(self, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
 
         self.object_id = object_id
         self.bb = bb
         self.should_keep_tracking = True
 
+        self.frame_shared_memory = shared_memory_manager_frame
+        self.frame_shape = base_frame_shape
+        self.mask_shared_memory = shared_memory_manager_mask
+        self.mask_shape = base_mask_shape
+
+        self.frame = np.ndarray(self.frame_shape, dtype=np.uint8, buffer=self.frame_shared_memory.buf)
+        self.mask = np.ndarray(self.mask_shape, dtype=np.uint8, buffer=self.mask_shared_memory.buf)
+
         # Optical flow LK params
 
-        temp_cropped = IU.CropImage(frame, self.bb)
+        temp_cropped = IU.CropImage(self.frame, self.bb)
         self.old_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
-        self.old_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        self.old_gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
         self.old_points_cropped = cv2.goodFeaturesToTrack(self.old_gray_cropped, 100, 0.4, 10)
 
         for i in range(len(self.old_points_cropped)):
             self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
             self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
-
 
     def StartTracking(self, pipe):
         # Continues tracking the object until the object tracker sends -1 through the pipe.
@@ -138,18 +156,23 @@ class TrackedObjectProcess:
 
             instructions = pipe.recv()
 
-            if isinstance(instructions, int):
+            if not isinstance(instructions, ObjectTrackerPipeStatus):
                 self.should_keep_tracking = False
                 continue
+            elif instructions.value != ObjectTrackerPipeStatus.CanRead.value:
+                continue
 
-            frame, mask = instructions
+            temp_frame = np.ndarray(self.frame_shape, dtype=np.uint8, buffer=self.frame_shared_memory.buf)
+            temp_mask = np.ndarray(self.mask_shape, dtype=np.uint8, buffer=self.mask_shared_memory.buf)
 
-            frame = self.UpdateBoundingBoxPosition(frame)
-            print(mask.shape)
-            cropped_mask = IU.CropImage(mask, self.bb)
+            self.frame = temp_frame.copy()
+            self.mask = temp_mask.copy()
+
+            frame = self.CalculateNewBoundingBox(self.frame)
+            cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
 
             cv2.imshow("me smoll process frame ", frame)
-            cv2.imshow("me smoll process frame mask", mask)
+            # cv2.imshow("me smoll process frame mask", mask)
             cv2.imshow("me smoll process frame mask cropped", cropped_mask)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -160,9 +183,10 @@ class TrackedObjectProcess:
 
         self.AwaitInstructions(pipe=None)
 
-    def UpdateBoundingBoxPosition(self, frame):
+    def CalculateNewBoundingBox(self, frame):
+        # Takes the latest current frame and calculates the new bounding box from it
+        # This function needs to be updated to improve the tracker
 
-        # temp_cropped = IU.CropImage(frame, self.bb)
         self.new_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         new_pts, status, err = cv2.calcOpticalFlowPyrLK(self.old_gray,
@@ -171,6 +195,7 @@ class TrackedObjectProcess:
                                                         None,
                                                         **self.lk_params)
 
+        # Move bounding box by the average (x, y) movement of all points
         avg_x = 0
         avg_y = 0
         for i in range(len(new_pts)):
@@ -189,5 +214,4 @@ class TrackedObjectProcess:
         self.old_gray = copy.deepcopy(self.new_gray)
         self.old_points_cropped = copy.deepcopy(new_pts)
 
-        return IU.DrawBoundingBoxes(frame, [
-            [[int(self.bb[0][0]), int(self.bb[0][1])], [int(self.bb[1][0]), int(self.bb[1][1])]]])
+        return IU.DrawBoundingBoxes(frame, [IU.FloatBBToIntBB(self.bb)])

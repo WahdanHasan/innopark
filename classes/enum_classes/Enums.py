@@ -18,4 +18,7 @@ class EntrantSide(Enum):
     LEFT = "left"
     RIGHT = "right"
 
+class ObjectTrackerPipeStatus(Enum):
+    CanRead = True
+
 

@@ -1,6 +1,7 @@
-from multiprocessing import Queue
-from threading import Thread
 from classes.enum_classes.Enums import EntrantSide
+
+import sys
+from threading import Thread
 
 class ObjectTrackerBroker:
     # Facilitates the exchange of tracked objects between object trackers
@@ -29,7 +30,7 @@ class ObjectTrackerBroker:
     def Start(self, send_voyager_request_queue, get_voyager_request_queue):
         # Starts 2 threads that listen for requests from object trackers
 
-        print("Started process")
+        print("[ObjectTrackerBroker] Process Started.", file=sys.stderr)
         self.voyager_input_queue = send_voyager_request_queue
         self.voyager_output_queue = get_voyager_request_queue
 
@@ -51,7 +52,7 @@ class ObjectTrackerBroker:
     def PutVoyagerRequestHandler(self):
         # Handles requests from trackers to notify the broker about an object that left the tracker
 
-        print("input thread started")
+        print("[ObjectTrackerBroker] Input thread started.", file=sys.stderr)
         while not self.input_listener_thread_stopped:
             (sender_camera_id, voyager_id, exit_direction) = self.voyager_input_queue.get()
 
@@ -64,7 +65,7 @@ class ObjectTrackerBroker:
     def GetVoyagerRequestHandler(self):
         # Handles requests from trackers to check with the broker if it knows who their new entrant is
 
-        print("Output thread started")
+        print("[ObjectTrackerBroker] Output thread started.", file=sys.stderr)
         while not self.output_listener_thread_stopped:
             (recipient_camera_id, arrival_direction, pipe) = self.voyager_output_queue.get()
 

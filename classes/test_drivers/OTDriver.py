@@ -77,7 +77,6 @@ def main():
 def StartBroker(voyager_input_queue, voyager_output_queue):
 
     driver = ObjectTrackerBroker()
-    print("Commissioning process")
     broker_process = multiprocessing.Process(target=driver.Start, args=(voyager_input_queue, voyager_output_queue))
     broker_process.start()
 
@@ -86,7 +85,7 @@ def StartBroker(voyager_input_queue, voyager_output_queue):
 def StartTrackedObjectPool():
 
     tracked_object_pool = TO.TrackedObjectPoolManager()
-    pool_queue = tracked_object_pool.Initialize(pool_size=1)
+    pool_queue = tracked_object_pool.Initialize(pool_size=10)
     pool_process = multiprocessing.Process(target=tracked_object_pool.Start)
     pool_process.start()
 
