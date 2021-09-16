@@ -66,6 +66,7 @@ class ObjectTrackerBroker:
         # Handles requests from trackers to check with the broker if it knows who their new entrant is
 
         print("[ObjectTrackerBroker] Output thread started.", file=sys.stderr)
+        found_entrant = False
         while not self.output_listener_thread_stopped:
             (recipient_camera_id, arrival_direction, pipe) = self.voyager_output_queue.get()
 
@@ -74,19 +75,25 @@ class ObjectTrackerBroker:
             for i in range(len(self.voyager_holding_list)):
                 if self.voyager_holding_list[i][0] == sender_camera_id and self.voyager_holding_list[i][1] == recipient_camera_id:
                     pipe.send(self.voyager_holding_list[i][2])
-                    continue
+                    found_entrant = True
+                    break
 
+            if found_entrant:
+                found_entrant = False
+                continue
+
+            # If entrant is not found, return none
             pipe.send("None")
 
 
 
     def GetCameraByDirection(self, sender_camera, direction):
 
-        if direction == EntrantSide.TOP.value:
+        if direction == EntrantSide.TOP:
             return self.adjacency_matrix[sender_camera-1][0]
-        elif direction == EntrantSide.BOTTOM.value:
+        elif direction == EntrantSide.BOTTOM:
             return self.adjacency_matrix[sender_camera-1][1]
-        elif direction == EntrantSide.LEFT.value:
+        elif direction == EntrantSide.LEFT:
             return self.adjacency_matrix[sender_camera-1][2]
-        elif direction == EntrantSide.RIGHT.value:
+        elif direction == EntrantSide.RIGHT:
             return self.adjacency_matrix[sender_camera-1][3]

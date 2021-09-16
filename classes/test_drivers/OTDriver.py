@@ -1,6 +1,7 @@
 
 import classes.system_utilities.tracking_utilities.TrackedObject as TO
 from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
+from classes.helper_classes.Enums import EntrantSide
 
 import multiprocessing
 import cv2
@@ -45,16 +46,19 @@ def main():
                            get_voyager_request_queue=get_voyager_request_queue,
                            send_voyager_request_queue=send_voyager_request_queue,
                            is_debug_mode=True)
-    #
+
     tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
     tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
     tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
-    #
+
+    # License camera goes here
+    send_voyager_request_queue.put((1, 'J71612', EntrantSide.LEFT))
+
     tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
-                           camera_id=1)
-    #
-    tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
                            camera_id=2)
+
+    tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
+                           camera_id=3)
 
 
     # time.sleep(1)

@@ -55,6 +55,17 @@ def CropImage(img, bounding_set):
     width = x_max - x_min
     length = y_max - y_min
 
+    # Validation
+    img_height, img_width, _ = img_temp.shape
+    if y_min < 0:
+        y_min = 0
+    if y_max > img_height:
+        y_max = img_height
+    if x_min < 0:
+        x_min = 0
+    if x_max > img_width:
+        x_max = img_width
+
     # Write the region of the image to be cropped back onto the image started from the origin
     img_temp[0:length, 0:width] = img[y_min:y_max, x_min:x_max]
 
