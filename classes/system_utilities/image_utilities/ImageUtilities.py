@@ -273,7 +273,7 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
 
     return temp_image
 
-def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes, color=(255, 0, 255), thickness=1):
+def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=1):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -287,12 +287,21 @@ def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes,
                                    color=color,
                                    thickness=thickness)
 
-        temp_image = cv2.putText(img=temp_image,
-                                 text=f'{class_names[i]} {int(probabilities[i])}%',
-                                 org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
-                                 fontFace=cv2.FONT_HERSHEY_DUPLEX,
-                                 fontScale=0.5,
-                                 color=(0, 0, 255),
-                                 thickness=1)
+        if probabilities is not None:
+            temp_image = cv2.putText(img=temp_image,
+                                     text=f'{class_names[i]} {int(probabilities[i])}%',
+                                     org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
+                                     fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                                     fontScale=0.5,
+                                     color=(0, 0, 255),
+                                     thickness=1)
+        else:
+            temp_image = cv2.putText(img=temp_image,
+                                     text=f'{class_names[i]}',
+                                     org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
+                                     fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                                     fontScale=0.5,
+                                     color=(0, 0, 255),
+                                     thickness=1)
 
     return temp_image

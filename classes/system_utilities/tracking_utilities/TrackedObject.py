@@ -208,8 +208,8 @@ class TrackedObjectProcess:
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)
 
-        cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
-        cv2.imshow("me smoll process frame mask cropped", cropped_mask)
+        # cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
+        # cv2.imshow("me smoll process frame mask cropped", cropped_mask)
 
     def UpdateStationaryObject(self):
         x=10
