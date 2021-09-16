@@ -1,6 +1,6 @@
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.helper_classes import Constants
-from classes.helper_classes.Enums import ObjectTrackerPipeStatus
+from classes.helper_classes.Enums import TrackerToTrackedObjectInstruction
 
 import sys
 import cv2
@@ -179,26 +179,23 @@ class TrackedObjectProcess:
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
-            confirmation_to_read = pipe.recv()
+            instruction = pipe.recv()
 
             # Validate if the message received is what was expected
-            if not isinstance(confirmation_to_read, ObjectTrackerPipeStatus):
+            if not isinstance(instruction, TrackerToTrackedObjectInstruction):
                 self.should_keep_tracking = False
-                continue
-            elif confirmation_to_read.value != ObjectTrackerPipeStatus.CanRead.value:
                 continue
 
             # Create a local copy of the frame and mask
             self.frame = self.frame_in_shared_memory.copy()
             self.mask = self.mask_in_shared_memory.copy()
 
-
-            # Calculate the new bounding set
-            frame = self.CalculateNewBoundingBox(self.frame)
-            cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
-
-            cv2.imshow("me smoll process frame ", frame)
-            cv2.imshow("me smoll process frame mask cropped", cropped_mask)
+            # Update based on object movement status
+            if instruction.value == TrackerToTrackedObjectInstruction.ObjectMoving.value:
+                self.UpdateMovingObject()
+            elif instruction.value == TrackerToTrackedObjectInstruction.ObjectStationary.value:
+                self.UpdateMovingObject()
+                # self.UpdateStationaryObject()
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
@@ -207,6 +204,15 @@ class TrackedObjectProcess:
         print("Stopped running")
 
         self.AwaitInstructions(pipe=None, bb_in_shared_memory_manager=None)
+
+    def UpdateMovingObject(self):
+        self.CalculateNewBoundingBox(self.frame)
+
+        cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
+        cv2.imshow("me smoll process frame mask cropped", cropped_mask)
+
+    def UpdateStationaryObject(self):
+        x=10
 
     def CalculateNewBoundingBox(self, frame):
         # Takes the latest current frame and calculates the new bounding box from it

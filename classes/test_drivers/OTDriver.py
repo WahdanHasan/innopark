@@ -47,8 +47,8 @@ def main():
     # tracker_1.Start(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
     #                 camera_id=1)
     #
-    tracker_2.Start(camera_rtsp="data\\reference footage\\test journey\\Leg_2_Short.mp4",
-                    camera_id=2)
+    tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2_Short.mp4",
+                           camera_id=2)
 
 
     # time.sleep(1)
@@ -69,7 +69,7 @@ def main():
     cv2.waitKey(0)
 
     # tracker_1.Stop()
-    tracker_2.Stop()
+    tracker_2.StopProcess()
 
     pool_process.terminate()
     broker_process.terminate()
