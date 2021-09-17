@@ -57,5 +57,29 @@ def GetDocuments(collection):
     else:
         documents_list = []
         for doc in documents:
+            documents_list.append(doc.id)
+        return documents_list
+
+def GetDocumentsAndChildren(collection):
+    collection_ref = db.collection(collection)
+
+    documents = collection_ref.get()
+
+    if not documents:
+        print(u'Collection doesn\'t exist')
+        return None
+    else:
+        documents_list = []
+        for doc in documents:
             documents_list.append([doc.id, doc.to_dict()])
         return documents_list
+
+def DeleteDocument(collection, document):
+    document_ref = db.collection(collection).document(document)
+
+    if not document_ref:
+        print(u'Document doesn\'t exist')
+        return None
+
+    document_ref.delete()
+    print(u'Successfully deleted document!')
