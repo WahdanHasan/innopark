@@ -21,11 +21,11 @@ class ObjectTrackerBroker:
         self.voyager_input_queue = 0
         self.voyager_output_queue = 0
 
-        self.input_listener_thread = 0
-        self.input_listener_thread_stopped = 0
+        self.put_voyager_listener_thread = 0
+        self.put_voyager_listener_thread_stopped = 0
 
-        self.output_listener_thread = 0
-        self.output_listener_thread_stopped = 0
+        self.get_voyager_listener_thread = 0
+        self.get_voyager_listener_thread_stopped = 0
 
     def Start(self, send_voyager_request_queue, get_voyager_request_queue):
         # Starts 2 threads that listen for requests from object trackers
@@ -34,26 +34,27 @@ class ObjectTrackerBroker:
         self.voyager_input_queue = send_voyager_request_queue
         self.voyager_output_queue = get_voyager_request_queue
 
+        print("[ObjectTrackerBroker] Put voyager thread started.", file=sys.stderr)
+        self.put_voyager_listener_thread = Thread(target=self.PutVoyagerRequestHandler)
+        self.put_voyager_listener_thread_stopped = False
+        self.put_voyager_listener_thread.daemon = True
+        self.put_voyager_listener_thread.start()
 
-        self.input_listener_thread = Thread(target=self.PutVoyagerRequestHandler)
-        self.input_listener_thread_stopped = False
-        self.input_listener_thread.daemon = True
-        self.input_listener_thread.start()
+        print("[ObjectTrackerBroker] Get voyager thread started.", file=sys.stderr)
+        self.get_voyager_listener_thread = Thread(target=self.GetVoyagerRequestHandler)
+        self.get_voyager_listener_thread_stopped = False
+        self.get_voyager_listener_thread.daemon = True
+        self.get_voyager_listener_thread.start()
 
-        self.output_listener_thread = Thread(target=self.GetVoyagerRequestHandler)
-        self.output_listener_thread_stopped = False
-        self.output_listener_thread.daemon = True
-        self.output_listener_thread.start()
+        self.put_voyager_listener_thread.join()
+        self.get_voyager_listener_thread.join()
 
-        self.input_listener_thread.join()
-        self.output_listener_thread.join()
-
+        print("[ObjectTrackerBroker] Stopped Broker.", file=sys.stderr)
 
     def PutVoyagerRequestHandler(self):
         # Handles requests from trackers to notify the broker about an object that left the tracker
 
-        print("[ObjectTrackerBroker] Input thread started.", file=sys.stderr)
-        while not self.input_listener_thread_stopped:
+        while not self.put_voyager_listener_thread_stopped:
             (sender_camera_id, voyager_id, exit_direction) = self.voyager_input_queue.get()
 
             recipient_camera_id = self.GetCameraByDirection(sender_camera_id, exit_direction)
@@ -65,9 +66,8 @@ class ObjectTrackerBroker:
     def GetVoyagerRequestHandler(self):
         # Handles requests from trackers to check with the broker if it knows who their new entrant is
 
-        print("[ObjectTrackerBroker] Output thread started.", file=sys.stderr)
         found_entrant = False
-        while not self.output_listener_thread_stopped:
+        while not self.get_voyager_listener_thread_stopped:
             (recipient_camera_id, arrival_direction, pipe) = self.voyager_output_queue.get()
 
             sender_camera_id = self.GetCameraByDirection(recipient_camera_id, arrival_direction)

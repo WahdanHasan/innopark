@@ -33,16 +33,18 @@ def main():
 
     broker_process = StartBroker(send_voyager_request_queue, get_voyager_request_queue)
 
-    pool_queue, pool_process = StartTrackedObjectPool()
+    get_pool_queue, return_pool_queue, pool_process = StartTrackedObjectPool()
 
     import classes.system_utilities.tracking_utilities.ObjectTracker as OT
 
-    tracker_1 = OT.Tracker(tracked_object_pool_queue=pool_queue,
+    tracker_1 = OT.Tracker(tracked_object_get_pool_queue=get_pool_queue,
+                           tracked_object_return_pool_queue=return_pool_queue,
                            get_voyager_request_queue=get_voyager_request_queue,
                            send_voyager_request_queue=send_voyager_request_queue,
                            is_debug_mode=True)
 
-    tracker_2 = OT.Tracker(tracked_object_pool_queue=pool_queue,
+    tracker_2 = OT.Tracker(tracked_object_get_pool_queue=get_pool_queue,
+                           tracked_object_return_pool_queue=return_pool_queue,
                            get_voyager_request_queue=get_voyager_request_queue,
                            send_voyager_request_queue=send_voyager_request_queue,
                            is_debug_mode=True)
@@ -95,11 +97,11 @@ def StartBroker(voyager_input_queue, voyager_output_queue):
 def StartTrackedObjectPool():
 
     tracked_object_pool = TO.TrackedObjectPoolManager()
-    pool_queue = tracked_object_pool.Initialize(pool_size=10)
+    get_pool_queue, return_pool_queue = tracked_object_pool.Initialize(pool_size=10)
     pool_process = multiprocessing.Process(target=tracked_object_pool.Start)
     pool_process.start()
 
-    return pool_queue, pool_process
+    return get_pool_queue, return_pool_queue, pool_process
 
 
 

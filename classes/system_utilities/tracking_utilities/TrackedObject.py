@@ -6,6 +6,7 @@ import sys
 import cv2
 import copy
 import numpy as np
+from threading import Thread
 from multiprocessing import Process, Pipe, Queue, shared_memory
 
 
@@ -15,9 +16,8 @@ class TrackedObjectPoolManager:
     def __init__(self):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
 
-        self.should_continue_accepting_requests = True
-
-        self.request_queue = 0
+        self.get_request_queue = 0
+        self.return_request_queue = 0
 
         self.pool_size = 0
 
@@ -26,13 +26,19 @@ class TrackedObjectPoolManager:
         self.tracked_object_process_active_statuses = []
         self.tracked_object_bb_shared_memory_managers = []
 
+        self.get_listener_thread = 0
+        self.get_listener_thread_stopped = 0
+        self.return_listener_thread = 0
+        self.return_listener_thread_stopped = 0
+
     def Initialize(self, pool_size=1):
 
-        self.request_queue = Queue()
+        self.get_request_queue = Queue()
+        self.return_request_queue = Queue()
 
         self.pool_size = pool_size
 
-        return self.request_queue
+        return self.get_request_queue, self.return_request_queue
 
     def Start(self):
 
@@ -46,19 +52,38 @@ class TrackedObjectPoolManager:
 
         print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
 
-        self.ListenForGetRequests()
+
+        print("[TrackedObjectPoolManager] Get request listener thread started", file=sys.stderr)
+        self.get_listener_thread = Thread(target=self.ListenForGetRequests)
+        self.get_listener_thread_stopped = False
+        self.get_listener_thread.daemon = True
+        self.get_listener_thread.start()
+
+        print("[TrackedObjectPoolManager] Return request listenger thread started.", file=sys.stderr)
+        self.return_listener_thread = Thread(target=self.ListenForReturnRequests)
+        self.return_listener_thread_stopped = False
+        self.return_listener_thread.daemon = True
+        self.return_listener_thread.start()
+
+        self.get_listener_thread.join()
+        self.return_listener_thread.join()
 
         print("[TrackedObjectPoolManager] Stopped pool manager", file=sys.stderr)
 
     def ListenForGetRequests(self):
     # Listens for requests from object trackers for tracked object processes
 
-        while self.should_continue_accepting_requests:
-            (sender_pipe) = self.request_queue.get()
+        while not self.get_listener_thread_stopped:
+            (sender_pipe) = self.get_request_queue.get()
 
             temp_pipe, bb_in_shared_memory_manager = self.GetTrackedObjectProcess()
 
             sender_pipe.send((temp_pipe, bb_in_shared_memory_manager))
+
+    def ListenForReturnRequests(self):
+
+        while not self.return_listener_thread_stopped:
+            x=10
 
     def CreateTrackedObjectProcess(self):
         # Creates a tracked object process and opens a pipe to it
@@ -83,9 +108,11 @@ class TrackedObjectPoolManager:
 
         for i in range(self.pool_size):
             if not self.tracked_object_process_active_statuses[i]:
-                print("Returning process " + str(i))
+                print("[TrackedObjectPoolManager] Returning process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
                 self.tracked_object_process_active_statuses[i] = True
                 return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i]
+
+        print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
 
         temp_pipe, bb_in_shared_memory_manager, temp_tracked_object_process = self.CreateTrackedObjectProcess()
 
@@ -96,7 +123,7 @@ class TrackedObjectPoolManager:
 
         return temp_pipe, bb_in_shared_memory_manager
 
-    # def ReturnTrackedObject(self, tracked_object_):
+    # def ReturnTrackedObject(self, tracked_object):
 
     def DestroyPool(self):
         # Destroys all processes stored in the pool
@@ -176,6 +203,7 @@ class TrackedObjectProcess:
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
 
+        print("[TrackedObjectProcess] Started tracking " + str(self.object_id) + ".", file=sys.stderr)
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
@@ -201,7 +229,7 @@ class TrackedObjectProcess:
                 cv2.destroyAllWindows()
                 break
 
-        print("Stopped running")
+        print("[TrackedObjectProcess] Stopped running.", file=sys.stderr)
 
         self.AwaitInstructions(pipe=None, bb_in_shared_memory_manager=None)
 

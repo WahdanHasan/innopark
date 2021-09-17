@@ -49,14 +49,15 @@ class ParkingSpace:
 
 class Tracker:
 
-    def __init__(self, tracked_object_pool_queue, get_voyager_request_queue, send_voyager_request_queue, is_debug_mode, seconds_between_detections=1):
+    def __init__(self, tracked_object_get_pool_queue, tracked_object_return_pool_queue, get_voyager_request_queue, send_voyager_request_queue, is_debug_mode, seconds_between_detections=1):
 
         self.tracker_process = 0
         self.parking_spaces = []
         self.get_voyager_request_queue = get_voyager_request_queue
         self.send_voyager_request_queue = send_voyager_request_queue
         self.is_debug_mode = is_debug_mode
-        self.tracked_object_pool_queue = tracked_object_pool_queue
+        self.tracked_object_get_pool_queue = tracked_object_get_pool_queue
+        self.tracked_object_return_pool_queue = tracked_object_return_pool_queue
         self.seconds_between_detections = seconds_between_detections
         self.shared_memory_manager_frame = 0
         self.shared_memory_manager_mask = 0
@@ -181,7 +182,7 @@ class Tracker:
             # Detect new entrants
             if (time.time() - time_at_detection) > self.seconds_between_detections:
                 time_at_detection = time.time()
-                print("[Camera " + str(self.camera_id) + "] Ran detector!")
+                # print("[Camera " + str(self.camera_id) + "] Ran detector!")
                 return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame)
 
                 if return_status and (not only_one):
@@ -191,7 +192,7 @@ class Tracker:
                         self.get_voyager_request_queue.put((self.camera_id, entered_object_side, send_pipe))
                         entered_object_id = receive_pipe.recv()
                         # Request for a tracked object to represent the new entrant from the tracked object pool
-                        self.tracked_object_pool_queue.put(send_pipe)
+                        self.tracked_object_get_pool_queue.put(send_pipe)
 
                         # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
                         (temp_pipe, temp_shared_memory_bb) = receive_pipe.recv()
