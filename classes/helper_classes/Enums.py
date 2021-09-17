@@ -19,6 +19,7 @@ class EntrantSide(Enum):
     RIGHT = "right"
 
 class TrackerToTrackedObjectInstruction(Enum):
+    StopTracking = -1
     ObjectMoving = 1
     ObjectStationary = 2
 

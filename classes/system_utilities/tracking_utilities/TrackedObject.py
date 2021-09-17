@@ -59,11 +59,12 @@ class TrackedObjectPoolManager:
         self.get_listener_thread.daemon = True
         self.get_listener_thread.start()
 
-        print("[TrackedObjectPoolManager] Return request listenger thread started.", file=sys.stderr)
+        print("[TrackedObjectPoolManager] Return request listener thread started.", file=sys.stderr)
         self.return_listener_thread = Thread(target=self.ListenForReturnRequests)
         self.return_listener_thread_stopped = False
         self.return_listener_thread.daemon = True
         self.return_listener_thread.start()
+
 
         self.get_listener_thread.join()
         self.return_listener_thread.join()
@@ -139,9 +140,9 @@ class TrackedObjectProcess:
     def __init__(self):
         self.object_id = -1
         self.bb = 0
-        self.pipe = 0
+        self.tracking_instruction_pipe = 0
+        self.info_request_pipe = 0
         self.should_keep_tracking = False
-        self.should_keep_listening_for_status_updates = True
         self.old_gray = 0
         self.old_gray_cropped = 0
         self.old_points_cropped = 0
@@ -150,6 +151,7 @@ class TrackedObjectProcess:
         self.new_points_cropped = 0
 
         self.bb_in_shared_memory = 0
+        self.bb_in_shared_memory_manager = 0
         self.frame_in_shared_memory = 0
         self.mask_in_shared_memory = 0
         self.frame = 0
@@ -160,20 +162,28 @@ class TrackedObjectProcess:
                               maxLevel=50,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-    def AwaitInstructions(self, pipe, bb_in_shared_memory_manager):
+    def AwaitInstructions(self, tracking_instruction_pipe, bb_in_shared_memory_manager):
         # The tracked object process sits idle until an object tracker sends a new task to it
 
-        if self.pipe == 0:
-            self.pipe = pipe
-            self.bb_in_shared_memory = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=bb_in_shared_memory_manager.buf)
+        if self.tracking_instruction_pipe == 0:
+            self.FirstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager)
 
 
-        (new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = pipe.recv()
-
+        (new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
 
 
         self.Initialize(new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
-        self.StartTracking(self.pipe)
+        self.StartTracking(self.tracking_instruction_pipe)
+
+    def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager):
+
+        # Initialize instruction and info request pipes
+        self.tracking_instruction_pipe = tracking_instruction_pipe
+
+        # Create a reference to the bb in shared memory and its buffer
+        self.bb_in_shared_memory_manager = bb_in_shared_memory_manager
+        self.bb_in_shared_memory = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32,
+                                              buffer=bb_in_shared_memory_manager.buf)
 
     def Initialize(self, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
@@ -211,6 +221,9 @@ class TrackedObjectProcess:
 
             # Validate if the message received is what was expected
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
+                continue
+
+            if instruction.value == TrackerToTrackedObjectInstruction.StopTracking.value:
                 self.should_keep_tracking = False
                 continue
 
@@ -231,7 +244,7 @@ class TrackedObjectProcess:
 
         print("[TrackedObjectProcess] Stopped running.", file=sys.stderr)
 
-        self.AwaitInstructions(pipe=None, bb_in_shared_memory_manager=None)
+        self.AwaitInstructions(tracking_instruction_pipe=None, info_request_pipe=None ,bb_in_shared_memory_manager=None)
 
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)
@@ -279,4 +292,6 @@ class TrackedObjectProcess:
         self.bb_in_shared_memory[:] = np.asarray(IU.FloatBBToIntBB(self.bb), dtype=np.int32)
 
         return IU.DrawBoundingBoxes(frame, [IU.FloatBBToIntBB(self.bb)])
+
+
 

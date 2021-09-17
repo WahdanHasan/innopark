@@ -69,7 +69,8 @@ class Tracker:
         # All parking spots should be instantiated prior to calling this function
 
         print("[ObjectTracker] Starting tracker for camera " + str(camera_id) + ".", file=sys.stderr)
-        self.tracker_process = Process(target=self.Initialize, args=(camera_rtsp, camera_id))
+        self.Initialize(camera_rtsp, camera_id)
+        self.tracker_process = Process(target=self.StartTracking)
         self.tracker_process.start()
 
     def StopProcess(self):
@@ -79,8 +80,6 @@ class Tracker:
     def Initialize(self, camera_rtsp, camera_id):
         self.camera_rtsp = camera_rtsp
         self.camera_id = camera_id
-
-        self.StartTracking()
 
     def StartTracking(self):
 
