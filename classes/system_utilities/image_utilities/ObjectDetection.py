@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from shapely.geometry import Polygon
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.system_utilities.tracking_utilities.tracker as T
+import classes.test_classes.tracker as T
 
 # Global variable declarations
 yolo_net = 0

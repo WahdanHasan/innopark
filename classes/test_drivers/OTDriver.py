@@ -83,6 +83,7 @@ def main():
     tracker_1.StopProcess()
     tracker_2.StopProcess()
 
+    # Pool should release all tracked objects before terminating
     pool_process.terminate()
     broker_process.terminate()
 
