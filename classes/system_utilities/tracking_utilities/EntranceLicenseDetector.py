@@ -1,11 +1,6 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
-import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
-import time
-import numpy as np
-from multiprocessing import Process, Pipe, Queue, shared_memory
 from classes.camera.CameraBuffered import Camera
-from classes.helper_classes.Enums import EntrantSide
 
 
 class EntranceLicenseDetector:
