@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from classes.helper_classes.Enums import ParkingStatus
 
 
 def ImageToBlob(image, input_size):

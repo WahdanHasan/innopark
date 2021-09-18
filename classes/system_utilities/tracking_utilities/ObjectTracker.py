@@ -5,13 +5,16 @@ import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
 import time
 import numpy as np
-from multiprocessing import Process, Pipe, Queue, shared_memory
+from multiprocessing import Process, Pipe, shared_memory
 from classes.camera.CameraBuffered import Camera
-from classes.helper_classes.Enums import EntrantSide
-from classes.helper_classes.Enums import TrackerToTrackedObjectInstruction
-from classes.helper_classes.Enums import TrackedObjectStatus
-from classes.helper_classes.Enums import ParkingStatus
-from classes.helper_classes import Constants
+from classes.system_utilities.helper_utilities.Enums import EntrantSide
+from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
+
+from classes.system_utilities.helper_utilities import Constants
 
 
 class ParkingSpace:
@@ -49,15 +52,13 @@ class ParkingSpace:
 
 class Tracker:
 
-    def __init__(self, tracked_object_get_pool_queue, tracked_object_return_pool_queue, get_voyager_request_queue, send_voyager_request_queue, is_debug_mode, seconds_between_detections=1):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, is_debug_mode, seconds_between_detections=1):
 
         self.tracker_process = 0
         self.parking_spaces = []
-        self.get_voyager_request_queue = get_voyager_request_queue
-        self.send_voyager_request_queue = send_voyager_request_queue
+        self.broker_request_queue = broker_request_queue
         self.is_debug_mode = is_debug_mode
-        self.tracked_object_get_pool_queue = tracked_object_get_pool_queue
-        self.tracked_object_return_pool_queue = tracked_object_return_pool_queue
+        self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
         self.seconds_between_detections = seconds_between_detections
         self.shared_memory_manager_frame = 0
         self.shared_memory_manager_mask = 0
@@ -134,10 +135,10 @@ class Tracker:
 
             # Send signal to tracked object processes to read frame and mask along with an instruction
             for i in range(len(tracked_object_pipes)):
-                if tracked_object_movement_status[i] == TrackedObjectStatus.Stationary.value:
-                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.ObjectStationary)
-                elif tracked_object_movement_status[i] == TrackedObjectStatus.Moving.value:
-                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.ObjectMoving)
+                if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY.value:
+                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_STATIONARY)
+                elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING.value:
+                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_MOVING)
 
             # Check if objects are entering/leaving parking spaces and update their status accordingly
             for i in range(len(self.parking_spaces)):
@@ -149,7 +150,7 @@ class Tracker:
 
                     else:
                         # If the parking is not occupied and the tracked object is stationary, then continue
-                        if tracked_object_movement_status[j] == TrackedObjectStatus.Stationary.value:
+                        if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
                             continue
 
                     # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
@@ -161,11 +162,11 @@ class Tracker:
                     # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
                     # TODO: This should be updated to count down how long an object has been in a parking
                     if is_car_in_parking:
-                        tracked_object_movement_status[j] = TrackedObjectStatus.Stationary.value
+                        tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
                         self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
                         self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
                     else:
-                        tracked_object_movement_status[j] = TrackedObjectStatus.Moving.value
+                        tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
                         self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
                         self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
 
@@ -188,10 +189,10 @@ class Tracker:
                     for i in range(len(detected_classes)):
                         # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
                         entered_object_side = self.GetEntrantSide(detected_bbs[i], height, width)
-                        self.get_voyager_request_queue.put((self.camera_id, entered_object_side, send_pipe))
+                        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, entered_object_side, send_pipe))
                         entered_object_id = receive_pipe.recv()
                         # Request for a tracked object to represent the new entrant from the tracked object pool
-                        self.tracked_object_get_pool_queue.put(send_pipe)
+                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, send_pipe))
 
                         # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
                         (temp_pipe, temp_shared_memory_bb) = receive_pipe.recv()
@@ -206,7 +207,7 @@ class Tracker:
                         # Add the tracked object pipe and shared memory reference to local arrays
                         tracked_object_pipes.append(temp_pipe)
                         tracked_object_bbs_shared_memory.append(temp_shared_memory_array)
-                        tracked_object_movement_status.append(TrackedObjectStatus.Moving.value)
+                        tracked_object_movement_status.append(TrackedObjectStatus.MOVING.value)
                         tracked_object_ids.append(entered_object_id)
 
                     # Only create 1 tracked object in total (this is for debugging and while we wait for the tracker to be finished)

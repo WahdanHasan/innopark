@@ -1,6 +1,7 @@
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.helper_classes import Constants
-from classes.helper_classes.Enums import TrackerToTrackedObjectInstruction
+from classes.system_utilities.helper_utilities import Constants
+from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
+from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
 
 import sys
 import cv2
@@ -16,29 +17,27 @@ class TrackedObjectPoolManager:
     def __init__(self):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
 
-        self.get_request_queue = 0
-        self.return_request_queue = 0
+        self.tracked_object_pool_request_queue = 0
 
         self.pool_size = 0
+        self.new_tracked_object_process_event = 0
 
         self.tracked_object_process_pool = []
         self.tracked_object_process_pipes = []
         self.tracked_object_process_active_statuses = []
         self.tracked_object_bb_shared_memory_managers = []
 
-        self.get_listener_thread = 0
-        self.get_listener_thread_stopped = 0
-        self.return_listener_thread = 0
-        self.return_listener_thread_stopped = 0
+        self.process_listener_thread = 0
+        self.process_listener_thread_stopped = 0
 
     def Initialize(self, pool_size=1):
 
-        self.get_request_queue = Queue()
-        self.return_request_queue = Queue()
+        self.tracked_object_pool_request_queue = Queue()
 
         self.pool_size = pool_size
+        self.new_tracked_object_process_event = 0
 
-        return self.get_request_queue, self.return_request_queue
+        return self.tracked_object_pool_request_queue
 
     def Start(self):
 
@@ -52,39 +51,68 @@ class TrackedObjectPoolManager:
 
         print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
 
+        print("[TrackedObjectPoolManager] Request listener thread started.", file=sys.stderr)
+        self.process_listener_thread = Thread(target=self.ListenForProcessRequests)
+        self.process_listener_thread_stopped = False
+        self.process_listener_thread.daemon = True
+        self.process_listener_thread.start()
 
-        print("[TrackedObjectPoolManager] Get request listener thread started", file=sys.stderr)
-        self.get_listener_thread = Thread(target=self.ListenForGetRequests)
-        self.get_listener_thread_stopped = False
-        self.get_listener_thread.daemon = True
-        self.get_listener_thread.start()
-
-        print("[TrackedObjectPoolManager] Return request listener thread started.", file=sys.stderr)
-        self.return_listener_thread = Thread(target=self.ListenForReturnRequests)
-        self.return_listener_thread_stopped = False
-        self.return_listener_thread.daemon = True
-        self.return_listener_thread.start()
-
-
-        self.get_listener_thread.join()
-        self.return_listener_thread.join()
+        self.process_listener_thread.join()
 
         print("[TrackedObjectPoolManager] Stopped pool manager", file=sys.stderr)
 
-    def ListenForGetRequests(self):
-    # Listens for requests from object trackers for tracked object processes
+    def ListenForProcessRequests(self):
 
-        while not self.get_listener_thread_stopped:
-            (sender_pipe) = self.get_request_queue.get()
+        while not self.process_listener_thread_stopped:
+            (instructions) = self.tracked_object_pool_request_queue.get()
 
-            temp_pipe, bb_in_shared_memory_manager = self.GetTrackedObjectProcess()
+            if instructions[0] == ObjectToPoolManagerInstruction.GET_PROCESS:
+                self.GetTrackedObjectProcessRequest(instructions)
+            if instructions[0] == ObjectToPoolManagerInstruction.RETURN_PROCESS:
+                self.ReturnTrackedObjectProcessRequest(instructions)
 
-            sender_pipe.send((temp_pipe, bb_in_shared_memory_manager))
+    def GetTrackedObjectProcessRequest(self, instructions):
+        (sender_pipe) = instructions[1]
 
-    def ListenForReturnRequests(self):
+        temp_pipe, bb_in_shared_memory_manager = self.GetTrackedObjectProcess()
 
-        while not self.return_listener_thread_stopped:
-            x=10
+        sender_pipe.send((temp_pipe, bb_in_shared_memory_manager))
+
+    def GetTrackedObjectProcess(self):
+
+        # Returns the next free process from the pool
+        # If all processes are active, creates a new process, adds it to the pool, and then returns it
+
+        for i in range(self.pool_size):
+            if not self.tracked_object_process_active_statuses[i]:
+                print("[TrackedObjectPoolManager] Returning process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
+                self.tracked_object_process_active_statuses[i] = True
+                return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i]
+
+        print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
+
+        temp_pipe, bb_in_shared_memory_manager, temp_tracked_object_process = self.CreateTrackedObjectProcess()
+
+        # Set event for all listening processes to grab the new tracked object
+        self.new_tracked_object_process_event.set()
+
+        # Add new tracked object values to pool
+        self.tracked_object_process_pool.append(temp_tracked_object_process)
+        self.tracked_object_process_pipes.append(temp_pipe)
+        self.tracked_object_process_active_statuses.append(True)
+        self.tracked_object_bb_shared_memory_managers.append(bb_in_shared_memory_manager)
+
+        # Reset event for all listening processes
+        self.new_tracked_object_process_event.clear()
+
+        return temp_pipe, bb_in_shared_memory_manager
+
+
+    def ReturnTrackedObjectProcessRequest(self, instructions):
+        x=10
+
+    def ReturnTrackedObjectProcess(self):
+        x=10
 
     def CreateTrackedObjectProcess(self):
         # Creates a tracked object process and opens a pipe to it
@@ -102,29 +130,6 @@ class TrackedObjectPoolManager:
         tracked_object_process.start()
 
         return pipe1, bb_in_shared_memory_manager, temp_tracked_object
-
-    def GetTrackedObjectProcess(self):
-        # Returns the next free process from the pool
-        # If all processes are active, creates a new process, adds it to the pool, and then returns it
-
-        for i in range(self.pool_size):
-            if not self.tracked_object_process_active_statuses[i]:
-                print("[TrackedObjectPoolManager] Returning process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
-                self.tracked_object_process_active_statuses[i] = True
-                return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i]
-
-        print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
-
-        temp_pipe, bb_in_shared_memory_manager, temp_tracked_object_process = self.CreateTrackedObjectProcess()
-
-        self.tracked_object_process_pool.append(temp_tracked_object_process)
-        self.tracked_object_process_pipes.append(temp_pipe)
-        self.tracked_object_process_active_statuses.append(True)
-        self.tracked_object_bb_shared_memory_managers.append(bb_in_shared_memory_manager)
-
-        return temp_pipe, bb_in_shared_memory_manager
-
-    # def ReturnTrackedObject(self, tracked_object):
 
     def DestroyPool(self):
         # Destroys all processes stored in the pool
@@ -168,6 +173,8 @@ class TrackedObjectProcess:
         if self.tracking_instruction_pipe == 0:
             self.FirstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager)
 
+        # Reset bb
+        self.bb_in_shared_memory[:] = Constants.bb_example.copy()[:]
 
         (new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
 
@@ -203,6 +210,7 @@ class TrackedObjectProcess:
         temp_cropped = IU.CropImage(self.frame_in_shared_memory, self.bb)
         self.old_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
         self.old_gray = cv2.cvtColor(self.frame_in_shared_memory, cv2.COLOR_BGR2GRAY)
+
         self.old_points_cropped = cv2.goodFeaturesToTrack(self.old_gray_cropped, 100, 0.2, 10)
 
         for i in range(len(self.old_points_cropped)):
@@ -223,7 +231,7 @@ class TrackedObjectProcess:
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
                 continue
 
-            if instruction.value == TrackerToTrackedObjectInstruction.StopTracking.value:
+            if instruction.value == TrackerToTrackedObjectInstruction.STOP_TRACKING.value:
                 self.should_keep_tracking = False
                 continue
 
@@ -232,9 +240,9 @@ class TrackedObjectProcess:
             self.mask = self.mask_in_shared_memory.copy()
 
             # Update based on object movement status
-            if instruction.value == TrackerToTrackedObjectInstruction.ObjectMoving.value:
+            if instruction.value == TrackerToTrackedObjectInstruction.OBJECT_MOVING.value:
                 self.UpdateMovingObject()
-            elif instruction.value == TrackerToTrackedObjectInstruction.ObjectStationary.value:
+            elif instruction.value == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY.value:
                 self.UpdateMovingObject()
                 # self.UpdateStationaryObject()
 

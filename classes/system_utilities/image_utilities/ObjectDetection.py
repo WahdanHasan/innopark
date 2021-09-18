@@ -254,10 +254,10 @@ class SubtractionModel:
     # camera. Due to this, we must treat it as a class of its own so that we may create multiple copies of it to be
     # used on a per stationary camera basis.
 
-    def __init__(self, detectShadows=False):
+    def __init__(self, detectShadows=False, history=100):
         # Initialize subtraction object detection model
 
-        self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=100)
+        self.subtraction_model = cv2.createBackgroundSubtractorMOG2(history=history)
         self.subtraction_model.setDetectShadows(detectShadows)
         self.subtraction_model_output_mask = 0
 

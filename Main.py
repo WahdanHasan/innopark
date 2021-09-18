@@ -49,7 +49,7 @@ def main():
         #
         #     cv2.imshow("Drawn box parking", bb_parking)
 
-        new_model.FeedSubtractionModel(frame_parking)
+        new_model.FeedSubtractionModel(image=frame_parking, learningRate=0.5)
 
         boxes = new_model.DetectMovingObjects()
 

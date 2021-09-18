@@ -9,8 +9,8 @@ class ImageResolution(Enum):
     QCIF = (176, 144)
 
 class TrackedObjectStatus(Enum):
-    Moving = 0
-    Stationary = 1
+    MOVING = 0
+    STATIONARY = 1
 
 class EntrantSide(Enum):
     TOP = "top"
@@ -19,12 +19,22 @@ class EntrantSide(Enum):
     RIGHT = "right"
 
 class TrackerToTrackedObjectInstruction(Enum):
-    StopTracking = -1
-    ObjectMoving = 1
-    ObjectStationary = 2
+    STOP_TRACKING = -1
+    OBJECT_MOVING = 1
+    OBJECT_STATIONARY = 2
 
 class ParkingStatus(Enum):
     OCCUPIED = True
     NOT_OCCUPIED = False
+
+class ObjectToPoolManagerInstruction(Enum):
+    GET_ALL_PROCESSES = 1
+    GET_LATEST_PROCESS = 2
+    GET_PROCESS = 3
+    RETURN_PROCESS = 4
+
+class TrackedObjectToBrokerInstruction(Enum):
+    GET_VOYAGER = 1
+    PUT_VOYAGER = 2
 
 

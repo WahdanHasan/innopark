@@ -1,8 +1,7 @@
-import cv2
 import sys
 from imutils.video import VideoStream
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.helper_classes.Enums import ImageResolution
+from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
 class Camera:
     def __init__(self, rtsp_link, camera_id, name=""):
