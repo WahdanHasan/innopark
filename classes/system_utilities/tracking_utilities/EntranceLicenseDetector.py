@@ -16,22 +16,18 @@ class EntranceLicenseDetector:
         cam2 = Camera(rtsp_link=camera2[0],
                      camera_id=camera2[1])
 
+        subtraction_model = OD.SubtractionModel()
+        subtraction_model2 = OD.SubtractionModel()
+
         while True:
             frame = cam.GetScaledNextFrame()
             frame2 = cam2.GetScaledNextFrame()
 
-            subtraction_model = OD.SubtractionModel()
-            subtraction_model2 = OD.SubtractionModel()
-
-            subtraction_model.FeedSubtractionModel(image=frame, learningRate=1)
-            mask = subtraction_model.GetOutput()
-
-            subtraction_model2.FeedSubtractionModel(image=frame2, learningRate=1)
-            mask2 = subtraction_model.GetOutput()
+            subtraction_model2.FeedSubtractionModel(image=frame2, learningRate=0.0001)
+            mask2 = subtraction_model2.GetOutput()
 
             cv2.imshow('camera1', frame)
             cv2.imshow('camera2', frame2)
-            cv2.imshow('subtraction_model', mask)
             cv2.imshow('subtraction_model2', mask2)
 
             if cv2.waitKey(1) == 27:
