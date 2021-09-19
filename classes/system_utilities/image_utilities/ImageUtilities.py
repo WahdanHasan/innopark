@@ -45,10 +45,10 @@ def CropImage(img, bounding_set):
     img_temp = img.copy()
 
     # Define Top Left and Bottom Right points to crop upon
-    x_min = bounding_set[0][0]
-    y_min = bounding_set[0][1]
-    x_max = bounding_set[1][0]
-    y_max = bounding_set[1][1]
+    x_min = int(bounding_set[0][0])
+    y_min = int(bounding_set[0][1])
+    x_max = int(bounding_set[1][0])
+    y_max = int(bounding_set[1][1])
 
     # Determine absolute width and length
     width = x_max - x_min
@@ -256,6 +256,9 @@ def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
 
+    if len(bounding_boxes) == 0:
+        return image
+
     temp_image = image.copy()
 
     for i in range(len(bounding_boxes)):
@@ -287,6 +290,9 @@ def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
+
+    if len(bounding_boxes) == 0:
+        return image
 
     temp_image = image.copy()
 

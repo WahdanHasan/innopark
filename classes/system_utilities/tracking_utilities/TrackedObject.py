@@ -26,6 +26,7 @@ class TrackedObjectPoolManager:
         self.tracked_object_process_pipes = []
         self.tracked_object_process_active_statuses = []
         self.tracked_object_bb_shared_memory_managers = []
+        self.tracked_object_bb_shared_memory_manager_names = []
 
         self.process_listener_thread = 0
         self.process_listener_thread_stopped = 0
@@ -43,11 +44,12 @@ class TrackedObjectPoolManager:
 
         # Create tracked object subprocesses
         for i in range(self.pool_size):
-            temp_pipe, bb_in_shared_memory_manager, temp_tracked_object_process = self.CreateTrackedObjectProcess()
+            temp_pipe, bb_in_shared_memory_manager, temp_shared_memory_manager_name, temp_tracked_object_process = self.CreateTrackedObjectProcess(process_number=i)
             self.tracked_object_process_pool.append(temp_tracked_object_process)
             self.tracked_object_process_pipes.append(temp_pipe)
             self.tracked_object_process_active_statuses.append(False)
             self.tracked_object_bb_shared_memory_managers.append(bb_in_shared_memory_manager)
+            self.tracked_object_bb_shared_memory_manager_names.append(temp_shared_memory_manager_name)
 
         print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
 
@@ -91,7 +93,7 @@ class TrackedObjectPoolManager:
 
         print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
 
-        temp_pipe, bb_in_shared_memory_manager, temp_tracked_object_process = self.CreateTrackedObjectProcess()
+        temp_pipe, bb_in_shared_memory_manager, temp_shared_memory_manager_name, temp_tracked_object_process = self.CreateTrackedObjectProcess(process_number=self.pool_size)
 
         # Set event for all listening processes to grab the new tracked object
         self.new_tracked_object_process_event.set()
@@ -101,12 +103,13 @@ class TrackedObjectPoolManager:
         self.tracked_object_process_pipes.append(temp_pipe)
         self.tracked_object_process_active_statuses.append(True)
         self.tracked_object_bb_shared_memory_managers.append(bb_in_shared_memory_manager)
+        self.tracked_object_bb_shared_memory_manager_names.append(temp_shared_memory_manager_name)
+        self.pool_size += 1
 
         # Reset event for all listening processes
         self.new_tracked_object_process_event.clear()
 
         return temp_pipe, bb_in_shared_memory_manager
-
 
     def ReturnTrackedObjectProcessRequest(self, instructions):
         x=10
@@ -114,7 +117,7 @@ class TrackedObjectPoolManager:
     def ReturnTrackedObjectProcess(self):
         x=10
 
-    def CreateTrackedObjectProcess(self):
+    def CreateTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it
         # Returns the process and the other end of the pipe
 
@@ -122,14 +125,17 @@ class TrackedObjectPoolManager:
         pipe1, pipe2 = Pipe()
 
         # Create a bounding box blank to write to a shared memory space that holds the bounding box
-        bb_in_shared_memory_manager = shared_memory.SharedMemory(create=True, size=np.asarray(Constants.bb_example, dtype=np.int32).nbytes)
+        temp_shared_memory_manager_name = Constants.bb_shared_memory_manager_prefix + str(process_number)
+        bb_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
+                                                                 name=temp_shared_memory_manager_name,
+                                                                 size=np.asarray(Constants.bb_example, dtype=np.int32).nbytes)
 
         # Create a process for the tracked object and pass it the pipe and shared memory for its bounding box
         temp_tracked_object = TrackedObjectProcess()
         tracked_object_process = Process(target=temp_tracked_object.AwaitInstructions, args=(pipe2, bb_in_shared_memory_manager))
         tracked_object_process.start()
 
-        return pipe1, bb_in_shared_memory_manager, temp_tracked_object
+        return pipe1, bb_in_shared_memory_manager, temp_shared_memory_manager_name, temp_tracked_object
 
     def DestroyPool(self):
         # Destroys all processes stored in the pool
@@ -252,7 +258,7 @@ class TrackedObjectProcess:
 
         print("[TrackedObjectProcess] Stopped running.", file=sys.stderr)
 
-        self.AwaitInstructions(tracking_instruction_pipe=None, info_request_pipe=None ,bb_in_shared_memory_manager=None)
+        self.AwaitInstructions(tracking_instruction_pipe=None, info_request_pipe=None, bb_in_shared_memory_manager=None)
 
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)

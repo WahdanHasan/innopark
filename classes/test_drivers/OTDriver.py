@@ -2,31 +2,16 @@ import classes.system_utilities.tracking_utilities.TrackedObject as TO
 from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerListener
+from classes.system_utilities.helper_utilities import Constants
+import numpy as np
 
 import multiprocessing
 import cv2
-# #
-# #
-# class myClass:
-#     def __init__(self, obj):
-#         self.obj = obj
-#
-#     def getObj(self):
-#         return self.obj
-# #
+
 def main():
 
-    # mm = cv2.imread("data\\mm_2.png")
-    #
-    # import classes.system_utilities.image_utilities.ObjectDetection as OD
-    # import classes.system_utilities.image_utilities.ImageUtilities as IU
-    #
-    # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=mm)
-    #
-    # mm = IU.DrawBoundingBoxAndClasses(mm, classes, _,bounding_boxes)
-    #
-    # cv2.imshow("EEE", mm)
-    # cv2.waitKey(0)
+
 
     broker_request_queue = multiprocessing.Queue()
 
@@ -51,28 +36,16 @@ def main():
     # License camera goes here
     broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
-    tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
-                           camera_id=2)
+    # tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
+    #                        camera_id=2)
+    #
+    # tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
+    #                        camera_id=3)
 
-    tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
-                           camera_id=3)
 
 
-    # time.sleep(1)
-    #
-    # pipe1, pipe2 = multiprocessing.Pipe()
-    #
-    # send_voyager_request_queue.put((1, 50, "left"))
-    #
-    # get_voyager_request_queue.put((2, "left", pipe2))
-    #
-    #
-    # print("Waiting for id")
-    # temp_id = pipe1.recv()
-    # print(temp_id)
-    #
-    #
     cv2.namedWindow("Close this to close all")
+
     cv2.waitKey(0)
 
     tracker_1.StopProcess()

@@ -249,6 +249,7 @@ class Tracker:
                 cv2.imshow("Camera " + str(self.camera_id) + " Live Feed", frame)
                 cv2.imshow("Camera " + str(self.camera_id) + " Processed Feed", frame_processed)
                 # cv2.imshow("Camera " + str(self.camera_id) + " Mask", self.base_mask)
+                # cv2.imshow("Camera " + str(self.camera_id) + " Mask", mask)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
