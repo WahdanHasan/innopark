@@ -16,12 +16,9 @@ class TrackedObjectListener:
         self.shared_memory_ids = []
         self.shared_memory_id_managers = []
 
-        self.Initialize()
-
-    def Initialize(self):
-
         self.CreateReferencesToPoolBBs()
 
+    def Initialize(self):
         self.new_object_in_pool_event_listener_thread = Thread(target=self.ListenForNewObjectInPool)
         self.new_object_in_pool_event_listener_thread.daemon = True
         self.should_keep_listening_for_new_object = True

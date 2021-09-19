@@ -14,3 +14,7 @@ CAMERA_DETAILS = [
                     [2, "data\\reference footage\\test journey\\Leg_1.mp4"],
                     [3, "data\\reference footage\\test journey\\Leg_2.mp4"]
                  ]
+
+
+# Parking space file
+parking_spaces_json = "config\\parking_spaces.txt"

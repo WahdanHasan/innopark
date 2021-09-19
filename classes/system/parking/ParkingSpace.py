@@ -1,11 +1,17 @@
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 
 class ParkingSpace:
-    def __init__(self):
-        self.parking_id = -1
+    def __init__(self, camera_id, parking_id, bounding_box):
+        self.camera_id = camera_id
+        self.parking_id = parking_id
+        self.bb = [
+                    [bounding_box['top_left_x'], bounding_box['top_left_y']],
+                    [bounding_box['top_right_x'], bounding_box['top_right_y']],
+                    [bounding_box['bottom_left_x'], bounding_box['bottom_left_y']],
+                    [bounding_box['bottom_right_x'], bounding_box['bottom_right_y']]
+                  ]
+
         self.occupant_id = -1
-        self.camera_id = -1
-        self.bb = []
         self.status = ParkingStatus.NOT_OCCUPIED.value
 
     def UpdateId(self, new_parking_id):
@@ -39,3 +45,6 @@ class ParkingSpace:
     def GetStatus(self):
         return self.status
 
+    def doSomething(self):
+        print(str(self.camera_id) + " " + str(self.parking_id) + " ")
+        print(self.bb)

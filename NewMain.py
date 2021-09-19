@@ -11,6 +11,7 @@ is_debug_mode = True
 # This needs to be changed to GUI
 def main():
 
+    # Start helper processes
     new_tracked_object_event = Event()
 
     broker_request_queue = StartBroker()
@@ -22,6 +23,7 @@ def main():
 
 
     time.sleep(2)
+    # Start main components
     StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event)
 
     import cv2
