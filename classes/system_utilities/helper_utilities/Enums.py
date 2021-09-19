@@ -37,4 +37,7 @@ class TrackedObjectToBrokerInstruction(Enum):
     GET_VOYAGER = 1
     PUT_VOYAGER = 2
 
-
+class DetectedObjectAtEntrance(Enum):
+    DETECTED = 1
+    DETECTED_WITH_YOLO = 2
+    NOT_DETECTED = -1
