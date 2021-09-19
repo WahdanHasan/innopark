@@ -2,11 +2,13 @@ import classes.system_utilities.tracking_utilities.TrackedObject as TO
 from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerListener
+from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system_utilities.helper_utilities import Constants
+import time
 import numpy as np
 
 import multiprocessing
+from multiprocessing import shared_memory
 import cv2
 
 def main():
@@ -29,23 +31,21 @@ def main():
                            broker_request_queue=broker_request_queue,
                            is_debug_mode=True)
 
-    tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
-    tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
-    tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
+    # tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
+    # tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
+    # tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
 
     # License camera goes here
     broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
-    # tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
-    #                        camera_id=2)
-    #
-    # tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
-    #                        camera_id=3)
+    tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
+                           camera_id=2)
 
+    tracker_2.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_2.mp4",
+                           camera_id=3)
 
 
     cv2.namedWindow("Close this to close all")
-
     cv2.waitKey(0)
 
     tracker_1.StopProcess()

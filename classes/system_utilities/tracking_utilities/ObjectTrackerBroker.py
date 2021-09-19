@@ -4,11 +4,13 @@ from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBroke
 import sys
 from threading import Thread
 
+from multiprocessing import Process
+
 class ObjectTrackerBroker:
     # Facilitates the exchange of tracked objects between object trackers
 
     # TODO: The broker should facilitate transfer of tracked object process pipes rather than just ids
-    def __init__(self):
+    def __init__(self, broker_request_queue):
 
         # Adjacency matrix of cameras with their id in the correct spot
         self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
@@ -19,16 +21,22 @@ class ObjectTrackerBroker:
 
         self.voyager_holding_list = []
 
-        self.broker_request_queue = 0
         self.listen_for_requests_thread = 0
         self.listen_for_requests_thread_stopped = 0
+        self.broker_request_queue = broker_request_queue
+        self.broker_process = 0
 
-    def Start(self, broker_request_queue):
+    def StartProcess(self):
+        self.broker_process = Process(target=self.Start)
+        self.broker_process.start()
+
+    def StopProcess(self):
+        self.broker_process.terminate()
+
+    def Start(self):
         # Starts a thread that listens for requests from object trackers
 
         print("[ObjectTrackerBroker] Starting Broker.", file=sys.stderr)
-
-        self.broker_request_queue = broker_request_queue
 
         print("[ObjectTrackerBroker] Request listener thread started.", file=sys.stderr)
         self.listen_for_requests_thread = Thread(target=self.ListenForVoyagerRequests)

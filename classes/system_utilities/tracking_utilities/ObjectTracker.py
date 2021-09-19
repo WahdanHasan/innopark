@@ -17,37 +17,7 @@ from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerI
 from classes.system_utilities.helper_utilities import Constants
 
 
-class ParkingSpace:
-    def __init__(self):
-        self.id = -1
-        self.bb = []
-        self.status = ParkingStatus.NOT_OCCUPIED.value
-        self.occupant_id = -1
 
-    def UpdateId(self, new_id):
-        self.id = new_id
-
-    def UpdateBB(self, new_bb):
-        # [TL, TR, BL, BR]
-        self.bb = new_bb
-
-    def UpdateStatus(self, status):
-        self.status = status
-
-    def UpdateOccupant(self, occupant_id):
-        self.occupant_id = occupant_id
-
-    def GetId(self):
-        return self.id
-
-    def GetBB(self):
-        return self.bb
-
-    def GetStatus(self):
-        return self.status
-
-    def GetOccupantId(self):
-        return self.occupant_id
 
 
 class Tracker:
@@ -140,35 +110,35 @@ class Tracker:
                 elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING.value:
                     tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_MOVING)
 
-            # Check if objects are entering/leaving parking spaces and update their status accordingly
-            for i in range(len(self.parking_spaces)):
-                for j in range(len(tracked_object_bbs_shared_memory)):
-                    if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
-                        # If the parking is occupied and the tracked object isn't the occupant, then continue
-                        if self.parking_spaces[i].GetOccupantId() != tracked_object_ids[j]:
-                            continue
-
-                    else:
-                        # If the parking is not occupied and the tracked object is stationary, then continue
-                        if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
-                            continue
-
-                    # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
-                    # Hence, if the parking is not occupied and the object is moving, check if he's in this parking
-
-                    # Check if the tracked object is in the parking
-                    is_car_in_parking = OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist())
-
-                    # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
-                    # TODO: This should be updated to count down how long an object has been in a parking
-                    if is_car_in_parking:
-                        tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
-                        self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
-                        self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
-                    else:
-                        tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
-                        self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
-                        self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
+            # # Check if objects are entering/leaving parking spaces and update their status accordingly
+            # for i in range(len(self.parking_spaces)):
+            #     for j in range(len(tracked_object_bbs_shared_memory)):
+            #         if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
+            #             # If the parking is occupied and the tracked object isn't the occupant, then continue
+            #             if self.parking_spaces[i].GetOccupantId() != tracked_object_ids[j]:
+            #                 continue
+            #
+            #         else:
+            #             # If the parking is not occupied and the tracked object is stationary, then continue
+            #             if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
+            #                 continue
+            #
+            #         # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
+            #         # Hence, if the parking is not occupied and the object is moving, check if he's in this parking
+            #
+            #         # Check if the tracked object is in the parking
+            #         is_car_in_parking = OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist())
+            #
+            #         # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
+            #         # TODO: This should be updated to count down how long an object has been in a parking
+            #         if is_car_in_parking:
+            #             tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
+            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
+            #             self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
+            #         else:
+            #             tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
+            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
+            #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
 
 
 
@@ -218,7 +188,7 @@ class Tracker:
                 # Print fps rate of tracker
                 counter += 1
                 if (time.time() - start_time) > seconds_before_display:
-                    print("[Camera " + str(self.camera_id) + "] FPS: ", counter / (time.time() - start_time))
+                    print("[ObjectTracker] Camera " + str(self.camera_id) + " FPS: ", counter / (time.time() - start_time))
                     counter = 0
                     start_time = time.time()
 
@@ -246,8 +216,8 @@ class Tracker:
                                                                bounding_boxes=temp_tracked_boxes)
 
                 # Show frames
-                cv2.imshow("Camera " + str(self.camera_id) + " Live Feed", frame)
-                cv2.imshow("Camera " + str(self.camera_id) + " Processed Feed", frame_processed)
+                cv2.imshow("[ObjectTracker] Camera " + str(self.camera_id) + " Live Feed", frame)
+                cv2.imshow("[ObjectTracker] Camera " + str(self.camera_id) + " Processed Feed", frame_processed)
                 # cv2.imshow("Camera " + str(self.camera_id) + " Mask", self.base_mask)
                 # cv2.imshow("Camera " + str(self.camera_id) + " Mask", mask)
 
@@ -302,15 +272,6 @@ class Tracker:
 
     def RemoveObjectFromTracker(self, tracked_object):
         self.tracked_objects.remove(tracked_object)
-
-    def AddParkingSpaceToTracker(self, parking_space_id, parking_space_bb):
-        # Add parking space to tracker's list of parking space
-
-        temp_space = ParkingSpace()
-        temp_space.UpdateId(parking_space_id)
-        temp_space.UpdateBB(parking_space_bb)
-
-        self.parking_spaces.append(temp_space)
 
     def SubtractMaskFromImage(self, image, mask):
         # Takes an image and subtracts the provided mask from it
