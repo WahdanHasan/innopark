@@ -2,31 +2,18 @@ import classes.system_utilities.tracking_utilities.TrackedObject as TO
 from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
+from classes.system_utilities.helper_utilities import Constants
+import time
+import numpy as np
 
 import multiprocessing
+from multiprocessing import shared_memory
 import cv2
-# #
-# #
-# class myClass:
-#     def __init__(self, obj):
-#         self.obj = obj
-#
-#     def getObj(self):
-#         return self.obj
-# #
+
 def main():
 
-    # mm = cv2.imread("data\\mm_2.png")
-    #
-    # import classes.system_utilities.image_utilities.ObjectDetection as OD
-    # import classes.system_utilities.image_utilities.ImageUtilities as IU
-    #
-    # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=mm)
-    #
-    # mm = IU.DrawBoundingBoxAndClasses(mm, classes, _,bounding_boxes)
-    #
-    # cv2.imshow("EEE", mm)
-    # cv2.waitKey(0)
+
 
     broker_request_queue = multiprocessing.Queue()
 
@@ -44,9 +31,9 @@ def main():
                            broker_request_queue=broker_request_queue,
                            is_debug_mode=True)
 
-    tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
-    tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
-    tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
+    # tracker_2.AddParkingSpaceToTracker(189, [[195, 211], [346, 213], [147, 414], [477, 391]])
+    # tracker_2.AddParkingSpaceToTracker(188, [[349, 214], [481, 214], [480, 391], [718, 367]])
+    # tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
 
     # License camera goes here
     broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
@@ -58,20 +45,6 @@ def main():
                            camera_id=3)
 
 
-    # time.sleep(1)
-    #
-    # pipe1, pipe2 = multiprocessing.Pipe()
-    #
-    # send_voyager_request_queue.put((1, 50, "left"))
-    #
-    # get_voyager_request_queue.put((2, "left", pipe2))
-    #
-    #
-    # print("Waiting for id")
-    # temp_id = pipe1.recv()
-    # print(temp_id)
-    #
-    #
     cv2.namedWindow("Close this to close all")
     cv2.waitKey(0)
 
