@@ -6,7 +6,7 @@ from classes.system_utilities.image_utilities.ObjectDetection import DetectObjec
 
 licenseDetector = EntranceLicenseDetector()
 
-licenseDetector.StartProcess(["D:\\DownloadsD\\License_Footage\\Entrance_Bottom_Simulated.mp4", 0],
+licenseDetector.StartProcess(["D:\\DownloadsD\\License_Footage\\Entrance_Bottom_Simulated_2.mp4", 0],
                              ["D:\\DownloadsD\\License_Footage\\Entrance_Top.mp4", 1])
 
 # cam = Camera(rtsp_link="D:\\DownloadsD\\License_Footage\\Entrance_Top.mp4",

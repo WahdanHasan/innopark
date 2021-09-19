@@ -19,8 +19,9 @@ class EntranceLicenseDetector:
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
         self.maximum_bottom_camera_detection = 30
-        self.latest_license_frames = deque([])
-        
+        # self.latest_license_frames = deque([])
+        self.latest_license_frames = np.zeros((30, 480, 720, 3))
+
 
     def InitializeCameras(self, bottom_camera, top_camera):
         # camera is given as type array in the format [camera rtsp, camera id]
@@ -34,12 +35,14 @@ class EntranceLicenseDetector:
         self.tracker_process = Process(target=self.StartDetecting())
         self.tracker_process.start()
 
-    def StoreLicenseFrames(self, frame):
-        if len(self.latest_license_frames) > self.maximum_bottom_camera_detection:
-            self.latest_license_frames.popleft()
-            self.latest_license_frames.append(frame)
-        else:
-            self.latest_license_frames.append(frame)
+    def StoreLicenseFrames(self, frame, index):
+        # if len(self.latest_license_frames) > self.maximum_bottom_camera_detection:
+        #     self.latest_license_frames.popleft()
+        #     self.latest_license_frames.append(frame)
+        # else:
+        #     self.latest_license_frames.append(frame)
+        self.latest_license_frames[index] = frame
+        #print(self.latest_license_frames)
 
     def StartDetecting(self):
         cam = Camera(rtsp_link=self.bottom_camera[0],
@@ -62,9 +65,6 @@ class EntranceLicenseDetector:
         while True:
             totalFrames +=1
             frame_top = cam2.GetScaledNextFrame()
-            frame_bottom = cam.GetScaledNextFrame() ###########
-            cv2.imshow("frame_bottom", frame_bottom)
-            cv2.waitKey(0)
 
             frame_top = IU.DrawLine(frame_top, (width_left, 0), (width_left, height), thickness=2)
             frame_top = IU.DrawLine(frame_top, (width_right, 0), (width_right, height), thickness=2)
@@ -100,11 +100,12 @@ class EntranceLicenseDetector:
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
                         self.should_keep_detecting_bottom_camera = False
-                        # i = 0
-                        # for license_frame in self.latest_license_frames:
-                        #     i+=1
-                        #     cv2.imshow(str(i) +"/", license_frame)
-                        #     cv2.waitKey(0)
+
+                        i = 0
+                        for license_frame in self.latest_license_frames:
+                            i+=1
+                            cv2.imshow(str(i) +"/", license_frame)
+                            cv2.waitKey(0)
 
             elif white_points_percentage < 95 and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
@@ -112,8 +113,9 @@ class EntranceLicenseDetector:
             # start capturing at most 30 license frames from bottom camera when car is detected with Yolo
             if self.should_keep_detecting_bottom_camera:
                 print("hi")
+                frame_bottom = cam.GetScaledNextFrame()
+                self.StoreLicenseFrames(frame_bottom, total_bottom_camera_detection)
                 total_bottom_camera_detection += 1
-                self.StoreLicenseFrames(frame_bottom)
 
             cv2.imshow('bottom_camera', frame_top)
             cv2.imshow('subtraction_model', mask)
