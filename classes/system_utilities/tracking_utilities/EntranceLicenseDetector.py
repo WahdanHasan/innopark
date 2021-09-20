@@ -10,12 +10,13 @@ from shapely.geometry import Polygon, LineString
 
 
 class EntranceLicenseDetector:
-    def __init__(self):
-        self.license_detector = 0
-        self.shared_memory_manager_frames = 0
-        #self.broker_request_queue = broker_request_queue
+    def __init__(self, license_frames_request_queue):
+        self.license_frames_request_queue = license_frames_request_queue
+        self.license_detector_process = 0
+
         self.bottom_camera = []
         self.top_camera = []
+
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
         self.maximum_bottom_camera_detection = 30
@@ -30,16 +31,16 @@ class EntranceLicenseDetector:
         print("[Entrance License] Starting license detector for cameras: " + str(bottom_camera[1]) + " and "
               + str(top_camera[1]))
         self.InitializeCameras(bottom_camera, top_camera)
-        self.license_detector = Process(target=self.Start())
-        self.license_detector.start()
+        self.license_detector_process = Process(target=self.Start)
+        self.license_detector_process.start()
 
     def StopProcess(self):
-        self.license_detector.terminate()
+        self.license_detector_process.terminate()
 
     def StoreLicenseFrames(self, frame, index):
         self.latest_license_frames[index] = frame
 
-    def Start(self, license_frames_request_queue):
+    def Start(self):
         cam = Camera(rtsp_link=self.bottom_camera[0],
                      camera_id=self.bottom_camera[1])
         cam2 = Camera(rtsp_link=self.top_camera[0],
@@ -105,6 +106,9 @@ class EntranceLicenseDetector:
                         self.should_keep_detecting_bottom_camera = False
                         total_bottom_camera_count = 0
 
+                        # send the frames to another process be processed
+                        self.license_frames_request_queue.put(self.latest_license_frames)
+
             # if the white percentage is below threshold, stop detection
             elif white_points_percentage < white_points_threshold and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
@@ -113,6 +117,7 @@ class EntranceLicenseDetector:
             if self.should_keep_detecting_bottom_camera:
                 # added as a pre-caution if car doesn't intersect with median in a second
                 if total_bottom_camera_count > 30:
+                    print("total bottom camera count is reset to 0")
                     total_bottom_camera_count = 0
 
                 frame_bottom = cam.GetScaledNextFrame()
