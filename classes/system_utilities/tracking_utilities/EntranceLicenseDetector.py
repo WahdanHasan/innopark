@@ -1,10 +1,11 @@
+from classes.camera.CameraBuffered import Camera
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
+from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
 import cv2
 import numpy as np
-from classes.camera.CameraBuffered import Camera
 from multiprocessing import Process, Pipe, shared_memory
-from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
 from collections import deque
 from shapely.geometry import Polygon, LineString
 
@@ -19,8 +20,8 @@ class EntranceLicenseDetector:
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
         self.maximum_bottom_camera_detection = 30
-        # self.latest_license_frames = deque([])
-        self.latest_license_frames = np.zeros((30, 480, 720, 3))
+        self.latest_license_frames = deque([], maxlen=self.maximum_bottom_camera_detection)
+        #self.latest_license_frames = np.zeros((30, 480, 720, 3))
 
 
     def InitializeCameras(self, bottom_camera, top_camera):
@@ -35,14 +36,8 @@ class EntranceLicenseDetector:
         self.tracker_process = Process(target=self.StartDetecting())
         self.tracker_process.start()
 
-    def StoreLicenseFrames(self, frame, index):
-        # if len(self.latest_license_frames) > self.maximum_bottom_camera_detection:
-        #     self.latest_license_frames.popleft()
-        #     self.latest_license_frames.append(frame)
-        # else:
-        #     self.latest_license_frames.append(frame)
-        self.latest_license_frames[index] = frame
-        #print(self.latest_license_frames)
+    def StoreLicenseFrames(self, frame):
+        self.latest_license_frames.append(frame)
 
     def StartDetecting(self):
         cam = Camera(rtsp_link=self.bottom_camera[0],
@@ -61,7 +56,7 @@ class EntranceLicenseDetector:
         old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
 
         totalFrames = 1
-        total_bottom_camera_detection = 0
+        total_bottom_camera_count = 0
         while True:
             totalFrames +=1
             frame_top = cam2.GetScaledNextFrame()
@@ -99,6 +94,7 @@ class EntranceLicenseDetector:
 
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
+                        total_bottom_camera_count = 0
                         self.should_keep_detecting_bottom_camera = False
 
                         i = 0
@@ -114,8 +110,8 @@ class EntranceLicenseDetector:
             if self.should_keep_detecting_bottom_camera:
                 print("hi")
                 frame_bottom = cam.GetScaledNextFrame()
-                self.StoreLicenseFrames(frame_bottom, total_bottom_camera_detection)
-                total_bottom_camera_detection += 1
+                self.StoreLicenseFrames(frame_bottom)
+                total_bottom_camera_count += 1
 
             cv2.imshow('bottom_camera', frame_top)
             cv2.imshow('subtraction_model', mask)
