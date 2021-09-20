@@ -1,11 +1,10 @@
-from classes.camera.CameraBuffered import Camera
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
-from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
 import cv2
 import numpy as np
+from classes.camera.CameraBuffered import Camera
 from multiprocessing import Process, Pipe, shared_memory
+from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
 from collections import deque
 from shapely.geometry import Polygon, LineString
 
@@ -20,9 +19,7 @@ class EntranceLicenseDetector:
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
         self.maximum_bottom_camera_detection = 30
-        self.latest_license_frames = deque([], maxlen=self.maximum_bottom_camera_detection)
-        #self.latest_license_frames = np.zeros((30, 480, 720, 3))
-
+        self.latest_license_frames = np.zeros((self.maximum_bottom_camera_detection, 480, 720, 3), dtype='uint8')
 
     def InitializeCameras(self, bottom_camera, top_camera):
         # camera is given as type array in the format [camera rtsp, camera id]
@@ -33,13 +30,16 @@ class EntranceLicenseDetector:
         print("[Entrance License] Starting license detector for cameras: " + str(bottom_camera[1]) + " and "
               + str(top_camera[1]))
         self.InitializeCameras(bottom_camera, top_camera)
-        self.tracker_process = Process(target=self.StartDetecting())
-        self.tracker_process.start()
+        self.license_detector = Process(target=self.Start())
+        self.license_detector.start()
 
-    def StoreLicenseFrames(self, frame):
-        self.latest_license_frames.append(frame)
+    def StopProcess(self):
+        self.license_detector.terminate()
 
-    def StartDetecting(self):
+    def StoreLicenseFrames(self, frame, index):
+        self.latest_license_frames[index] = frame
+
+    def Start(self, license_frames_request_queue):
         cam = Camera(rtsp_link=self.bottom_camera[0],
                      camera_id=self.bottom_camera[1])
         cam2 = Camera(rtsp_link=self.top_camera[0],
@@ -57,28 +57,36 @@ class EntranceLicenseDetector:
 
         totalFrames = 1
         total_bottom_camera_count = 0
+        white_points_threshold = 95
         while True:
             totalFrames +=1
             frame_top = cam2.GetScaledNextFrame()
 
+            # get the frame median
+            cropped_frame_top = IU.CropImage(frame_top, [[width_left, 0], [width_right, height]])
+
+            # draw the frame median block
             frame_top = IU.DrawLine(frame_top, (width_left, 0), (width_left, height), thickness=2)
             frame_top = IU.DrawLine(frame_top, (width_right, 0), (width_right, height), thickness=2)
 
-            cropped_frame_top = IU.CropImage(frame_top, [[width_left, 0], [width_right, height]])
-
+            # apply the subtraction model on the frame median block
             subtraction_model.FeedSubtractionModel(image=cropped_frame_top, learningRate=0.001)
             mask = subtraction_model.GetOutput()
 
+            # calculate the white percentage in the subtraction model mask to detect a potential new vehicle
             white_points_percentage = (np.sum(mask == 255)/(mask.shape[1]*mask.shape[0]))*100
-            print(white_points_percentage)
 
             # totalFrame > 2 cuz the first mask starts at 100% white then it adapts
-            if white_points_percentage >= 95 \
+            # if the white percentage is above the threshold specified, run Yolo to detect vehicle
+            if white_points_percentage >= white_points_threshold \
                     and old_detection_status != DetectedObjectAtEntrance.DETECTED_WITH_YOLO and totalFrames > 2:
                 old_detection_status = DetectedObjectAtEntrance.DETECTED
 
                 return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(frame_top)
 
+                # if vehicle is detected, start capturing frames (max of self.maximum_bottom_camera_detection)
+                # until the vehicle's bb intersects with the frame median block
+                # once vehicle's bb intersects, send the captured frames to another process
                 if return_status:
                     frame_top = IU.DrawBoundingBoxes(frame_top, bounding_boxes)
 
@@ -94,23 +102,22 @@ class EntranceLicenseDetector:
 
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
-                        total_bottom_camera_count = 0
                         self.should_keep_detecting_bottom_camera = False
+                        total_bottom_camera_count = 0
 
-                        i = 0
-                        for license_frame in self.latest_license_frames:
-                            i+=1
-                            cv2.imshow(str(i) +"/", license_frame)
-                            cv2.waitKey(0)
-
-            elif white_points_percentage < 95 and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
+            # if the white percentage is below threshold, stop detection
+            elif white_points_percentage < white_points_threshold and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
 
-            # start capturing at most 30 license frames from bottom camera when car is detected with Yolo
+            # once vehicle is detected using Yolo, start capturing frames
             if self.should_keep_detecting_bottom_camera:
-                print("hi")
+                # added as a pre-caution if car doesn't intersect with median in a second
+                if total_bottom_camera_count > 30:
+                    total_bottom_camera_count = 0
+
                 frame_bottom = cam.GetScaledNextFrame()
-                self.StoreLicenseFrames(frame_bottom)
+
+                self.StoreLicenseFrames(frame_bottom, total_bottom_camera_count)
                 total_bottom_camera_count += 1
 
             cv2.imshow('bottom_camera', frame_top)
