@@ -3,9 +3,8 @@ import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
 import numpy as np
 from classes.camera.CameraBuffered import Camera
-from multiprocessing import Process, Pipe, shared_memory
+#from multiprocessing import Process
 from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
-from collections import deque
 from shapely.geometry import Polygon, LineString
 
 
@@ -23,13 +22,13 @@ class EntranceLicenseDetector:
         self.latest_license_frames = np.zeros((self.maximum_bottom_camera_detection, 480, 720, 3), dtype='uint8')
 
     def InitializeCameras(self, bottom_camera, top_camera):
-        # camera is given as type array in the format [camera rtsp, camera id]
+        # camera is given as type array in the format [camera id, camera rtsp]
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
 
     def StartProcess(self, bottom_camera, top_camera):
-        print("[Entrance License] Starting license detector for cameras: " + str(bottom_camera[1]) + " and "
-              + str(top_camera[1]))
+        print("[Entrance License] Starting license detector for cameras: " + str(bottom_camera[0]) + " and "
+              + str(top_camera[0]))
         self.InitializeCameras(bottom_camera, top_camera)
         self.license_detector_process = Process(target=self.Start)
         self.license_detector_process.start()
@@ -40,11 +39,11 @@ class EntranceLicenseDetector:
     def StoreLicenseFrames(self, frame, index):
         self.latest_license_frames[index] = frame
 
-    def Start(self):
-        cam = Camera(rtsp_link=self.bottom_camera[0],
-                     camera_id=self.bottom_camera[1])
-        cam2 = Camera(rtsp_link=self.top_camera[0],
-                      camera_id=self.top_camera[1])
+    def Start(self, event_wait_load):
+        cam = Camera(rtsp_link=self.bottom_camera[1],
+                     camera_id=self.bottom_camera[0])
+        cam2 = Camera(rtsp_link=self.top_camera[1],
+                      camera_id=self.top_camera[0])
 
         subtraction_model = OD.SubtractionModel()
         frame_top = cam2.GetScaledNextFrame()
@@ -59,6 +58,7 @@ class EntranceLicenseDetector:
         totalFrames = 1
         total_bottom_camera_count = 0
         white_points_threshold = 95
+        event_wait_load.wait()
         while True:
             totalFrames +=1
             frame_top = cam2.GetScaledNextFrame()
