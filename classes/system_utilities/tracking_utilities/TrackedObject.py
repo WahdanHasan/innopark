@@ -124,7 +124,7 @@ class TrackedObjectPoolManager:
                                                                  size=np.asarray(Constants.bb_example, dtype=np.int32).nbytes)
 
         # Create a pair of ids in shared memory space
-        temp_ids_shared_memory_manager_name = Constants.tracked_process_ids_prefix + str(process_number)
+        temp_ids_shared_memory_manager_name = Constants.tracked_process_ids_shared_memory_prefix + str(process_number)
         ids_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                   name=temp_ids_shared_memory_manager_name,
                                                                   size=np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8).nbytes)

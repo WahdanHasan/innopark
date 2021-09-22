@@ -10,6 +10,9 @@ base_pool_size = 10
 
 is_debug_mode = True
 
+camera_ids_and_links = Constants.CAMERA_DETAILS
+
+
 # This needs to be changed to GUI
 def main():
     # print(sys.getsizeof(Constants.tracked_process_ids_example[0]))
@@ -39,8 +42,11 @@ def main():
 def StartParkingTariffManager(new_tracked_object_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
 
-    ptm = ParkingTariffManager(base_pool_size=base_pool_size,
-                               new_object_in_pool_event=new_tracked_object_event)
+    ptm = ParkingTariffManager(amount_of_trackers=len(camera_ids_and_links),
+                               base_pool_size=base_pool_size,
+                               new_object_in_pool_event=new_tracked_object_event,
+                               seconds_parked_before_charge=3,
+                               is_debug_mode=is_debug_mode)
 
     ptm.StartProcess()
 
@@ -73,20 +79,19 @@ def StartTrackedObjectPool(new_tracked_object_event):
 def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
     from classes.system_utilities.tracking_utilities import ObjectTracker as OT
 
-    camera_ids_and_links = Constants.CAMERA_DETAILS
 
     temp_trackers = []
 
     for i in range(len(camera_ids_and_links)):
         temp_tracker = OT.Tracker(tracked_object_pool_request_queue=tracked_object_pool_request_queue,
-                                  broker_request_queue=broker_request_queue,
-                                  is_debug_mode=is_debug_mode)
+                                  broker_request_queue=broker_request_queue)
 
         temp_trackers.append(temp_tracker)
 
 
     for i in range(len(temp_trackers)):
-        temp_trackers[i].StartProcess(camera_rtsp=camera_ids_and_links[i][1],
+        temp_trackers[i].StartProcess(tracker_id=i,
+                                      camera_rtsp=camera_ids_and_links[i][1],
                                       camera_id=camera_ids_and_links[i][0])
 
     return temp_trackers
