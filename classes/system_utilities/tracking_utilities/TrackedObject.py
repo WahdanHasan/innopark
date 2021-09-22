@@ -127,11 +127,11 @@ class TrackedObjectPoolManager:
         temp_ids_shared_memory_manager_name = Constants.tracked_process_ids_prefix + str(process_number)
         ids_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                   name=temp_ids_shared_memory_manager_name,
-                                                                  size=np.asarray(Constants.tracked_process_ids_example, dtype=np.int32).nbytes)
+                                                                  size=np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8).nbytes)
 
         # Create a process for the tracked object and pass it the pipe and shared memory for its bounding box
         temp_tracked_object = TrackedObjectProcess()
-        tracked_object_process = Process(target=temp_tracked_object.AwaitInstructions, args=(pipe2, bb_in_shared_memory_manager))
+        tracked_object_process = Process(target=temp_tracked_object.AwaitInstructions, args=(pipe2, bb_in_shared_memory_manager, ids_in_shared_memory_manager))
         tracked_object_process.start()
 
         # Add new tracked object values to pool
@@ -153,6 +153,7 @@ class TrackedObjectProcess:
     # Tracks objects assigned to it
 
     def __init__(self):
+        self.camera_id = -1
         self.object_id = -1
         self.bb = 0
         self.tracking_instruction_pipe = 0
@@ -167,6 +168,8 @@ class TrackedObjectProcess:
 
         self.bb_in_shared_memory = 0
         self.bb_in_shared_memory_manager = 0
+        self.ids_in_shared_memory = 0
+        self.ids_in_shared_memory_manager = 0
         self.frame_in_shared_memory = 0
         self.mask_in_shared_memory = 0
         self.frame = 0
@@ -177,35 +180,45 @@ class TrackedObjectProcess:
                               maxLevel=50,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-    def AwaitInstructions(self, tracking_instruction_pipe, bb_in_shared_memory_manager):
+    def AwaitInstructions(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
         # The tracked object process sits idle until an object tracker sends a new task to it
 
         if self.tracking_instruction_pipe == 0:
-            self.FirstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager)
+            self.FirstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager)
 
-        # Reset bb
-        self.bb_in_shared_memory[:] = Constants.bb_example.copy()[:]
+        # Reset tracked process
+        self.ResetTrackedProcess()
 
-        (new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
+        # Wait for instructions
+        (camera_id, new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
 
-
-        self.Initialize(new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
+        # Initialize new settings and begin tracking
+        self.Initialize(camera_id, new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
         self.StartTracking(self.tracking_instruction_pipe)
 
-    def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager):
+    def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
 
         # Initialize instruction and info request pipes
         self.tracking_instruction_pipe = tracking_instruction_pipe
 
         # Create a reference to the bb in shared memory and its buffer
         self.bb_in_shared_memory_manager = bb_in_shared_memory_manager
-        self.bb_in_shared_memory = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32,
+        self.bb_in_shared_memory = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.int32).shape,
+                                              dtype=np.int32,
                                               buffer=bb_in_shared_memory_manager.buf)
 
-    def Initialize(self, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
+        self.ids_in_shared_memory_manager = ids_in_shared_memory_manager
+        self.ids_in_shared_memory = np.ndarray(shape=np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8).shape,
+                                               dtype=np.uint8,
+                                               buffer=ids_in_shared_memory_manager.buf)
+
+        self.ResetTrackedProcess()
+
+    def Initialize(self, camera_id, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
 
         self.object_id = object_id
+        self.camera_id = camera_id
         self.bb = bb
         self.should_keep_tracking = True
 
@@ -214,6 +227,13 @@ class TrackedObjectProcess:
 
         self.frame_in_shared_memory = np.ndarray(self.frame_shape, dtype=np.uint8, buffer=shared_memory_manager_frame.buf)
         self.mask_in_shared_memory = np.ndarray(self.mask_shape, dtype=np.uint8, buffer=shared_memory_manager_mask.buf)
+
+        self.ids_in_shared_memory[0] = np.uint8(camera_id)
+
+        if object_id != 'None':
+            temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
+
+            self.ids_in_shared_memory[1: temp_list.shape[0] + 1] = temp_list
 
         # Optical flow LK params
 
@@ -226,6 +246,10 @@ class TrackedObjectProcess:
         for i in range(len(self.old_points_cropped)):
             self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
             self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
+
+    def ResetTrackedProcess(self):
+        self.bb_in_shared_memory[:] = Constants.bb_example.copy()[:]
+        self.ids_in_shared_memory[:] = np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8)
 
     def StartTracking(self, pipe):
         # Continues tracking the object until the object tracker sends -1 through the pipe.
@@ -262,7 +286,9 @@ class TrackedObjectProcess:
 
         print("[TrackedObjectProcess] Stopped running.", file=sys.stderr)
 
-        self.AwaitInstructions(tracking_instruction_pipe=None, info_request_pipe=None, bb_in_shared_memory_manager=None)
+        self.AwaitInstructions(tracking_instruction_pipe=None,
+                               bb_in_shared_memory_manager=None,
+                               ids_in_shared_memory_manager=None)
 
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)

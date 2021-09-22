@@ -110,38 +110,6 @@ class Tracker:
                 elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING.value:
                     tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_MOVING)
 
-            # # Check if objects are entering/leaving parking spaces and update their status accordingly
-            # for i in range(len(self.parking_spaces)):
-            #     for j in range(len(tracked_object_bbs_shared_memory)):
-            #         if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
-            #             # If the parking is occupied and the tracked object isn't the occupant, then continue
-            #             if self.parking_spaces[i].GetOccupantId() != tracked_object_ids[j]:
-            #                 continue
-            #
-            #         else:
-            #             # If the parking is not occupied and the tracked object is stationary, then continue
-            #             if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
-            #                 continue
-            #
-            #         # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
-            #         # Hence, if the parking is not occupied and the object is moving, check if he's in this parking
-            #
-            #         # Check if the tracked object is in the parking
-            #         is_car_in_parking = OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist())
-            #
-            #         # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
-            #         # TODO: This should be updated to count down how long an object has been in a parking
-            #         if is_car_in_parking:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
-            #         else:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
-
-
-
 
 
 
@@ -172,7 +140,7 @@ class Tracker:
                         # TODO: Generate random id if the id is "none"
 
                         # Send the tracked object instructions on the object it is supposed to represent
-                        temp_pipe.send((detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
+                        temp_pipe.send((self.camera_id, detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
 
                         # Add the tracked object pipe and shared memory reference to local arrays
                         tracked_object_pipes.append(temp_pipe)

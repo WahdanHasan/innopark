@@ -1,7 +1,9 @@
 from multiprocessing import Event, Queue
 from classes.system_utilities.helper_utilities import Constants
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system_utilities.helper_utilities.Enums import EntrantSide
 import time
-
+import sys
 
 
 base_pool_size = 10
@@ -10,13 +12,16 @@ is_debug_mode = True
 
 # This needs to be changed to GUI
 def main():
-
+    # print(sys.getsizeof(Constants.tracked_process_ids_example[0]))
+    # return
     # Start helper processes
     new_tracked_object_event = Event()
 
+    tracked_object_pool_request_queue = StartTrackedObjectPool(new_tracked_object_event=new_tracked_object_event)
+
     broker_request_queue = StartBroker()
 
-    tracked_object_pool_request_queue = StartTrackedObjectPool(new_tracked_object_event=new_tracked_object_event)
+    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
     trackers = StartTrackers(broker_request_queue=broker_request_queue,
                              tracked_object_pool_request_queue=tracked_object_pool_request_queue)

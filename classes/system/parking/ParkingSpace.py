@@ -2,6 +2,7 @@ from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 
 class ParkingSpace:
     def __init__(self, camera_id, parking_id, bounding_box):
+        # JSON initialized variables
         self.camera_id = camera_id
         self.parking_id = parking_id
         self.bb = [
@@ -11,6 +12,17 @@ class ParkingSpace:
                     [bounding_box['bottom_right_x'], bounding_box['bottom_right_y']]
                   ]
 
+        # Default initialized variables
+        self.occupant_park_time_start = 0
+        self.occupant_left_parking_time_start = 0
+        self.occupant_id = 0
+        self.status = 0
+
+        self.ResetOccupant()
+
+    def ResetOccupant(self):
+        self.occupant_park_time_start = 0
+        self.occupant_left_parking_time_start = 0
         self.occupant_id = -1
         self.status = ParkingStatus.NOT_OCCUPIED.value
 
@@ -45,6 +57,3 @@ class ParkingSpace:
     def GetStatus(self):
         return self.status
 
-    def doSomething(self):
-        print(str(self.camera_id) + " " + str(self.parking_id) + " ")
-        print(self.bb)
