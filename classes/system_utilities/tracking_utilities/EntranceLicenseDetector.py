@@ -116,7 +116,7 @@ class EntranceLicenseDetector:
             # once vehicle is detected using Yolo, start capturing frames
             if self.should_keep_detecting_bottom_camera:
                 # added as a pre-caution if car doesn't intersect with median in a second
-                if total_bottom_camera_count > 30:
+                if total_bottom_camera_count > self.maximum_bottom_camera_detection:
                     print("total bottom camera count is reset to 0")
                     total_bottom_camera_count = 0
 

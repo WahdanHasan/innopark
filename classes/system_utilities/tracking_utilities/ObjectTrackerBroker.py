@@ -83,6 +83,8 @@ class ObjectTrackerBroker:
 
         self.voyager_holding_list.append([sender_camera_id, recipient_camera_id, voyager_id])
 
+        print("[ObjectTrackerBroker] Received object with id " + str(voyager_id), file=sys.stderr)
+
     def GetCameraByDirection(self, sender_camera, direction):
 
         if direction == EntrantSide.TOP:

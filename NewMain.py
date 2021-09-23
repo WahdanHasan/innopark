@@ -4,7 +4,7 @@ from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBroke
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 import time
 import sys
-
+from multiprocessing import Process
 
 base_pool_size = 10
 
@@ -24,10 +24,16 @@ def main():
 
     broker_request_queue = StartBroker()
 
-    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
+    # broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
+
+    temp_event = StartEntranceCameras(broker_request_queue)
+
+    temp_event.wait()
 
     trackers = StartTrackers(broker_request_queue=broker_request_queue,
                              tracked_object_pool_request_queue=tracked_object_pool_request_queue)
+
+
 
 
     time.sleep(2)
@@ -37,7 +43,6 @@ def main():
     import cv2
     cv2.namedWindow("Close this to close all")
     cv2.waitKey(0)
-
 
 def StartParkingTariffManager(new_tracked_object_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
@@ -75,7 +80,6 @@ def StartTrackedObjectPool(new_tracked_object_event):
 
     return tracked_object_pool_request_queue
 
-
 def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
     from classes.system_utilities.tracking_utilities import ObjectTracker as OT
 
@@ -96,9 +100,39 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
 
     return temp_trackers
 
+def StartEntranceCameras(broker_request_queue):
 
+    wait_license_processing_event = Event()
 
+    license_frames_request_queue = Queue()
 
+    license_detector_process = StartEntranceTopCam(license_frames_request_queue, wait_license_processing_event)
+    license_processing_process = StartProcessingLicenseFrames(license_frames_request_queue=license_frames_request_queue,
+                                                              broker_request_queue=broker_request_queue,
+                                                              wait_license_processing_event=wait_license_processing_event)
+
+    return wait_license_processing_event
+
+def StartEntranceTopCam(license_frames_request_queue, wait_license_processing_event):
+    from classes.system_utilities.tracking_utilities.EntranceLicenseDetector import EntranceLicenseDetector
+
+    license_detector = EntranceLicenseDetector(license_frames_request_queue)
+
+    license_detector.InitializeCameras(Constants.ENTRANCE_CAMERA_DETAILS[1], Constants.ENTRANCE_CAMERA_DETAILS[0])
+
+    license_detector_process = Process(target=license_detector.Start, args=(wait_license_processing_event,))
+    license_detector_process.start()
+
+    return license_detector_process
+
+def StartProcessingLicenseFrames(license_frames_request_queue, broker_request_queue, wait_license_processing_event):
+    from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
+
+    license_processing_frames = ProcessLicenseFrames(broker_request_queue, license_frames_request_queue)
+    license_processing_process = Process(target=license_processing_frames.Start, args=(wait_license_processing_event,))
+    license_processing_process.start()
+
+    return license_processing_process
 
 if __name__ == "__main__":
     main()

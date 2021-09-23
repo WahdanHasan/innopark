@@ -50,9 +50,9 @@ class ParkingTariffManager(TrackedObjectListener):
 
 
             self.CheckAndUpdateParkingStatuses()
-
-            if self.is_debug_mode:
-                self.PresentDebugItems()
+            cv2.imshow("eee", self.shared_memory_tracker_frames[0])
+            # if self.is_debug_mode:
+            #     self.PresentDebugItems()
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
@@ -107,27 +107,27 @@ class ParkingTariffManager(TrackedObjectListener):
             #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
             #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
 
-    def PresentDebugItems(self):
-
-        ids, bbs = self.GetAllActiveTrackedProcessItems()
-
-        for i in range(len(self.shared_memory_tracker_frames)):
-            temp_active_bbs = []
-
-            if bbs is not None:
-                for j in range(len(bbs)):
-                    if ids[0][j] == i:
-                        temp_active_bbs.append(bbs[j])
-
-            temp_parking_bbs = [parking.GetBB() for parking in self.parking_spaces if parking.GetCameraId() == i]
-            temp_are_occupied = [parking.GetStatus() for parking in self.parking_spaces if parking.GetCameraId() == i]
-
-            temp_frame = self.shared_memory_tracker_frames[i]
-            temp_frame = IU.DrawParkingBoxes(image=temp_frame,
-                                             bounding_boxes=temp_parking_bbs,
-                                             are_occupied=temp_are_occupied)
-
-            temp_frame = IU.DrawBoundingBoxes(image=temp_frame,
-                                              bounding_boxes=temp_active_bbs)
-
-            cv2.imshow("[ObjectTracker] Camera " + str(i+1) + " Processed Frame", temp_frame)
+    # def PresentDebugItems(self):
+    # 
+    #     ids, bbs = self.GetAllActiveTrackedProcessItems()
+    # 
+    #     for i in range(len(self.shared_memory_tracker_frames)):
+    #         temp_active_bbs = []
+    # 
+    #         if bbs is not None:
+    #             for j in range(len(bbs)):
+    #                 if ids[0][j] == i:
+    #                     temp_active_bbs.append(bbs[j])
+    # 
+    #         temp_parking_bbs = [parking.GetBB() for parking in self.parking_spaces if parking.GetCameraId() == i]
+    #         temp_are_occupied = [parking.GetStatus() for parking in self.parking_spaces if parking.GetCameraId() == i]
+    # 
+    #         temp_frame = self.shared_memory_tracker_frames[i]
+    #         temp_frame = IU.DrawParkingBoxes(image=temp_frame,
+    #                                          bounding_boxes=temp_parking_bbs,
+    #                                          are_occupied=temp_are_occupied)
+    # 
+    #         temp_frame = IU.DrawBoundingBoxes(image=temp_frame,
+    #                                           bounding_boxes=temp_active_bbs)
+    # 
+    #         cv2.imshow("[ObjectTracker] Camera " + str(i+1) + " Processed Frame", temp_frame)
