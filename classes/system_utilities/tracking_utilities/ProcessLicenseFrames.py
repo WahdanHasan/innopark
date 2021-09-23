@@ -59,12 +59,10 @@ class ProcessLicenseFrames:
             # detect the license plate in frame and get its bbox coordinates
             license_return_status, license_classes, \
             license_bounding_boxes, _ = LicenseDetection.DetectLicenseInImage(latest_license_frames[i])
-            #license_bounding_boxes = license_bounding_boxes[0]
 
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
-                license_bounding_boxes_converted = [[license_bounding_boxes[0][0][0], license_bounding_boxes[0][0][1]],
-                                                    [license_bounding_boxes[0][1][0], license_bounding_boxes[0][1][1]]]
+                license_bounding_boxes_converted = license_bounding_boxes[0]
                 plate = IU.CropImage(latest_license_frames[i], license_bounding_boxes_converted)
 
                 # add the cropped frame containing only the license to the list of licenses
