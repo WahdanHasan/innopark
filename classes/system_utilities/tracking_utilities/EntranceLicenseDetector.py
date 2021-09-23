@@ -133,6 +133,3 @@ class EntranceLicenseDetector:
                 cam2.release()
                 cv2.destroyAllWindows()
                 break
-
-# left_side_bbox = LineString([(bounding_boxes[0][0][0], bounding_boxes[0][0][1]),
-#                              (bounding_boxes[0][0][0], bounding_boxes[0][1][1])])
