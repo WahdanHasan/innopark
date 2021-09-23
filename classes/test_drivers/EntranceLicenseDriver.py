@@ -5,12 +5,12 @@ from multiprocessing import Process, Queue, Event
 def main():
     import classes.test_drivers.EntranceLicenseDriver as LD
 
-    event_wait_load = Event()
+    wait_license_processing_event = Event()
 
     license_frames_request_queue = Queue()
 
-    license_detector_process = LD.StartEntranceLicenseDetector(license_frames_request_queue, event_wait_load)
-    license_processing_process = LD.StartProcessingLicenseFrames(license_frames_request_queue, event_wait_load)
+    license_detector_process = LD.StartEntranceLicenseDetector(license_frames_request_queue, wait_license_processing_event)
+    license_processing_process = LD.StartProcessingLicenseFrames(license_frames_request_queue, wait_license_processing_event)
 
     cv2.namedWindow("Close this to close all license thingies")
     cv2.waitKey(0)
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     main()
 
 
-def StartEntranceLicenseDetector(license_frames_request_queue, event_wait_load):
+def StartEntranceLicenseDetector(license_frames_request_queue, wait_license_processing_event):
     from classes.system_utilities.tracking_utilities.EntranceLicenseDetector import EntranceLicenseDetector
 
     license_detector = EntranceLicenseDetector(license_frames_request_queue)
@@ -31,16 +31,16 @@ def StartEntranceLicenseDetector(license_frames_request_queue, event_wait_load):
         [1, "D:\\ProgramData\\Grad Project\\Experiments\\License_Footage\\Entrance_Top.mp4"]
     )
 
-    license_detector_process = Process(target=license_detector.Start, args=(event_wait_load,))
+    license_detector_process = Process(target=license_detector.Start, args=(wait_license_processing_event,))
     license_detector_process.start()
 
     return license_detector_process
 
-def StartProcessingLicenseFrames(license_frames_request_queue, event_wait_load):
+def StartProcessingLicenseFrames(license_frames_request_queue, wait_license_processing_event):
     from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
 
     license_processing_frames = ProcessLicenseFrames(license_frames_request_queue)
-    license_processing_process = Process(target=license_processing_frames.Start, args=(event_wait_load,))
+    license_processing_process = Process(target=license_processing_frames.Start, args=(wait_license_processing_event,))
     license_processing_process.start()
 
     return license_processing_process

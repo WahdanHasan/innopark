@@ -47,8 +47,6 @@ def OnLoad():
 # This function executes when the class loads
 OnLoad()
 
-
-
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in the image.
     # Returns a True if at least 1 license was detected, otherwise False.

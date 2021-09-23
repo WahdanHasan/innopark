@@ -39,7 +39,7 @@ class EntranceLicenseDetector:
     def StoreLicenseFrames(self, frame, index):
         self.latest_license_frames[index] = frame
 
-    def Start(self, event_wait_load):
+    def Start(self, wait_license_processing_event):
         cam = Camera(rtsp_link=self.bottom_camera[1],
                      camera_id=self.bottom_camera[0])
         cam2 = Camera(rtsp_link=self.top_camera[1],
@@ -58,7 +58,7 @@ class EntranceLicenseDetector:
         totalFrames = 1
         total_bottom_camera_count = 0
         white_points_threshold = 95
-        event_wait_load.wait()
+        wait_license_processing_event.wait()
         while True:
             totalFrames +=1
             frame_top = cam2.GetScaledNextFrame()
