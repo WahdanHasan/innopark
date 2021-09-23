@@ -10,7 +10,6 @@ from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectStatus
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
 from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
 
@@ -22,12 +21,11 @@ from classes.system_utilities.helper_utilities import Constants
 
 class Tracker:
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, is_debug_mode, seconds_between_detections=1):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, seconds_between_detections=1):
 
         self.tracker_process = 0
         self.parking_spaces = []
         self.broker_request_queue = broker_request_queue
-        self.is_debug_mode = is_debug_mode
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
         self.seconds_between_detections = seconds_between_detections
         self.shared_memory_manager_frame = 0
@@ -35,12 +33,13 @@ class Tracker:
         self.camera_rtsp = 0
         self.camera_id = 0
         self.should_keep_tracking = True
+        self.tracker_id = 0
 
-    def StartProcess(self, camera_rtsp, camera_id):
+    def StartProcess(self, tracker_id, camera_rtsp, camera_id):
         # All parking spots should be instantiated prior to calling this function
 
         print("[ObjectTracker] Starting tracker for camera " + str(camera_id) + ".", file=sys.stderr)
-        self.Initialize(camera_rtsp, camera_id)
+        self.Initialize(tracker_id, camera_rtsp, camera_id)
         self.tracker_process = Process(target=self.StartTracking)
         self.tracker_process.start()
 
@@ -48,7 +47,8 @@ class Tracker:
         # Sets the tracker continue to false then waits for it to stop
         self.tracker_process.terminate()
 
-    def Initialize(self, camera_rtsp, camera_id):
+    def Initialize(self, tracker_id, camera_rtsp, camera_id):
+        self.tracker_id = tracker_id
         self.camera_rtsp = camera_rtsp
         self.camera_id = camera_id
 
@@ -72,8 +72,13 @@ class Tracker:
         subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
         mask = subtraction_model.GetOutput()
 
-        self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True, size=frame.nbytes)
-        self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True, size=mask.nbytes)
+        self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True,
+                                                                      name=Constants.object_trackers_frame_shared_memory_prefix + str(self.tracker_id),
+                                                                      size=frame.nbytes)
+
+        self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True,
+                                                                     name=Constants.object_trackers_mask_shared_memory_prefix + str(self.tracker_id),
+                                                                     size=mask.nbytes)
 
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
         mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)
@@ -110,38 +115,6 @@ class Tracker:
                 elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING.value:
                     tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_MOVING)
 
-            # # Check if objects are entering/leaving parking spaces and update their status accordingly
-            # for i in range(len(self.parking_spaces)):
-            #     for j in range(len(tracked_object_bbs_shared_memory)):
-            #         if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
-            #             # If the parking is occupied and the tracked object isn't the occupant, then continue
-            #             if self.parking_spaces[i].GetOccupantId() != tracked_object_ids[j]:
-            #                 continue
-            #
-            #         else:
-            #             # If the parking is not occupied and the tracked object is stationary, then continue
-            #             if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
-            #                 continue
-            #
-            #         # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
-            #         # Hence, if the parking is not occupied and the object is moving, check if he's in this parking
-            #
-            #         # Check if the tracked object is in the parking
-            #         is_car_in_parking = OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist())
-            #
-            #         # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
-            #         # TODO: This should be updated to count down how long an object has been in a parking
-            #         if is_car_in_parking:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
-            #         else:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
-
-
-
 
 
 
@@ -172,7 +145,7 @@ class Tracker:
                         # TODO: Generate random id if the id is "none"
 
                         # Send the tracked object instructions on the object it is supposed to represent
-                        temp_pipe.send((detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
+                        temp_pipe.send((self.camera_id, detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
 
                         # Add the tracked object pipe and shared memory reference to local arrays
                         tracked_object_pipes.append(temp_pipe)
@@ -183,43 +156,13 @@ class Tracker:
                     # Only create 1 tracked object in total (this is for debugging and while we wait for the tracker to be finished)
                     only_one = True
 
-            # Information code
-            if self.is_debug_mode:
-                # Print fps rate of tracker
-                counter += 1
-                if (time.time() - start_time) > seconds_before_display:
-                    print("[ObjectTracker] Camera " + str(self.camera_id) + " FPS: ", counter / (time.time() - start_time))
-                    counter = 0
-                    start_time = time.time()
 
-                # Draw parking space boxes
-                temp_parking_boxes = []
-                temp_parking_box_statuses = []
-                for i in range(len(self.parking_spaces)):
-                    temp_parking_boxes.append(self.parking_spaces[i].GetBB())
-                    temp_parking_box_statuses.append(self.parking_spaces[i].GetStatus())
-
-                frame_processed = IU.DrawParkingBoxes(image=frame,
-                                                      bounding_boxes=temp_parking_boxes,
-                                                      are_occupied=temp_parking_box_statuses)
-
-                # Draw tracked object boxes
-                temp_tracked_boxes = []
-                for i in range(len(tracked_object_bbs_shared_memory)):
-                    temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
-
-                # frame_processed = IU.DrawBoundingBoxes(image=frame_processed,
-                #                                        bounding_boxes=temp_tracked_boxes)
-
-                frame_processed = IU.DrawBoundingBoxAndClasses(image=frame_processed,
-                                                               class_names=tracked_object_ids,
-                                                               bounding_boxes=temp_tracked_boxes)
-
-                # Show frames
-                cv2.imshow("[ObjectTracker] Camera " + str(self.camera_id) + " Live Feed", frame)
-                cv2.imshow("[ObjectTracker] Camera " + str(self.camera_id) + " Processed Feed", frame_processed)
-                # cv2.imshow("Camera " + str(self.camera_id) + " Mask", self.base_mask)
-                # cv2.imshow("Camera " + str(self.camera_id) + " Mask", mask)
+            # Print fps rate of tracker
+            counter += 1
+            if (time.time() - start_time) > seconds_before_display:
+                print("[ObjectTracker] Camera " + str(self.camera_id) + " FPS: ", counter / (time.time() - start_time))
+                counter = 0
+                start_time = time.time()
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()

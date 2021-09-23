@@ -4,13 +4,14 @@ from queue import Queue
 from threading import Thread
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
+from classes.system_utilities.helper_utilities import Constants
 
 class Camera:
     def __init__(self, rtsp_link, camera_id, buffer_size=1):
         # Assign local variables
         self.rtsp_link = rtsp_link
         self.camera_id = camera_id
-        self.default_resolution = ImageResolution.SD.value
+        self.default_resolution = Constants.default_camera_shape[:2]
 
         # Link validation
         if not (isinstance(rtsp_link, str) or isinstance(rtsp_link, int)):

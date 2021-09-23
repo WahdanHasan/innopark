@@ -24,7 +24,7 @@
 				"bottom_left_x":480,
 				"bottom_left_y":391,
 				"bottom_right_x":718,
-				"bottom_right_y":265
+				"bottom_right_y":367
 				}	
 	},
 	{

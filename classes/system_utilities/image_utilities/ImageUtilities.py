@@ -256,6 +256,9 @@ def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
 
+    if bounding_boxes is None:
+        return image
+
     if len(bounding_boxes) == 0:
         return image
 
@@ -275,6 +278,9 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
     # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
     # Returns the image with all the boxes and their appropriate colors drawn on it.
 
+    if bounding_boxes is None:
+        return image
+
     temp_image = image.copy()
 
     for i in range(len(bounding_boxes)):
@@ -290,6 +296,9 @@ def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
+
+    if bounding_boxes is None:
+        return image
 
     if len(bounding_boxes) == 0:
         return image
