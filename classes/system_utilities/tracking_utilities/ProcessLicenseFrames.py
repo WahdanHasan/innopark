@@ -70,6 +70,10 @@ class ProcessLicenseFrames:
         return license_plates
 
     def ExtractLicensePlatesInfo(self, license_plates):
+        # extract license plate info using OCR
+        # gets a list of license plates
+        # returns a list of the license plate info
+
         license_plates_info = []
 
         for plate in license_plates:
@@ -79,6 +83,10 @@ class ProcessLicenseFrames:
         return license_plates_info
 
     def GetProminentLicensePlate(self, license_plates_info):
+        # find the license plate that appears the most
+        # gets a list of the license plate info
+        # return a single license plate, the most prominent one
+
         prominent_license_plate = license_plates_info[0]
         licenses = {}
 
