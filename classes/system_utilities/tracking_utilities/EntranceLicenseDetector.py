@@ -97,11 +97,11 @@ class EntranceLicenseDetector:
                                             (bounding_boxes[0][0][0], bounding_boxes[0][1][1])])
                     line_median_right = LineString([(width_right, 0), (width_right, height)])
                     intersection = line_median_right.intersects(polygon_bbox)
-                    print("INTERSECTION: ", intersection)
 
                     self.should_keep_detecting_bottom_camera = True
 
                     if intersection:
+                        print("INTERSECTION: ", intersection)
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
                         self.should_keep_detecting_bottom_camera = False
                         total_bottom_camera_count = 0
@@ -116,8 +116,8 @@ class EntranceLicenseDetector:
             # once vehicle is detected using Yolo, start capturing frames
             if self.should_keep_detecting_bottom_camera:
                 # added as a pre-caution if car doesn't intersect with median in a second
-                if total_bottom_camera_count > self.maximum_bottom_camera_detection:
-                    print("total bottom camera count is reset to 0")
+                if total_bottom_camera_count >= self.maximum_bottom_camera_detection:
+                    print("total bottom camera count is reset to 0 because count exceeded maximum detection number")
                     total_bottom_camera_count = 0
 
                 frame_bottom = cam.GetScaledNextFrame()

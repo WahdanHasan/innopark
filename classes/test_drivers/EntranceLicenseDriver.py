@@ -37,7 +37,7 @@ def StartEntranceLicenseDetector(license_frames_request_queue, wait_license_proc
     return license_detector_process
 
 def StartProcessingLicenseFrames(license_frames_request_queue, wait_license_processing_event):
-    from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
+    from classes.test_classes.Beta_ProcessLicenseFrames import ProcessLicenseFrames
 
     license_processing_frames = ProcessLicenseFrames(license_frames_request_queue)
     license_processing_process = Process(target=license_processing_frames.Start, args=(wait_license_processing_event,))

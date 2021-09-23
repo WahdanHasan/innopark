@@ -1,17 +1,15 @@
 import cv2
 # from multiprocessing import Process
 from classes.system_utilities.image_utilities import LicenseDetection
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide
 import time
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 
 class ProcessLicenseFrames:
-    def __init__(self, broker_request_queue, license_frames_request_queue):
+    def __init__(self, license_frames_request_queue):
         self.license_frames_request_queue = license_frames_request_queue
         self.license_processing_process = 0
-        self.broker_request_queue = broker_request_queue
 
     def Start(self, wait_license_processing_event):
         wait_license_processing_event.set()
@@ -20,7 +18,7 @@ class ProcessLicenseFrames:
             print("listening to queue for incoming license frames")
             # listen for voyager request
             latest_license_frames = self.license_frames_request_queue.get()
-            latest_license_frames = latest_license_frames[:2]
+
             # detect license plates from frames
             license_plates = self.DetectLicensePlates(latest_license_frames)
             print("exited the point of no return")
@@ -32,7 +30,7 @@ class ProcessLicenseFrames:
             license = self.GetProminentLicensePlate(license_plates_info)
 
             # send the license to broker
-            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
+
 
             if cv2.waitKey(1) == 27:
                 cv2.destroyAllWindows()
@@ -59,7 +57,6 @@ class ProcessLicenseFrames:
             # detect the license plate in frame and get its bbox coordinates
             license_return_status, license_classes, \
             license_bounding_boxes, _ = LicenseDetection.DetectLicenseInImage(latest_license_frames[i])
-            #license_bounding_boxes = license_bounding_boxes[0]
 
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
