@@ -53,7 +53,7 @@ class ParkingTariffManager(TrackedObjectListener):
             cv2.imshow("eee", self.shared_memory_tracker_frames[0])
             # if self.is_debug_mode:
             #     self.PresentDebugItems()
-
+            time.sleep(0.5)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break

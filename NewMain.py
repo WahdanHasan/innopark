@@ -1,9 +1,9 @@
 from multiprocessing import Event, Queue
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system_utilities.helper_utilities.Enums import EntrantSide
+# from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+# from classes.system_utilities.helper_utilities.Enums import EntrantSide
 import time
-import sys
+# import sys
 from multiprocessing import Process
 
 base_pool_size = 10
@@ -20,25 +20,38 @@ def main():
     # Start helper processes
     new_tracked_object_event = Event()
 
-    tracked_object_pool_request_queue = StartTrackedObjectPool(new_tracked_object_event=new_tracked_object_event)
+    pool_initialized_event = Event()
+    detector_initialized_event = Event()
+    detector_request_queue = Queue()
+
+
+    tracked_object_pool_request_queue = StartTrackedObjectPool(new_tracked_object_event=new_tracked_object_event,
+                                                               initialized_event=pool_initialized_event)
 
     broker_request_queue = StartBroker()
 
+    pool_initialized_event.wait()
+
     # broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
-    temp_event = StartEntranceCameras(broker_request_queue)
-
-    temp_event.wait()
+    # temp_event = StartEntranceCameras(broker_request_queue)
+    #
+    # temp_event.wait()
 
     trackers = StartTrackers(broker_request_queue=broker_request_queue,
-                             tracked_object_pool_request_queue=tracked_object_pool_request_queue)
+                             tracked_object_pool_request_queue=tracked_object_pool_request_queue,
+                             detector_request_queue=detector_request_queue,
+                             detector_initialized_event=detector_initialized_event)
 
 
 
 
-    time.sleep(2)
+    time.sleep(5)
     # Start main components
-    StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event)
+    StartDetectorProcess(new_tracked_object_event=new_tracked_object_event,
+                         detector_request_queue=detector_request_queue,
+                         detector_initialized_event=detector_initialized_event)
+    # StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event)
 
     import cv2
     cv2.namedWindow("Close this to close all")
@@ -68,19 +81,20 @@ def StartBroker():
 
     return broker_request_queue
 
-def StartTrackedObjectPool(new_tracked_object_event):
+def StartTrackedObjectPool(new_tracked_object_event, initialized_event):
     from classes.system_utilities.tracking_utilities import TrackedObject
 
     tracked_object_pool_request_queue = Queue()
 
     tracked_object_pool = TrackedObject.TrackedObjectPoolManager(tracked_object_pool_request_queue=tracked_object_pool_request_queue,
                                                                  new_tracked_object_process_event=new_tracked_object_event,
+                                                                 initialized_event=initialized_event,
                                                                  pool_size=base_pool_size)
     tracked_object_pool.StartProcess()
 
     return tracked_object_pool_request_queue
 
-def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
+def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detector_request_queue, detector_initialized_event):
     from classes.system_utilities.tracking_utilities import ObjectTracker as OT
 
 
@@ -88,7 +102,9 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
 
     for i in range(len(camera_ids_and_links)):
         temp_tracker = OT.Tracker(tracked_object_pool_request_queue=tracked_object_pool_request_queue,
-                                  broker_request_queue=broker_request_queue)
+                                  broker_request_queue=broker_request_queue,
+                                  detector_request_queue=detector_request_queue,
+                                  detector_initialized_event=detector_initialized_event)
 
         temp_trackers.append(temp_tracker)
 
@@ -99,6 +115,17 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue):
                                       camera_id=camera_ids_and_links[i][0])
 
     return temp_trackers
+
+def StartDetectorProcess(new_tracked_object_event, detector_request_queue, detector_initialized_event):
+    from classes.system_utilities.image_utilities.ObjectDetectionProcess import DetectorProcess
+    time.sleep(3)
+    detector = DetectorProcess(amount_of_trackers=len(camera_ids_and_links),
+                               base_pool_size=base_pool_size,
+                               new_object_in_pool_event=new_tracked_object_event,
+                               detector_request_queue=detector_request_queue,
+                               detector_initialized_event=detector_initialized_event)
+    detector.StartProcess()
+
 
 def StartEntranceCameras(broker_request_queue):
 

@@ -14,7 +14,7 @@ from multiprocessing import Process, Pipe, Queue, shared_memory
 class TrackedObjectPoolManager:
     # Manages tracked object processes in a pool.
 
-    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, pool_size=1):
+    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, pool_size=1):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
 
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
@@ -22,6 +22,7 @@ class TrackedObjectPoolManager:
         self.pool_process = 0
         self.pool_size = pool_size
         self.new_tracked_object_process_event = new_tracked_object_process_event
+        self.initialized_event = initialized_event
 
         self.tracked_object_process_pool = []
         self.tracked_object_process_pipes = []
@@ -46,6 +47,8 @@ class TrackedObjectPoolManager:
         # Create tracked object subprocesses
         for i in range(self.pool_size):
             self.CreateTrackedObjectProcess(process_number=i)
+
+        self.initialized_event.set()
 
         print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
 

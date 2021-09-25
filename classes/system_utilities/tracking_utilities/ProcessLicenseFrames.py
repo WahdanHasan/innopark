@@ -14,13 +14,14 @@ class ProcessLicenseFrames:
         self.broker_request_queue = broker_request_queue
 
     def Start(self, wait_license_processing_event):
+
         wait_license_processing_event.set()
 
         while True:
             print("listening to queue for incoming license frames")
             # listen for voyager request
             latest_license_frames = self.license_frames_request_queue.get()
-            latest_license_frames = latest_license_frames[:2]
+            # latest_license_frames = latest_license_frames[:2]
             # detect license plates from frames
             license_plates = self.DetectLicensePlates(latest_license_frames)
             print("exited the point of no return")
@@ -53,7 +54,7 @@ class ProcessLicenseFrames:
         license_plates = []
 
         print("entering the point of no return")
-        time.sleep(40)
+        time.sleep(5)
 
         for i in range(len(latest_license_frames)):
             # detect the license plate in frame and get its bbox coordinates

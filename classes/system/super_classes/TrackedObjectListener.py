@@ -151,3 +151,6 @@ class TrackedObjectListener:
     def GetAllActiveTrackedProcessItems(self):
         return self.GetAllActiveCameraIdAndLicensePlates(), self.GetAllActiveBoundingBoxes()
 
+    def GetTrackerFrameByTrackerId(self, tracker_id):
+        return self.shared_memory_tracker_frames[tracker_id]
+

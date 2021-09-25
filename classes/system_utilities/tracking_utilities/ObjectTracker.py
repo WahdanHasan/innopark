@@ -1,33 +1,28 @@
 import sys
 
-import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+# import classes.system_utilities.image_utilities.ObjectDetection as OD
 import cv2
 import time
 import numpy as np
 from multiprocessing import Process, Pipe, shared_memory
 from classes.camera.CameraBuffered import Camera
-from classes.system_utilities.helper_utilities.Enums import EntrantSide
-from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectStatus
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
-
+from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
+from classes.system_utilities.helper_utilities.Enums import EntrantSide, TrackerToTrackedObjectInstruction, TrackedObjectStatus, TrackedObjectToBrokerInstruction, ObjectToPoolManagerInstruction
 from classes.system_utilities.helper_utilities import Constants
-
-
-
-
 
 class Tracker:
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, seconds_between_detections=1):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, detector_initialized_event, seconds_between_detections=1):
 
         self.tracker_process = 0
         self.parking_spaces = []
         self.broker_request_queue = broker_request_queue
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
+        self.detector_request_queue = detector_request_queue
         self.seconds_between_detections = seconds_between_detections
+        self.detector_initialized_event = detector_initialized_event
+        self.shared_memory_manager_id = 0
         self.shared_memory_manager_frame = 0
         self.shared_memory_manager_mask = 0
         self.camera_rtsp = 0
@@ -48,14 +43,16 @@ class Tracker:
         self.tracker_process.terminate()
 
     def Initialize(self, tracker_id, camera_rtsp, camera_id):
+
         self.tracker_id = tracker_id
+
         self.camera_rtsp = camera_rtsp
         self.camera_id = camera_id
 
     def StartTracking(self):
 
         # Variable declarations
-        subtraction_model = OD.SubtractionModel()
+        subtraction_model = SubtractionModel()
         tracked_object_ids = []
         tracked_object_pipes = []
         tracked_object_bbs_shared_memory = []
@@ -92,9 +89,12 @@ class Tracker:
         seconds_before_display = 1
         counter = 0
         only_one = False
+        return_status = False
 
         # Run blank detector to prevent lag on first detection
-        return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame)
+        self.detector_initialized_event.wait()
+
+        # return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
 
         # TODO: Make a new way to get entrant side from the broker, it should be gotten based on the direction the detected object is traveling
         # Main loop
@@ -126,7 +126,7 @@ class Tracker:
             if (time.time() - time_at_detection) > self.seconds_between_detections:
                 time_at_detection = time.time()
                 # print("[Camera " + str(self.camera_id) + "] Ran detector!")
-                return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame)
+                return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
 
                 if return_status and (not only_one):
                     for i in range(len(detected_classes)):
@@ -163,6 +163,21 @@ class Tracker:
                 print("[ObjectTracker] Camera " + str(self.camera_id) + " FPS: ", counter / (time.time() - start_time))
                 counter = 0
                 start_time = time.time()
+
+            temp_frame = frame.copy()
+            if return_status:
+                # Draw tracked object boxes
+                temp_tracked_boxes = []
+                for i in range(len(tracked_object_bbs_shared_memory)):
+                    temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
+
+
+
+                temp_frame = IU.DrawBoundingBoxAndClasses(image=frame,
+                                                     class_names=tracked_object_ids,
+                                                     bounding_boxes=temp_tracked_boxes)
+
+            cv2.imshow("Camera " + str(self.camera_id), temp_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
@@ -202,14 +217,15 @@ class Tracker:
         print("[Camera " + str(self.camera_id) + "] Detected entrant from the " + sides_string[index_of_closest].value + " side.")
         return sides_string[index_of_closest]
 
-    def DetectNewEntrants(self, image):
+    def DetectNewEntrants(self, image, send_pipe, receive_pipe):
         # Returns new entrants within an image by running YOLO on the image after the application of the base mask
         # This results in only untracked objects being detected
 
         masked_image = self.SubtractMaskFromImage(image, self.base_mask)
         masked_image = image.copy()
-        return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=masked_image)
-
+        self.detector_request_queue.put((self.tracker_id, send_pipe))
+        return_status, classes, bounding_boxes, _ = receive_pipe.recv()
+        # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=masked_image)
 
         return return_status, classes, bounding_boxes
 
