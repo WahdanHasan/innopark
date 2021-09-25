@@ -193,10 +193,10 @@ class TrackedObjectProcess:
         self.ResetTrackedProcess()
 
         # Wait for instructions
-        (camera_id, new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
+        (camera_id, tracker_id, new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
 
         # Initialize new settings and begin tracking
-        self.Initialize(camera_id, new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
+        self.Initialize(camera_id, tracker_id, new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
         self.StartTracking(self.tracking_instruction_pipe)
 
     def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
@@ -217,7 +217,7 @@ class TrackedObjectProcess:
 
         self.ResetTrackedProcess()
 
-    def Initialize(self, camera_id, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
+    def Initialize(self, camera_id, tracker_id, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
 
         self.object_id = object_id
@@ -231,12 +231,13 @@ class TrackedObjectProcess:
         self.frame_in_shared_memory = np.ndarray(self.frame_shape, dtype=np.uint8, buffer=shared_memory_manager_frame.buf)
         self.mask_in_shared_memory = np.ndarray(self.mask_shape, dtype=np.uint8, buffer=shared_memory_manager_mask.buf)
 
-        self.ids_in_shared_memory[0] = np.uint8(camera_id)
+        self.ids_in_shared_memory[0] = np.uint8(tracker_id)
+        self.ids_in_shared_memory[1] = np.uint8(camera_id)
 
         if object_id != 'None':
             temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
 
-            self.ids_in_shared_memory[1: temp_list.shape[0] + 1] = temp_list
+            self.ids_in_shared_memory[2: temp_list.shape[0] + 2] = temp_list
 
         # Optical flow LK params
 

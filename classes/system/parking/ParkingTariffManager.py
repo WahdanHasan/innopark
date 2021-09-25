@@ -47,20 +47,33 @@ class ParkingTariffManager(TrackedObjectListener):
 
         while self.should_keep_managing:
 
+            ids, bbs = self.GetAllActiveTrackedProcessItems()
 
+            self.CheckAndUpdateParkingStatuses(ids=ids,
+                                               bbs=bbs)
 
-            self.CheckAndUpdateParkingStatuses()
-            cv2.imshow("eee", self.shared_memory_tracker_frames[0])
-            # if self.is_debug_mode:
-            #     self.PresentDebugItems()
+            if self.is_debug_mode:
+                self.PresentDebugItems(ids=ids,
+                                       bbs=bbs)
+
             time.sleep(0.5)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
 
-    def CheckAndUpdateParkingStatuses(self):
+    def CheckAndUpdateParkingStatuses(self, ids, bbs):
 
-        ids, bbs = self.GetAllActiveTrackedProcessItems()
+        if not ids:
+            return
+
+        for i in range(len(bbs)):
+            for j in range(len(self.parking_spaces)):
+                if ids[1][i] != self.parking_spaces[j].GetCameraId():
+                    continue
+
+                # if
+
+
 
         # for i in range(len(self.parking_spaces)):
         #     for j in range(len(self.shared_memory_bbs)):
@@ -107,27 +120,43 @@ class ParkingTariffManager(TrackedObjectListener):
             #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
             #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
 
-    # def PresentDebugItems(self):
-    # 
-    #     ids, bbs = self.GetAllActiveTrackedProcessItems()
-    # 
-    #     for i in range(len(self.shared_memory_tracker_frames)):
-    #         temp_active_bbs = []
-    # 
-    #         if bbs is not None:
-    #             for j in range(len(bbs)):
-    #                 if ids[0][j] == i:
-    #                     temp_active_bbs.append(bbs[j])
-    # 
-    #         temp_parking_bbs = [parking.GetBB() for parking in self.parking_spaces if parking.GetCameraId() == i]
-    #         temp_are_occupied = [parking.GetStatus() for parking in self.parking_spaces if parking.GetCameraId() == i]
-    # 
-    #         temp_frame = self.shared_memory_tracker_frames[i]
-    #         temp_frame = IU.DrawParkingBoxes(image=temp_frame,
-    #                                          bounding_boxes=temp_parking_bbs,
-    #                                          are_occupied=temp_are_occupied)
-    # 
-    #         temp_frame = IU.DrawBoundingBoxes(image=temp_frame,
-    #                                           bounding_boxes=temp_active_bbs)
-    # 
-    #         cv2.imshow("[ObjectTracker] Camera " + str(i+1) + " Processed Frame", temp_frame)
+    def PresentDebugItems(self, ids, bbs):
+
+
+        for i in range(self.amount_of_trackers):
+            temp_frame = self.GetTrackerFrameByTrackerId(i).copy()
+
+            if ids is not None:
+                temp_active_ids = []
+                temp_active_bbs = []
+                for j in range(len(bbs)):
+                    if ids[0][j] == i:
+                        temp_active_bbs.append(bbs[j])
+                        temp_active_ids.append(ids[2][j])
+
+                temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
+                                                          class_names=temp_active_ids,
+                                                          bounding_boxes=temp_active_bbs)
+
+            temp_parking_space_bbs = []
+            temp_parking_is_occupied_list = []
+            for j in range(len(self.parking_spaces)):
+                if Constants.CAMERA_DETAILS[i][0] == self.parking_spaces[j].GetCameraId():
+                    temp_parking_space_bbs.append(self.parking_spaces[j].GetBB())
+                    temp_parking_is_occupied_list.append(self.parking_spaces[j].GetStatus())
+
+            temp_frame = IU.DrawParkingBoxes(image=temp_frame,
+                                             bounding_boxes=temp_parking_space_bbs,
+                                             are_occupied=temp_parking_is_occupied_list)
+
+            cv2.imshow("[ParkingTariffManager] Camera " + str(i) + " view", temp_frame)
+
+
+
+
+
+
+
+
+
+

@@ -70,11 +70,11 @@ class Tracker:
         mask = subtraction_model.GetOutput()
 
         self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True,
-                                                                      name=Constants.object_trackers_frame_shared_memory_prefix + str(self.tracker_id),
+                                                                      name=Constants.object_tracker_frame_shared_memory_prefix + str(self.tracker_id),
                                                                       size=frame.nbytes)
 
         self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True,
-                                                                     name=Constants.object_trackers_mask_shared_memory_prefix + str(self.tracker_id),
+                                                                     name=Constants.object_tracker_mask_shared_memory_prefix + str(self.tracker_id),
                                                                      size=mask.nbytes)
 
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
@@ -145,7 +145,7 @@ class Tracker:
                         # TODO: Generate random id if the id is "none"
 
                         # Send the tracked object instructions on the object it is supposed to represent
-                        temp_pipe.send((self.camera_id, detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
+                        temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
 
                         # Add the tracked object pipe and shared memory reference to local arrays
                         tracked_object_pipes.append(temp_pipe)
@@ -164,20 +164,20 @@ class Tracker:
                 counter = 0
                 start_time = time.time()
 
-            temp_frame = frame.copy()
-            if return_status:
-                # Draw tracked object boxes
-                temp_tracked_boxes = []
-                for i in range(len(tracked_object_bbs_shared_memory)):
-                    temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
+            # temp_frame = frame.copy()
+            # if only_one:
+            #     # Draw tracked object boxes
+            #     temp_tracked_boxes = []
+            #     for i in range(len(tracked_object_bbs_shared_memory)):
+            #         temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
+            #
+            #
+            #
+            #     temp_frame = IU.DrawBoundingBoxAndClasses(image=frame,
+            #                                               class_names=tracked_object_ids,
+            #                                               bounding_boxes=temp_tracked_boxes)
 
-
-
-                temp_frame = IU.DrawBoundingBoxAndClasses(image=frame,
-                                                     class_names=tracked_object_ids,
-                                                     bounding_boxes=temp_tracked_boxes)
-
-            cv2.imshow("Camera " + str(self.camera_id), temp_frame)
+            # cv2.imshow("Camera " + str(self.camera_id), temp_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()

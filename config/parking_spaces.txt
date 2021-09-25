@@ -1,6 +1,6 @@
 [
 	{
-		"camera_id":2,
+		"camera_id":3,
 		"parking_id":189,
 		"bounding_box": {
 				"top_left_x":195,
@@ -14,7 +14,7 @@
 				}	
 	},
 	{
-		"camera_id":2,
+		"camera_id":3,
 		"parking_id":188,
 		"bounding_box": {
 				"top_left_x":349,
@@ -28,7 +28,7 @@
 				}	
 	},
 	{
-		"camera_id":2,
+		"camera_id":3,
 		"parking_id":187,
 		"bounding_box": {
 				"top_left_x":483,

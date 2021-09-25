@@ -1,7 +1,7 @@
 from multiprocessing import Event, Queue
 from classes.system_utilities.helper_utilities import Constants
-# from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-# from classes.system_utilities.helper_utilities.Enums import EntrantSide
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system_utilities.helper_utilities.Enums import EntrantSide
 import time
 # import sys
 from multiprocessing import Process
@@ -32,7 +32,7 @@ def main():
 
     pool_initialized_event.wait()
 
-    # broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
+    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
     # temp_event = StartEntranceCameras(broker_request_queue)
     #
@@ -48,10 +48,9 @@ def main():
 
     time.sleep(5)
     # Start main components
-    StartDetectorProcess(new_tracked_object_event=new_tracked_object_event,
-                         detector_request_queue=detector_request_queue,
+    StartDetectorProcess(detector_request_queue=detector_request_queue,
                          detector_initialized_event=detector_initialized_event)
-    # StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event)
+    StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event)
 
     import cv2
     cv2.namedWindow("Close this to close all")
@@ -116,12 +115,10 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
 
     return temp_trackers
 
-def StartDetectorProcess(new_tracked_object_event, detector_request_queue, detector_initialized_event):
+def StartDetectorProcess(detector_request_queue, detector_initialized_event):
     from classes.system_utilities.image_utilities.ObjectDetectionProcess import DetectorProcess
     time.sleep(3)
     detector = DetectorProcess(amount_of_trackers=len(camera_ids_and_links),
-                               base_pool_size=base_pool_size,
-                               new_object_in_pool_event=new_tracked_object_event,
                                detector_request_queue=detector_request_queue,
                                detector_initialized_event=detector_initialized_event)
     detector.StartProcess()

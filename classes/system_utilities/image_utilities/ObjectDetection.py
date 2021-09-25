@@ -27,9 +27,9 @@ def OnLoad():
         yolo_class_names = f.read().rstrip('\n').split('\n')
 
 
-    model_config = 'modules\\YOLOv3\\yolov3-320.cfg'
-    model_weights = 'modules\\YOLOv3\\yolov3-320.weights'
-    yolo_net_input_size = 256
+    model_config = 'modules\\YOLOv4\\yolov4-tiny.cfg'
+    model_weights = 'modules\\YOLOv4\\yolov4-tiny.weights'
+    yolo_net_input_size = 320
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation

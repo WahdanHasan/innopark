@@ -1,12 +1,14 @@
 from threading import Thread
 from multiprocessing import shared_memory
 from classes.system_utilities.helper_utilities import Constants
+from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerListener
 import numpy as np
 
-class TrackedObjectListener:
+class TrackedObjectListener(ObjectTrackerListener):
 
     def __init__(self, amount_of_trackers, base_pool_size, new_object_in_pool_event):
-        self.amount_of_trackers = amount_of_trackers
+        super().__init__(amount_of_trackers)
+
         self.pool_size = base_pool_size
         self.new_object_in_pool_event_listener_thread = 0
         self.new_object_in_pool_event = new_object_in_pool_event
@@ -18,15 +20,10 @@ class TrackedObjectListener:
         self.shared_memory_ids = []
         self.shared_memory_id_managers = []
 
-        self.shared_memory_tracker_frames = []
-        self.shared_memory_tracker_frame_managers = []
-
-        self.shared_memory_tracker_masks = []
-        self.shared_memory_tracker_mask_managers = []
-
     def Initialize(self):
+        super().Initialize()
+
         self.CreateReferencesToTrackedObjectItems()
-        self.CreateReferenceToObjectTrackerItems()
 
         self.new_object_in_pool_event_listener_thread = Thread(target=self.ListenForNewObjectInPool)
         self.new_object_in_pool_event_listener_thread.daemon = True
@@ -57,27 +54,6 @@ class TrackedObjectListener:
             self.shared_memory_ids.append(temp_ids)
             self.shared_memory_id_managers.append(temp_shm_ids)
 
-    def CreateReferenceToObjectTrackerItems(self):
-
-        for i in range(self.amount_of_trackers):
-            # Get shared memory object tracker frames
-            temp_shm_frame = shared_memory.SharedMemory(name=Constants.object_trackers_frame_shared_memory_prefix + str(i))
-            temp_frame = np.ndarray(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
-                                    dtype=np.uint8,
-                                    buffer=temp_shm_frame.buf)
-
-            self.shared_memory_tracker_frames.append(temp_frame)
-            self.shared_memory_tracker_frame_managers.append(temp_shm_frame)
-
-            # Get shared memory object tracker masks
-            temp_shm_mask = shared_memory.SharedMemory(name=Constants.object_trackers_mask_shared_memory_prefix + str(i))
-            temp_mask = np.ndarray(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0]),
-                                   dtype=np.uint8,
-                                   buffer=temp_shm_mask.buf)
-
-            self.shared_memory_tracker_masks.append(temp_mask)
-            self.shared_memory_tracker_mask_managers.append(temp_shm_mask)
-
     def ListenForNewObjectInPool(self):
 
         while self.should_keep_listening_for_new_object:
@@ -102,25 +78,27 @@ class TrackedObjectListener:
 
             self.pool_size += 1
 
-    def GetAllActiveCameraIdAndLicensePlates(self):
+    def GetAllActiveIdsAndLicensePlates(self):
+        temp_tracker_id_list = []
         temp_camera_id_list = []
         temp_object_id_list = []
 
         for i in range(len(self.shared_memory_ids)):
             # If the camera id is set to the default, continue
-            if self.shared_memory_ids[i][0] == Constants.tracked_process_ids_example[0]:
+            if self.shared_memory_ids[i][1] == Constants.tracked_process_ids_example[1]:
                 continue
 
             temp_list = self.IntegerTrackedObjectIdsToAscii(self.shared_memory_ids[i])
 
-            temp_camera_id_list.append(temp_list[0])
-            temp_object_id_list.append(temp_list[1])
+            temp_tracker_id_list.append(temp_list[0])
+            temp_camera_id_list.append(temp_list[1])
+            temp_object_id_list.append(temp_list[2])
 
         # If list is empty, return none, else return list
-        if not temp_camera_id_list:
+        if not temp_tracker_id_list:
             return None
         else:
-            return temp_camera_id_list, temp_object_id_list
+            return temp_tracker_id_list, temp_camera_id_list, temp_object_id_list
 
     def IntegerTrackedObjectIdsToAscii(self, camera_id_and_license_in_shared_memory):
         temp_list = camera_id_and_license_in_shared_memory.tolist()
@@ -130,7 +108,7 @@ class TrackedObjectListener:
             return [int(temp_list[0]), None]
         else:
             # Convert all non 0 integers to ascii only
-            return [int(temp_list[0]), ''.join('' if i == 0 else chr(i) for i in temp_list[1:])]
+            return [int(temp_list[0]), int(temp_list[1]), ''.join('' if i == 0 else chr(i) for i in temp_list[2:])]
 
     def GetAllActiveBoundingBoxes(self):
         temp_active_bb_list = []
@@ -149,8 +127,7 @@ class TrackedObjectListener:
             return temp_active_bb_list
 
     def GetAllActiveTrackedProcessItems(self):
-        return self.GetAllActiveCameraIdAndLicensePlates(), self.GetAllActiveBoundingBoxes()
+        return self.GetAllActiveIdsAndLicensePlates(), self.GetAllActiveBoundingBoxes()
 
-    def GetTrackerFrameByTrackerId(self, tracker_id):
-        return self.shared_memory_tracker_frames[tracker_id]
+
 
