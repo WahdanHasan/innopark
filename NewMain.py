@@ -1,22 +1,20 @@
-from multiprocessing import Event, Queue
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
+
 import time
-# import sys
+from multiprocessing import Event, Queue
 from multiprocessing import Process
 
+
 base_pool_size = 10
-
 is_debug_mode = True
-
 camera_ids_and_links = Constants.CAMERA_DETAILS
 
 
 # This needs to be changed to GUI
 def main():
-    # print(sys.getsizeof(Constants.tracked_process_ids_example[0]))
-    # return
+
     # Start helper processes
     new_tracked_object_event = Event()
 

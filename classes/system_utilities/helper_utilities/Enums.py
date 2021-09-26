@@ -22,6 +22,7 @@ class TrackerToTrackedObjectInstruction(Enum):
     STOP_TRACKING = -1
     OBJECT_MOVING = 1
     OBJECT_STATIONARY = 2
+    STORE_NEW_ID = 3
 
 class ParkingStatus(Enum):
     OCCUPIED = True
@@ -42,7 +43,3 @@ class DetectedObjectAtEntrance(Enum):
     DETECTED_WITH_YOLO = 2
     NOT_DETECTED = -1
 
-class ParkingSpaceTimerStatus(Enum):
-    TICKING = 1
-    NOT_TICKING = 2
-    TICKED = 3

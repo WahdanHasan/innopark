@@ -55,8 +55,11 @@ class Tracker:
         subtraction_model = SubtractionModel()
         tracked_object_ids = []
         tracked_object_pipes = []
+        tracked_object_bbs_shared_memory_managers = []
         tracked_object_bbs_shared_memory = []
         tracked_object_movement_status = []
+        tracked_objects_without_id_prev_bb = []
+        tracked_objects_without_id_indexes = []
         receive_pipe, send_pipe = Pipe()
         time_at_detection = time.time()
 
@@ -91,12 +94,8 @@ class Tracker:
         only_one = False
         return_status = False
 
-        # Run blank detector to prevent lag on first detection
         self.detector_initialized_event.wait()
 
-        # return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
-
-        # TODO: Make a new way to get entrant side from the broker, it should be gotten based on the direction the detected object is traveling
         # Main loop
         while self.should_keep_tracking:
             # Write new frame into shared memory space
@@ -109,16 +108,34 @@ class Tracker:
             mask[:] = subtraction_model.GetOutput()[:]
 
             # Send signal to tracked object processes to read frame and mask along with an instruction
+            # TODO: Validate for noise on the last and new bounding box if object doesnt have an id. The object can be going the wrong direction as a result.
             for i in range(len(tracked_object_pipes)):
-                if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY.value:
-                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_STATIONARY)
-                elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING.value:
-                    tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.OBJECT_MOVING)
+                primary_instruction_to_send = 0
+                if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
+                    primary_instruction_to_send = TrackerToTrackedObjectInstruction.OBJECT_STATIONARY
+                elif tracked_object_movement_status[i] == TrackedObjectStatus.MOVING:
+                    primary_instruction_to_send = TrackerToTrackedObjectInstruction.OBJECT_MOVING
 
+                object_doesnt_have_id = i in tracked_objects_without_id_indexes
 
+                # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
+                if object_doesnt_have_id:
+                    temp_bb = tracked_object_bbs_shared_memory[i].tolist()
+                    if temp_bb == Constants.bb_example:
+                        tracked_object_pipes[i].send(primary_instruction_to_send)
 
+                    temp_entrant_side = self.GetEntrantSideN(old_bb=tracked_objects_without_id_prev_bb[i],
+                                                             new_bb=temp_bb)
 
-
+                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, send_pipe))
+                    temp_entrant_id = receive_pipe.recv()
+                    print(temp_entrant_id)
+                    print(temp_entrant_side)
+                    tracked_object_pipes[i].send([TrackerToTrackedObjectInstruction.STORE_NEW_ID, primary_instruction_to_send, temp_entrant_id])
+                    tracked_objects_without_id_indexes.pop(i)
+                    tracked_objects_without_id_prev_bb.pop(i)
+                else:
+                    tracked_object_pipes[i].send(primary_instruction_to_send)
 
 
 
@@ -130,28 +147,32 @@ class Tracker:
 
                 if return_status and (not only_one):
                     for i in range(len(detected_classes)):
-                        # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
-                        entered_object_side = self.GetEntrantSide(detected_bbs[i], height, width)
-                        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, entered_object_side, send_pipe))
-                        entered_object_id = receive_pipe.recv()
+                        # # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
+                        # entered_object_side = self.GetEntrantSide(detected_bbs[i], height, width)
+                        # self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, entered_object_side, send_pipe))
+                        # entered_object_id = receive_pipe.recv()
+
                         # Request for a tracked object to represent the new entrant from the tracked object pool
                         self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, send_pipe))
 
                         # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
-                        (temp_pipe, temp_shared_memory_bb) = receive_pipe.recv()
+                        (temp_pipe, temp_shared_memory_bb_manager) = receive_pipe.recv()
 
                         # Create an array reference to the tracked object's shared memory bounding box
-                        temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb.buf)
+                        temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
                         # TODO: Generate random id if the id is "none"
 
                         # Send the tracked object instructions on the object it is supposed to represent
-                        temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], entered_object_id, self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
+                        temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
 
                         # Add the tracked object pipe and shared memory reference to local arrays
                         tracked_object_pipes.append(temp_pipe)
+                        tracked_object_bbs_shared_memory_managers.append(temp_shared_memory_bb_manager)
                         tracked_object_bbs_shared_memory.append(temp_shared_memory_array)
-                        tracked_object_movement_status.append(TrackedObjectStatus.MOVING.value)
-                        tracked_object_ids.append(entered_object_id)
+                        tracked_object_movement_status.append(TrackedObjectStatus.MOVING)
+
+                        tracked_objects_without_id_indexes.append(len(tracked_object_pipes) - 1)
+                        tracked_objects_without_id_prev_bb.append(detected_bbs[i])
 
                     # Only create 1 tracked object in total (this is for debugging and while we wait for the tracker to be finished)
                     only_one = True
@@ -216,6 +237,36 @@ class Tracker:
 
         print("[Camera " + str(self.camera_id) + "] Detected entrant from the " + sides_string[index_of_closest].value + " side.")
         return sides_string[index_of_closest]
+
+    def GetEntrantSideN(self, old_bb, new_bb):
+
+        # Get BB centers
+        old_bb_center = IU.GetBoundingBoxCenter(bounding_box=old_bb)
+        new_bb_center = IU.GetBoundingBoxCenter(bounding_box=new_bb)
+
+        # Get object distance traveled horizontally
+        dist_horizontal = int(old_bb_center[0] - new_bb_center[0])
+        # Get object distance traveled vertically
+        dist_vertical = int(old_bb_center[1] - new_bb_center[1])
+
+        # Get greater distance travel side
+
+        # TODO: Get this working
+        # if abs(dist_horizontal) > abs(dist_vertical):
+        #     if dist_horizontal > 0:
+        #         return EntrantSide.LEFT
+        #     else:
+        #         return EntrantSide.RIGHT
+        # else:
+        #     if dist_vertical > 0:
+        #         return EntrantSide.TOP
+        #     else:
+        #         return EntrantSide.BOTTOM
+
+        if dist_horizontal > 0:
+            return EntrantSide.LEFT
+        else:
+            return EntrantSide.RIGHT
 
     def DetectNewEntrants(self, image, send_pipe, receive_pipe):
         # Returns new entrants within an image by running YOLO on the image after the application of the base mask

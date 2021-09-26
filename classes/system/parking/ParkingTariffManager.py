@@ -1,14 +1,15 @@
 from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ParkingSpaceTimerStatus, TrackedObjectStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
-import json
-import time
-import cv2
+
 
 from multiprocessing import Process
+import cv2
 import sys
+import json
+import time
 
 
 class ParkingTariffManager(TrackedObjectListener):
@@ -65,6 +66,9 @@ class ParkingTariffManager(TrackedObjectListener):
         if not ids or ids is None:
             return
 
+        if not bbs or bbs is None:
+            return
+
         for i in range(len(bbs)):
             for j in range(len(self.parking_spaces)):
                 if ids[1][i] != self.parking_spaces[j].camera_id:
@@ -100,7 +104,7 @@ class ParkingTariffManager(TrackedObjectListener):
         for i in range(self.amount_of_trackers):
             temp_frame = self.GetTrackerFrameByTrackerId(i).copy()
 
-            if ids is not None:
+            if ids is not None and bbs is not None:
                 temp_active_ids = []
                 temp_active_bbs = []
                 for j in range(len(bbs)):

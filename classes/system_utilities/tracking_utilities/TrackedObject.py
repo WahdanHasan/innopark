@@ -193,10 +193,12 @@ class TrackedObjectProcess:
         self.ResetTrackedProcess()
 
         # Wait for instructions
-        (camera_id, tracker_id, new_bb, new_object_id, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
+        (camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
+
+
 
         # Initialize new settings and begin tracking
-        self.Initialize(camera_id, tracker_id, new_object_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
+        self.Initialize(camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
         self.StartTracking(self.tracking_instruction_pipe)
 
     def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
@@ -217,10 +219,10 @@ class TrackedObjectProcess:
 
         self.ResetTrackedProcess()
 
-    def Initialize(self, camera_id, tracker_id, object_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
+    def Initialize(self, camera_id, tracker_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
 
-        self.object_id = object_id
+        self.object_id = None
         self.camera_id = camera_id
         self.bb = bb
         self.should_keep_tracking = True
@@ -234,11 +236,6 @@ class TrackedObjectProcess:
         self.ids_in_shared_memory[0] = np.uint8(tracker_id)
         self.ids_in_shared_memory[1] = np.uint8(camera_id)
 
-        if object_id != 'None':
-            temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
-
-            self.ids_in_shared_memory[2: temp_list.shape[0] + 2] = temp_list
-
         # Optical flow LK params
 
         temp_cropped = IU.CropImage(self.frame_in_shared_memory, self.bb)
@@ -251,6 +248,11 @@ class TrackedObjectProcess:
             self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
             self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
 
+    def WriteObjectIdToSharedMemory(self, object_id):
+        temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
+
+        self.ids_in_shared_memory[2: temp_list.shape[0] + 2] = temp_list
+
     def ResetTrackedProcess(self):
         self.bb_in_shared_memory[:] = Constants.bb_example.copy()[:]
         self.ids_in_shared_memory[:] = np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8)
@@ -259,17 +261,24 @@ class TrackedObjectProcess:
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
 
+        new_object_id = -1
+
         print("[TrackedObjectProcess] Started tracking " + str(self.object_id) + ".", file=sys.stderr)
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
             instruction = pipe.recv()
-
-            # Validate if the message received is what was expected
+            # Validate if the message received is a proper instruction
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
-                continue
+                if isinstance(instruction, list):
+                    if not isinstance(instruction[0], TrackerToTrackedObjectInstruction):
+                        continue
+                    elif instruction[0] == TrackerToTrackedObjectInstruction.STORE_NEW_ID:
+                        new_object_id = instruction[2]
+                        self.WriteObjectIdToSharedMemory(object_id=new_object_id)
+                        instruction = instruction[1]
 
-            if instruction.value == TrackerToTrackedObjectInstruction.STOP_TRACKING.value:
+            if instruction == TrackerToTrackedObjectInstruction.STOP_TRACKING:
                 self.should_keep_tracking = False
                 continue
 
@@ -278,11 +287,14 @@ class TrackedObjectProcess:
             self.mask = self.mask_in_shared_memory.copy()
 
             # Update based on object movement status
-            if instruction.value == TrackerToTrackedObjectInstruction.OBJECT_MOVING.value:
+            if instruction == TrackerToTrackedObjectInstruction.OBJECT_MOVING:
                 self.UpdateMovingObject()
-            elif instruction.value == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY.value:
+            elif instruction == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY:
                 self.UpdateMovingObject()
                 # self.UpdateStationaryObject()
+
+            # cv2.imshow("HE", self.frame)
+
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
