@@ -1,8 +1,7 @@
 from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ParkingSpaceTimerStatus, TrackedObjectStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 import json
 import time
@@ -62,66 +61,41 @@ class ParkingTariffManager(TrackedObjectListener):
                 break
 
     def CheckAndUpdateParkingStatuses(self, ids, bbs):
-
-        if not ids:
+        # An object tracker cannot be on the id 0
+        if not ids or ids is None:
             return
 
         for i in range(len(bbs)):
             for j in range(len(self.parking_spaces)):
-                if ids[1][i] != self.parking_spaces[j].GetCameraId():
+                if ids[1][i] != self.parking_spaces[j].camera_id:
                     continue
 
-                # if
+                car_is_in_this_parking = IU.IsCarInParkingBB(parking_bounding_box=self.parking_spaces[j].bb,
+                                                             car_bounding_box=bbs[i])
+
+                temp_parking = self.parking_spaces[j]
+
+                if temp_parking.occupant_id == ids[2][i]:
+                    if temp_parking.status == ParkingStatus.OCCUPIED:
+                        if car_is_in_this_parking:
+                            temp_parking.occupant_left_parking_time_start = 0
+                        else:
+                            temp_parking.CheckAndUpdateIfOccupantLeft()
+
+                    elif temp_parking.status == ParkingStatus.NOT_OCCUPIED:
+                        if car_is_in_this_parking:
+                            temp_parking.CheckAndUpdateIfConsideredParked()
+                        else:
+                            temp_parking.ResetOccupant()
+
+                elif temp_parking.status == ParkingStatus.NOT_OCCUPIED:
+                    if car_is_in_this_parking:
+                        temp_parking.occupant_park_time_start = time.time()
+                        temp_parking.UpdateOccupantId(ids[2][i])
 
 
-
-        # for i in range(len(self.parking_spaces)):
-        #     for j in range(len(self.shared_memory_bbs)):
-        #         if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
-        #             # If the parking is occupied and the tracked object isn't the occupant, then continue
-        #             if self.parking_spaces[i].GetOccupantId() != ids[0][j]:
-        #                 continue
-        #
-        #         else:
-        #             # If the parking is not occupied and the tracked object is stationary, then continue
-        #             if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
-        #                 continue
-
-
-
-
-            # # Check if objects are entering/leaving parking spaces and update their status accordingly
-            # for i in range(len(self.parking_spaces)):
-            #     for j in range(len(tracked_object_bbs_shared_memory)):
-            #         if self.parking_spaces[i].GetStatus() == ParkingStatus.OCCUPIED.value:
-            #             # If the parking is occupied and the tracked object isn't the occupant, then continue
-            #             if self.parking_spaces[i].GetOccupantId() != tracked_object_ids[j]:
-            #                 continue
-            #
-            #         else:
-            #             # If the parking is not occupied and the tracked object is stationary, then continue
-            #             if tracked_object_movement_status[j] == TrackedObjectStatus.STATIONARY.value:
-            #                 continue
-            #
-            #         # Hence, if the parking is occupied and the tracked object is the occupant, check if he's still in the parking
-            #         # Hence, if the parking is not occupied and the object is moving, check if he's in this parking
-            #
-            #         # Check if the tracked object is in the parking
-            #         is_car_in_parking = OD.IsCarInParkingBBN(self.parking_spaces[i].GetBB(), tracked_object_bbs_shared_memory[j].tolist())
-            #
-            #         # If it is, then update the parking to occupied, else, update it to unoccupied. Update the tracked object accordingly.
-            #         # TODO: This should be updated to count down how long an object has been in a parking
-            #         if is_car_in_parking:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.STATIONARY.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=tracked_object_ids[j])
-            #         else:
-            #             tracked_object_movement_status[j] = TrackedObjectStatus.MOVING.value
-            #             self.parking_spaces[i].UpdateStatus(status=ParkingStatus.NOT_OCCUPIED.value)
-            #             self.parking_spaces[i].UpdateOccupant(occupant_id=-1)
 
     def PresentDebugItems(self, ids, bbs):
-
 
         for i in range(self.amount_of_trackers):
             temp_frame = self.GetTrackerFrameByTrackerId(i).copy()
@@ -141,9 +115,9 @@ class ParkingTariffManager(TrackedObjectListener):
             temp_parking_space_bbs = []
             temp_parking_is_occupied_list = []
             for j in range(len(self.parking_spaces)):
-                if Constants.CAMERA_DETAILS[i][0] == self.parking_spaces[j].GetCameraId():
-                    temp_parking_space_bbs.append(self.parking_spaces[j].GetBB())
-                    temp_parking_is_occupied_list.append(self.parking_spaces[j].GetStatus())
+                if Constants.CAMERA_DETAILS[i][0] == self.parking_spaces[j].camera_id:
+                    temp_parking_space_bbs.append(self.parking_spaces[j].bb)
+                    temp_parking_is_occupied_list.append(self.parking_spaces[j].status)
 
             temp_frame = IU.DrawParkingBoxes(image=temp_frame,
                                              bounding_boxes=temp_parking_space_bbs,

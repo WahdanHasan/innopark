@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from shapely.geometry import Polygon
 
 
 def ImageToBlob(image, input_size):
@@ -244,6 +245,78 @@ def GetDimensionsFromBoundingBox(bounding_box):
 
     return (height, width)
 
+def CreateInvertedMask(img, bbox):
+    # Takes a full image and the bounding box of the object of interest within it.
+    # Returns the inverted mask of the object contained within the bounding box
+
+    # Increase bounding box
+    increased_bbox = GetIncreasedBB(img_dimensions=img.shape[:2],
+                                    bbox=bbox)
+
+    # Get a cropped image based on the increased bounding box
+    increased_bbox_img = CropImage(img=img,
+                                   bounding_set=increased_bbox)
+
+    # Get the bounding box points in respect to increased bounding box (irt = in respect to)
+    bbox_irt_increased_bbox = GetBBInRespectTo(bbox=bbox,
+                                               bbox_of_new_parent=increased_bbox)
+
+    # Create a black mask based on the cropped image dimensions
+    mask = np.zeros(increased_bbox_img.shape[:2], dtype=np.uint8)
+
+    # Create bg and fg standard model arrays. These are for grabcut's internal use.
+    bg_model = np.zeros((1, 65), np.float64)
+    fg_model = np.zeros((1, 65), np.float64)
+
+
+    # Apply grabcut to image
+    # Convert bb to opencv format
+    increased_bbox_converted = [bbox_irt_increased_bbox[0][0],
+                                bbox_irt_increased_bbox[0][1],
+                                bbox_irt_increased_bbox[1][0],
+                                bbox_irt_increased_bbox[1][1]]
+
+    # mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
+    (mask, _, _) = cv2.grabCut(img=increased_bbox_img,
+                               mask=mask,
+                               rect=increased_bbox_converted,
+                               bgdModel=bg_model,
+                               fgdModel=fg_model,
+                               iterCount=1,
+                               mode=cv2.GC_INIT_WITH_RECT)
+
+    # Define output mask based on mask output values from grabcut
+    output_mask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")
+    cv2.imshow("EEE", increased_bbox_img)
+    return output_mask
+
+def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
+    # Takes 2 bounding boxes, one for the car, one for the parking spot
+    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+    # be in the format of [TL, BR]
+    # Returns true if overlapping, false otherwise
+
+    acceptable_threshold = 0.04
+
+    # Define each polygon
+    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+    temp_car_bb = GetFullBoundingBox(car_bounding_box)
+    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+    polygon1_shape = Polygon(temp_parking_bb)
+    polygon2_shape = Polygon(temp_car_bb)
+
+    # Calculate intersection and union, and the IOU
+    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+
+    iou = polygon_intersection / polygon_union
+
+    # print(iou)
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
+
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
     temp_image = image.copy()
@@ -285,7 +358,7 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
     temp_image = image.copy()
 
     for i in range(len(bounding_boxes)):
-        temp_color = (0, 0, 255) if are_occupied[i] else (0, 255, 0)
+        temp_color = (0, 0, 255) if are_occupied[i].value else (0, 255, 0)
         cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][1], temp_color, thickness)
         cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][2], temp_color, thickness)
         cv2.line(temp_image, bounding_boxes[i][1], bounding_boxes[i][3], temp_color, thickness)

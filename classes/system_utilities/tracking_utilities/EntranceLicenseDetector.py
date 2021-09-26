@@ -1,4 +1,5 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
+from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
 import numpy as np
@@ -50,7 +51,7 @@ class EntranceLicenseDetector:
         cam2 = Camera(rtsp_link=self.top_camera[1],
                       camera_id=self.top_camera[0])
 
-        subtraction_model = OD.SubtractionModel()
+        subtraction_model = SubtractionModel()
         frame_top = cam2.GetScaledNextFrame()
 
         (height, width) = frame_top.shape[:2]

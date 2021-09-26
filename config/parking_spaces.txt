@@ -1,20 +1,6 @@
 [
 	{
 		"camera_id":3,
-		"parking_id":189,
-		"bounding_box": {
-				"top_left_x":195,
-				"top_left_y":211,
-				"top_right_x":346,
-				"top_right_y":213,
-				"bottom_left_x":147,
-				"bottom_left_y":414,
-				"bottom_right_x":477,
-				"bottom_right_y":391
-				}	
-	},
-	{
-		"camera_id":3,
 		"parking_id":188,
 		"bounding_box": {
 				"top_left_x":349,
@@ -26,20 +12,5 @@
 				"bottom_right_x":718,
 				"bottom_right_y":367
 				}	
-	},
-	{
-		"camera_id":3,
-		"parking_id":187,
-		"bounding_box": {
-				"top_left_x":483,
-				"top_left_y":213,
-				"top_right_x":604,
-				"top_right_y":214,
-				"bottom_left_x":718,
-				"bottom_left_y":366,
-				"bottom_right_x":718,
-				"bottom_right_y":265
-				}	
-	}
-		
-	    	    ]
+	}	
+]

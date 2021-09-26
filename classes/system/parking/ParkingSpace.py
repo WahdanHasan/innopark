@@ -1,7 +1,8 @@
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ParkingSpaceTimerStatus
+import time
 
 class ParkingSpace:
-    def __init__(self, camera_id, parking_id, bounding_box):
+    def __init__(self, camera_id, parking_id, bounding_box, seconds_before_considered_parked=2, seconds_before_considered_left=2):
         # JSON initialized variables
         self.camera_id = camera_id
         self.parking_id = parking_id
@@ -13,6 +14,9 @@ class ParkingSpace:
                   ]
 
         # Default initialized variables
+        self.seconds_before_considered_parked = seconds_before_considered_parked
+        self.seconds_before_considered_left = seconds_before_considered_left
+        self.parking_ticking_status = 0
         self.occupant_park_time_start = 0
         self.occupant_left_parking_time_start = 0
         self.occupant_id = 0
@@ -24,7 +28,8 @@ class ParkingSpace:
         self.occupant_park_time_start = 0
         self.occupant_left_parking_time_start = 0
         self.occupant_id = -1
-        self.status = ParkingStatus.NOT_OCCUPIED.value
+        self.status = ParkingStatus.NOT_OCCUPIED
+        self.parking_ticking_status = ParkingSpaceTimerStatus.NOT_TICKING
 
     def UpdateId(self, new_parking_id):
         self.parking_id = new_parking_id
@@ -42,18 +47,26 @@ class ParkingSpace:
     def UpdateStatus(self, status):
         self.status = status
 
-    def GetId(self):
-        return self.parking_id
+    def CheckAndUpdateIfConsideredParked(self):
+        if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
+            self.status = ParkingStatus.OCCUPIED
+            self.occupant_park_time_start = time.time()
+            self.parking_ticking_status = ParkingSpaceTimerStatus.NOT_TICKING
 
-    def GetOccupantId(self):
-        return self.occupant_id
+    def CheckAndUpdateIfOccupantLeft(self):
 
-    def GetCameraId(self):
-        return self.camera_id
+        if self.occupant_left_parking_time_start == 0:
+            self.occupant_left_parking_time_start = time.time()
 
-    def GetBB(self):
-        return self.bb
+        if (time.time() - self.occupant_left_parking_time_start) >= self.seconds_before_considered_left:
+            self.ChargeOccupant()
+            self.ResetOccupant()
 
-    def GetStatus(self):
-        return self.status
+    def ChargeOccupant(self):
+        print("Occupant with id " + str(self.occupant_id) + " will now be charged")
+
+
+
+
+
 

@@ -41,3 +41,8 @@ class DetectedObjectAtEntrance(Enum):
     DETECTED = 1
     DETECTED_WITH_YOLO = 2
     NOT_DETECTED = -1
+
+class ParkingSpaceTimerStatus(Enum):
+    TICKING = 1
+    NOT_TICKING = 2
+    TICKED = 3
