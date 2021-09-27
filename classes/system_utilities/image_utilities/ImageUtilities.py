@@ -1,6 +1,7 @@
 import cv2
-import re as regex
 import numpy as np
+from shapely.geometry import Polygon
+
 
 def ImageToBlob(image, input_size):
     blob = cv2.dnn.blobFromImage(image, 1/255, (input_size, input_size), [0, 0, 0], 1, crop=False)
@@ -45,10 +46,23 @@ def CropImage(img, bounding_set):
     img_temp = img.copy()
 
     # Define Top Left and Bottom Right points to crop upon
-    x_min = bounding_set[0][0]
-    y_min = bounding_set[0][1]
-    x_max = bounding_set[1][0]
-    y_max = bounding_set[1][1]
+    x_min = int(bounding_set[0][0])
+    y_min = int(bounding_set[0][1])
+    x_max = int(bounding_set[1][0])
+    y_max = int(bounding_set[1][1])
+
+
+    # Validation
+    img_dimensions = img_temp.shape
+
+    if y_min < 0:
+        y_min = 0
+    if y_max > img_dimensions[0]:
+        y_max = img_dimensions[0]
+    if x_min < 0:
+        x_min = 0
+    if x_max > img_dimensions[1]:
+        x_max = img_dimensions[1]
 
     # Determine absolute width and length
     width = x_max - x_min
@@ -135,6 +149,12 @@ def ConcatenatePictures(img_set):
 
     return img_base
 
+def FloatBBToIntBB(bb):
+    # Accepts a bounding box of float values into a bounding box of int values
+    # It should be noted that the bounding box provided must be in the [TL, BR] format
+    # Returns the int version of the bounding box
+
+    return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
 
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
@@ -177,8 +197,6 @@ def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the full bounding box in the format of [TL, TR, BL, BR]
 
-    full_bounding_box = []
-
     # Calculate top right points
     top_right_x = bounding_box[1][0]
     top_right_y = bounding_box[0][1]
@@ -189,16 +207,13 @@ def GetFullBoundingBox(bounding_box):
     bottom_left_y = bounding_box[1][1]
     bottom_left = [bottom_left_x, bottom_left_y]
 
-    full_bounding_box.append([bounding_box[0], top_right, bottom_left, bounding_box[1]])
-
-
-    return full_bounding_box
+    return [bounding_box[0], top_right, bottom_left, bounding_box[1]]
 
 def GetPartialBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, TR, BL, BR]
     # Returns the equivalent [TL, BR] format box
 
-    partial_bounding_box = [[bounding_box[0], bounding_box[1]], [bounding_box[2], bounding_box[3]]]
+    partial_bounding_box = [bounding_box[0], bounding_box[3]]
 
     return partial_bounding_box
 
@@ -231,10 +246,126 @@ def GetDimensionsFromBoundingBox(bounding_box):
 
     return (height, width)
 
-def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
+def CreateInvertedMask(img, bbox):
+    # Takes a full image and the bounding box of the object of interest within it.
+    # Returns the inverted mask of the object contained within the bounding box
+
+    # Increase bounding box
+    increased_bbox = GetIncreasedBB(img_dimensions=img.shape[:2],
+                                    bbox=bbox)
+
+    # Get a cropped image based on the increased bounding box
+    increased_bbox_img = CropImage(img=img,
+                                   bounding_set=increased_bbox)
+
+    # Get the bounding box points in respect to increased bounding box (irt = in respect to)
+    bbox_irt_increased_bbox = GetBBInRespectTo(bbox=bbox,
+                                               bbox_of_new_parent=increased_bbox)
+
+    # Create a black mask based on the cropped image dimensions
+    mask = np.zeros(increased_bbox_img.shape[:2], dtype=np.uint8)
+
+    # Create bg and fg standard model arrays. These are for grabcut's internal use.
+    bg_model = np.zeros((1, 65), np.float64)
+    fg_model = np.zeros((1, 65), np.float64)
+
+
+    # Apply grabcut to image
+    # Convert bb to opencv format
+    increased_bbox_converted = [bbox_irt_increased_bbox[0][0],
+                                bbox_irt_increased_bbox[0][1],
+                                bbox_irt_increased_bbox[1][0],
+                                bbox_irt_increased_bbox[1][1]]
+
+    # mask outputs 0 (definite bg), 1 (definite fg), 2 (probable bg), 3 (probable fg)
+    (mask, _, _) = cv2.grabCut(img=increased_bbox_img,
+                               mask=mask,
+                               rect=increased_bbox_converted,
+                               bgdModel=bg_model,
+                               fgdModel=fg_model,
+                               iterCount=1,
+                               mode=cv2.GC_INIT_WITH_RECT)
+
+    # Define output mask based on mask output values from grabcut
+    output_mask = (np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 1, 0)*255).astype("uint8")
+    cv2.imshow("EEE", increased_bbox_img)
+    return output_mask
+
+def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
+    # Takes 2 bounding boxes, one for the car, one for the parking spot
+    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+    # be in the format of [TL, BR]
+    # Returns true if overlapping, false otherwise
+
+
+    # Define each polygon
+    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+    temp_car_bb = GetFullBoundingBox(car_bounding_box)
+    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+    polygon1_shape = Polygon(temp_parking_bb)
+    polygon2_shape = Polygon(temp_car_bb)
+
+    # Calculate intersection and union, and the IOU
+    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+
+    iou = polygon_intersection / polygon_union
+
+    print(iou)
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
+
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
+    # Takes 2 bounding boxes, one for the car, one for the parking spot
+    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+    # be in the format of [TL, BR]
+    # Returns true if overlapping, false otherwise
+
+    iou = AreBoxesOverlapping(parking_bounding_box, car_bounding_box)
+
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
+
+def AreBoxesOverlapping(parking_bounding_box, car_bounding_box): # TODO: Change this to be non-reliant on input
+# BLASDLASDKAS
+
+    # Define each polygon
+    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+    temp_car_bb = GetFullBoundingBox(car_bounding_box)
+    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+    polygon1_shape = Polygon(temp_parking_bb)
+    polygon2_shape = Polygon(temp_car_bb)
+
+    # Calculate intersection and union, and the IOU
+    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+
+    iou = polygon_intersection / polygon_union
+
+    return iou
+
+def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
+
+    temp_image = image.copy()
+
+    cv2.line(temp_image, point_a, point_b, color, thickness)
+
+    return temp_image
+
+def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
+
+    if bounding_boxes is None:
+        return image
+
+    if len(bounding_boxes) == 0:
+        return image
 
     temp_image = image.copy()
 
@@ -247,10 +378,35 @@ def DrawBoundingBox(image, bounding_boxes, color=(255, 0, 255), thickness=1):
 
     return temp_image
 
-def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes, color=(255, 0, 255), thickness=1):
+def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
+    # Takes an image and places the parking space bounding boxes on it from the detections
+    # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
+    # Returns the image with all the boxes and their appropriate colors drawn on it.
+
+    if bounding_boxes is None:
+        return image
+
+    temp_image = image.copy()
+
+    for i in range(len(bounding_boxes)):
+        temp_color = (0, 0, 255) if are_occupied[i].value else (0, 255, 0)
+        cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][1], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][0], bounding_boxes[i][2], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][1], bounding_boxes[i][3], temp_color, thickness)
+        cv2.line(temp_image, bounding_boxes[i][2], bounding_boxes[i][3], temp_color, thickness)
+
+    return temp_image
+
+def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=1):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
+
+    if bounding_boxes is None:
+        return image
+
+    if len(bounding_boxes) == 0:
+        return image
 
     temp_image = image.copy()
 
@@ -261,12 +417,21 @@ def DrawBoundingBoxAndClasses(image, class_names, probabilities, bounding_boxes,
                                    color=color,
                                    thickness=thickness)
 
-        temp_image = cv2.putText(img=temp_image,
-                                 text=f'{class_names[i]} {int(probabilities[i])}%',
-                                 org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
-                                 fontFace=cv2.FONT_HERSHEY_DUPLEX,
-                                 fontScale=0.5,
-                                 color=(0, 0, 255),
-                                 thickness=1)
+        if probabilities is not None:
+            temp_image = cv2.putText(img=temp_image,
+                                     text=f'{class_names[i]} {int(probabilities[i])}%',
+                                     org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
+                                     fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                                     fontScale=0.5,
+                                     color=(0, 0, 255),
+                                     thickness=1)
+        else:
+            temp_image = cv2.putText(img=temp_image,
+                                     text=f'{class_names[i]}',
+                                     org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
+                                     fontFace=cv2.FONT_HERSHEY_DUPLEX,
+                                     fontScale=0.5,
+                                     color=(0, 0, 255),
+                                     thickness=1)
 
     return temp_image
