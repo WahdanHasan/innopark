@@ -149,7 +149,7 @@ class Tracker:
                     temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 
                     white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
-                    print(white_points_percentage)
+                    # print(white_points_percentage)
                     if white_points_percentage < 60.0:
                         temp_exit_side = self.GetExitSide(temp_bb, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))
