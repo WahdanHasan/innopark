@@ -124,19 +124,45 @@ class Tracker:
                     if temp_bb == Constants.bb_example:
                         tracked_object_pipes[i].send(primary_instruction_to_send)
 
-                    temp_entrant_side = self.GetEntrantSideN(old_bb=tracked_objects_without_id_prev_bb[i],
-                                                             new_bb=temp_bb)
+                    temp_entrant_side = self.GetEntrantSide(old_bb=tracked_objects_without_id_prev_bb[i],
+                                                            new_bb=temp_bb)
 
                     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, send_pipe))
                     temp_entrant_id = receive_pipe.recv()
-                    print(temp_entrant_id)
-                    print(temp_entrant_side)
+                    # print(temp_entrant_id)
+                    # print(temp_entrant_side)
                     tracked_object_pipes[i].send([TrackerToTrackedObjectInstruction.STORE_NEW_ID, primary_instruction_to_send, temp_entrant_id])
+                    tracked_object_ids[i] = temp_entrant_id
                     tracked_objects_without_id_indexes.pop(i)
                     tracked_objects_without_id_prev_bb.pop(i)
                 else:
                     tracked_object_pipes[i].send(primary_instruction_to_send)
 
+            # Check if tracked objects are still within the image
+            for i in range(len(tracked_object_pipes)):
+                temp_img_bb = IU.GetFullBoundingBox([[0, 0], [width, height]])
+                temp_bb = tracked_object_bbs_shared_memory[i].tolist()
+
+                temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
+
+                if temp_are_overlapping != 0.0 and temp_are_overlapping < 0.04:
+                    temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
+
+                    white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
+                    print(white_points_percentage)
+                    if white_points_percentage < 60.0:
+                        temp_exit_side = self.GetExitSide(temp_bb, height, width)
+                        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))
+                        print("[ObjectTracker] Object exited from " + temp_exit_side.value, file=sys.stderr)
+                        # TODO: Return tracked object to pool as well
+                        # print(white_points_percentage)
+                        # print(IU.AreBoxesOverlapping(temp_img_bb, temp_bb))
+                        tracked_object_ids.pop(i)
+                        tracked_object_bbs_shared_memory.pop(i)
+                        tracked_object_bbs_shared_memory_managers.pop(i)
+                        tracked_object_movement_status.pop(i)
+                        tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
+                        tracked_object_pipes.pop(i)
 
 
             # Detect new entrants
@@ -170,6 +196,7 @@ class Tracker:
                         tracked_object_bbs_shared_memory_managers.append(temp_shared_memory_bb_manager)
                         tracked_object_bbs_shared_memory.append(temp_shared_memory_array)
                         tracked_object_movement_status.append(TrackedObjectStatus.MOVING)
+                        tracked_object_ids.append(None)
 
                         tracked_objects_without_id_indexes.append(len(tracked_object_pipes) - 1)
                         tracked_objects_without_id_prev_bb.append(detected_bbs[i])
@@ -185,21 +212,6 @@ class Tracker:
                 counter = 0
                 start_time = time.time()
 
-            # temp_frame = frame.copy()
-            # if only_one:
-            #     # Draw tracked object boxes
-            #     temp_tracked_boxes = []
-            #     for i in range(len(tracked_object_bbs_shared_memory)):
-            #         temp_tracked_boxes.append(tracked_object_bbs_shared_memory[i].tolist())
-            #
-            #
-            #
-            #     temp_frame = IU.DrawBoundingBoxAndClasses(image=frame,
-            #                                               class_names=tracked_object_ids,
-            #                                               bounding_boxes=temp_tracked_boxes)
-
-            # cv2.imshow("Camera " + str(self.camera_id), temp_frame)
-
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
@@ -207,7 +219,7 @@ class Tracker:
     def StopTracking(self):
         self.should_keep_tracking = False
 
-    def GetEntrantSide(self, bb, height, width):
+    def GetExitSide(self, bb, height, width):
         # Takes the bounding box of the entrant and the height and width of the image
         # Calculates the side where the entrant came from depending on the distance of the bb center from the center
         # of each side
@@ -238,7 +250,7 @@ class Tracker:
         print("[Camera " + str(self.camera_id) + "] Detected entrant from the " + sides_string[index_of_closest].value + " side.")
         return sides_string[index_of_closest]
 
-    def GetEntrantSideN(self, old_bb, new_bb):
+    def GetEntrantSide(self, old_bb, new_bb):
 
         # Get BB centers
         old_bb_center = IU.GetBoundingBoxCenter(bounding_box=old_bb)

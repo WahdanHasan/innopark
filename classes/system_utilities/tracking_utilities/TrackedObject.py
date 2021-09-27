@@ -263,7 +263,6 @@ class TrackedObjectProcess:
 
         new_object_id = -1
 
-        print("[TrackedObjectProcess] Started tracking " + str(self.object_id) + ".", file=sys.stderr)
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
@@ -277,6 +276,7 @@ class TrackedObjectProcess:
                         new_object_id = instruction[2]
                         self.WriteObjectIdToSharedMemory(object_id=new_object_id)
                         instruction = instruction[1]
+                        print("[TrackedObjectProcess] Started tracking " + str(new_object_id) + ".", file=sys.stderr)
 
             if instruction == TrackerToTrackedObjectInstruction.STOP_TRACKING:
                 self.should_keep_tracking = False
@@ -293,6 +293,10 @@ class TrackedObjectProcess:
                 self.UpdateMovingObject()
                 # self.UpdateStationaryObject()
 
+
+            # ttt = IU.GetFullBoundingBox([[0, 0], [self.frame.shape[1], self.frame.shape[0]]])
+
+            # print(IU.AreBoxesOverlapping(ttt, IU.FloatBBToIntBB(self.bb)))
             # cv2.imshow("HE", self.frame)
 
 
@@ -300,9 +304,9 @@ class TrackedObjectProcess:
                 cv2.destroyAllWindows()
                 break
 
-        print("[TrackedObjectProcess] Stopped running.", file=sys.stderr)
+        print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 
-        self.AwaitInstructions(tracking_instruction_pipe=None,
+        self.AwaitInstructions(tracking_instruction_pipe=self.tracking_instruction_pipe,
                                bb_in_shared_memory_manager=None,
                                ids_in_shared_memory_manager=None)
 

@@ -56,7 +56,7 @@ class ParkingTariffManager(TrackedObjectListener):
                 self.PresentDebugItems(ids=ids,
                                        bbs=bbs)
 
-            time.sleep(0.5)
+            time.sleep(0.1)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
@@ -74,8 +74,8 @@ class ParkingTariffManager(TrackedObjectListener):
                 if ids[1][i] != self.parking_spaces[j].camera_id:
                     continue
 
-                car_is_in_this_parking = IU.IsCarInParkingBB(parking_bounding_box=self.parking_spaces[j].bb,
-                                                             car_bounding_box=bbs[i])
+                car_is_in_this_parking = IU.AreBoxesOverlappingTF(parking_bounding_box=self.parking_spaces[j].bb,
+                                                                  car_bounding_box=bbs[i])
 
                 temp_parking = self.parking_spaces[j]
 

@@ -53,15 +53,16 @@ def CropImage(img, bounding_set):
 
 
     # Validation
-    img_height, img_width, _ = img_temp.shape
+    img_dimensions = img_temp.shape
+
     if y_min < 0:
         y_min = 0
-    if y_max > img_height:
-        y_max = img_height
+    if y_max > img_dimensions[0]:
+        y_max = img_dimensions[0]
     if x_min < 0:
         x_min = 0
-    if x_max > img_width:
-        x_max = img_width
+    if x_max > img_dimensions[1]:
+        x_max = img_dimensions[1]
 
     # Determine absolute width and length
     width = x_max - x_min
@@ -290,13 +291,12 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
+def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
     # Returns true if overlapping, false otherwise
 
-    acceptable_threshold = 0.04
 
     # Define each polygon
     temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
@@ -311,11 +311,42 @@ def IsCarInParkingBB(parking_bounding_box, car_bounding_box):
 
     iou = polygon_intersection / polygon_union
 
-    # print(iou)
+    print(iou)
     if (iou > acceptable_threshold):
         return True
     else:
         return False
+
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
+    # Takes 2 bounding boxes, one for the car, one for the parking spot
+    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+    # be in the format of [TL, BR]
+    # Returns true if overlapping, false otherwise
+
+    iou = AreBoxesOverlapping(parking_bounding_box, car_bounding_box)
+
+    if (iou > acceptable_threshold):
+        return True
+    else:
+        return False
+
+def AreBoxesOverlapping(parking_bounding_box, car_bounding_box): # TODO: Change this to be non-reliant on input
+# BLASDLASDKAS
+
+    # Define each polygon
+    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+    temp_car_bb = GetFullBoundingBox(car_bounding_box)
+    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+    polygon1_shape = Polygon(temp_parking_bb)
+    polygon2_shape = Polygon(temp_car_bb)
+
+    # Calculate intersection and union, and the IOU
+    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+
+    iou = polygon_intersection / polygon_union
+
+    return iou
 
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
