@@ -291,33 +291,33 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
-    # Takes 2 bounding boxes, one for the car, one for the parking spot
-    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
-    # be in the format of [TL, BR]
-    # Returns true if overlapping, false otherwise
+# def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_threshold=0.05): # TODO: Change this to be non-reliant on input
+#     # Takes 2 bounding boxes, one for the car, one for the parking spot
+#     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
+#     # be in the format of [TL, BR]
+#     # Returns true if overlapping, false otherwise
+#
+#
+#     # Define each polygon
+#     temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
+#     temp_car_bb = GetFullBoundingBox(car_bounding_box)
+#     temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
+#     polygon1_shape = Polygon(temp_parking_bb)
+#     polygon2_shape = Polygon(temp_car_bb)
+#
+#     # Calculate intersection and union, and the IOU
+#     polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
+#     polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
+#
+#     iou = polygon_intersection / polygon_union
+#
+#     print(iou)
+#     if (iou > acceptable_threshold):
+#         return True
+#     else:
+#         return False
 
-
-    # Define each polygon
-    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
-    temp_car_bb = GetFullBoundingBox(car_bounding_box)
-    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
-    polygon1_shape = Polygon(temp_parking_bb)
-    polygon2_shape = Polygon(temp_car_bb)
-
-    # Calculate intersection and union, and the IOU
-    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
-    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
-
-    iou = polygon_intersection / polygon_union
-
-    print(iou)
-    if (iou > acceptable_threshold):
-        return True
-    else:
-        return False
-
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.05): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.06): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]

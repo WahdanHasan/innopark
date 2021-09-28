@@ -114,7 +114,7 @@ class TrackedObjectPoolManager:
 
     def ReturnTrackedObjectProcess(self, process_idx):
         self.tracked_object_process_active_statuses[process_idx] = False
-        print("[TrackedObjectPoolManager] Returned process with id " + str(process_idx) + ".", file=sys.stderr)
+        print("[TrackedObjectPoolManager] Returned process with id " + str(process_idx + 1) + ".", file=sys.stderr)
 
     def CreateTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it

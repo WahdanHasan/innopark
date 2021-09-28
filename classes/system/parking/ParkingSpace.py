@@ -1,5 +1,7 @@
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 
+from twilio.rest import Client
+import sys
 import time
 
 class ParkingSpace:
@@ -61,7 +63,22 @@ class ParkingSpace:
             self.ResetOccupant()
 
     def ChargeOccupant(self):
-        print("Occupant with id " + str(self.occupant_id) + " will now be charged")
+        print("Occupant with id " + str(self.occupant_id) + " will now be charged", file=sys.stderr)
+
+        # Find your Account SID and Auth Token at twilio.com/console
+        # and set the environment variables. See http://twil.io/secure
+        # account_sid = 'ACee57670a80d4352d8c0623ec6fa1beac'
+        # auth_token = 'a7c690d1d4d857388692925166f0072a'
+        # twilio_number = '+447401068297'
+        # my_number = '+971502398737'
+        # client = Client(account_sid, auth_token)
+        #
+        # message = client.messages.create(body='InnoPark: Vehicle with license ' + str(self.occupant_id) + ' will now be charged 50000.00AED\n Reply \'InnoPark is geh\' to refute payment',
+        #                                  from_=twilio_number,
+        #                                  to=my_number
+        #                                  )
+        #
+        # print(message.sid)
 
 
 

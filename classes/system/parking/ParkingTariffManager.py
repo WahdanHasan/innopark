@@ -4,7 +4,6 @@ from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 
-
 from multiprocessing import Process
 import cv2
 import sys

@@ -149,10 +149,13 @@ class Tracker:
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
                 # print(temp_are_overlapping)
-                if temp_are_overlapping < 0.06:
-                    temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
+                if temp_are_overlapping < 0.04:
+                    try:
+                        temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 
-                    white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
+                        white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
+                    except:
+                        white_points_percentage = 50.0
                     # print(white_points_percentage)
                     if white_points_percentage < 60.0:
                         temp_exit_side = self.GetExitSide(temp_bb, height, width)

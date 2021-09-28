@@ -7,7 +7,7 @@ from multiprocessing import Event, Queue
 from multiprocessing import Process
 
 
-base_pool_size = 10
+base_pool_size = 3
 is_debug_mode = True
 camera_ids_and_links = Constants.CAMERA_DETAILS
 
@@ -30,7 +30,7 @@ def main():
 
     pool_initialized_event.wait()
 
-    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
+    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'A123456', EntrantSide.LEFT))
 
     # temp_event = StartEntranceCameras(broker_request_queue)
     #
