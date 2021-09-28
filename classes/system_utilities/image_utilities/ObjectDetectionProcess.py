@@ -1,7 +1,6 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerListener
 from multiprocessing import Process
-import sys
 
 class DetectorProcess(ObjectTrackerListener):
     def __init__(self, amount_of_trackers, detector_request_queue, detector_initialized_event):

@@ -1,7 +1,6 @@
 import sys
 
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-# import classes.system_utilities.image_utilities.ObjectDetection as OD
 import cv2
 import time
 import numpy as np
@@ -53,6 +52,7 @@ class Tracker:
 
         # Variable declarations
         subtraction_model = SubtractionModel()
+        tracked_object_pool_indexes = []
         tracked_object_ids = []
         tracked_object_pipes = []
         tracked_object_bbs_shared_memory_managers = []
@@ -161,12 +161,14 @@ class Tracker:
                         # TODO: Return tracked object to pool as well
                         # print(white_points_percentage)
                         # print(IU.AreBoxesOverlapping(temp_img_bb, temp_bb))
+                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[i]))
                         tracked_object_ids.pop(i)
                         tracked_object_bbs_shared_memory.pop(i)
                         tracked_object_bbs_shared_memory_managers.pop(i)
                         tracked_object_movement_status.pop(i)
                         tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
                         tracked_object_pipes.pop(i)
+                        tracked_object_pool_indexes.pop(i)
 
 
             # Detect new entrants
@@ -186,7 +188,7 @@ class Tracker:
                         self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, send_pipe))
 
                         # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
-                        (temp_pipe, temp_shared_memory_bb_manager) = receive_pipe.recv()
+                        (temp_pipe, temp_shared_memory_bb_manager, temp_process_pool_idx) = receive_pipe.recv()
 
                         # Create an array reference to the tracked object's shared memory bounding box
                         temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
@@ -196,6 +198,7 @@ class Tracker:
                         temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
 
                         # Add the tracked object pipe and shared memory reference to local arrays
+                        tracked_object_pool_indexes.append(temp_process_pool_idx)
                         tracked_object_pipes.append(temp_pipe)
                         tracked_object_bbs_shared_memory_managers.append(temp_shared_memory_bb_manager)
                         tracked_object_bbs_shared_memory.append(temp_shared_memory_array)
