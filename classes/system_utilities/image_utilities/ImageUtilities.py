@@ -317,7 +317,7 @@ def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_thres
     else:
         return False
 
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.05): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
@@ -356,7 +356,7 @@ def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
     return temp_image
 
-def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
+def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=2):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -397,7 +397,7 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
 
     return temp_image
 
-def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=1):
+def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -430,8 +430,8 @@ def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=
                                      text=f'{class_names[i]}',
                                      org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
                                      fontFace=cv2.FONT_HERSHEY_DUPLEX,
-                                     fontScale=0.5,
-                                     color=(0, 0, 255),
-                                     thickness=1)
+                                     fontScale=0.7,
+                                     color=color,
+                                     thickness=2)
 
     return temp_image

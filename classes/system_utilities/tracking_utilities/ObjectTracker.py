@@ -143,9 +143,13 @@ class Tracker:
                 temp_img_bb = IU.GetFullBoundingBox([[0, 0], [width, height]])
                 temp_bb = tracked_object_bbs_shared_memory[i].tolist()
 
+                if temp_bb == Constants.bb_example:
+                    continue
+
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
-                if temp_are_overlapping != 0.0 and temp_are_overlapping < 0.04:
+                # print(temp_are_overlapping)
+                if temp_are_overlapping < 0.06:
                     temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 
                     white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
