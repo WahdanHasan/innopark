@@ -96,8 +96,6 @@ class ParkingTariffManager(TrackedObjectListener):
                         temp_parking.occupant_park_time_start = time.time()
                         temp_parking.UpdateOccupantId(ids[2][i])
 
-
-
     def PresentDebugItems(self, ids, bbs):
 
         for i in range(self.amount_of_trackers):

@@ -5,7 +5,7 @@ import numpy as np
 from object_detection.utils import config_util
 from object_detection.utils import label_map_util
 from object_detection.builders import model_builder
-
+import sys
 # Global variable declarations
 license_detection_model = 0
 license_category_index = 0
@@ -39,12 +39,17 @@ def OnLoad():
 
     license_category_index = label_map_util.create_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
 
+    from classes.system_utilities.helper_utilities import Constants
 
+    # Run blank detection to initialize model
+    DetectLicenseInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
+
+print("~~~~~~~~~~~~~~~~I AHVE BEEN EXCECUTEDD", file=sys.stderr)
 
 
 
 # This function executes when the class loads
-OnLoad()
+# OnLoad()
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in the image.
