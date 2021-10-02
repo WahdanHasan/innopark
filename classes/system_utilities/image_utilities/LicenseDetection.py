@@ -44,13 +44,6 @@ def OnLoad():
     # Run blank detection to initialize model
     DetectLicenseInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
-print("~~~~~~~~~~~~~~~~I AHVE BEEN EXCECUTEDD", file=sys.stderr)
-
-
-
-# This function executes when the class loads
-# OnLoad()
-
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in the image.
     # Returns a True if at least 1 license was detected, otherwise False.

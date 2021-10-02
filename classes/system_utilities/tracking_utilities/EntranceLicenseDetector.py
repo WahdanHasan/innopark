@@ -1,4 +1,3 @@
-import classes.system_utilities.image_utilities.ObjectDetection as OD
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 import cv2
@@ -6,7 +5,6 @@ import numpy as np
 from classes.camera.CameraBuffered import Camera
 from multiprocessing import Process
 from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
-from classes.system_utilities.helper_utilities import Constants
 from shapely.geometry import Polygon, LineString
 
 
@@ -50,9 +48,9 @@ class EntranceLicenseDetector:
         self.latest_license_frames[index] = frame
 
     def Start(self):
+        import classes.system_utilities.image_utilities.ObjectDetection as OD
 
-        OD.DetectObjectsInImage(np.zeros((Constants.default_camera_shape[1], Constants.default_camera_shape[1], 3), dtype='uint8'))
-
+        OD.OnLoad()
 
         bottom_camera = Camera(rtsp_link=self.bottom_camera[1],
                                camera_id=self.bottom_camera[0])

@@ -38,14 +38,10 @@ def OnLoad():
     yolo_layer_names = yolo_net.getLayerNames()
     yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
 
+    from classes.system_utilities.helper_utilities import Constants
 
-
-# This function executes when the class loads
-OnLoad()
-
-
-
-
+    # Run blank detection to initialize model
+    DetectObjectsInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
 def DetectObjectsInImage(image):
     # The function takes an input image and outputs all of the objects it detects in the image.
