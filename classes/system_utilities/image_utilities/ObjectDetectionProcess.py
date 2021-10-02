@@ -12,8 +12,6 @@ class DetectorProcess(ObjectTrackerListener):
         self.detector_request_queue = detector_request_queue
         detector_initialized_event.set()
 
-        OD.OnLoad()
-
     def StartProcess(self):
 
         self.detector_process = Process(target=self.ListenForRequests)
@@ -24,7 +22,7 @@ class DetectorProcess(ObjectTrackerListener):
 
     def ListenForRequests(self):
         self.Initialize()
-
+        OD.OnLoad()
         while self.should_keep_listening:
             (tracker_id, requester_pipe) = self.detector_request_queue.get()
 

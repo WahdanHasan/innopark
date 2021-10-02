@@ -1,10 +1,12 @@
+from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
+
 import cv2
 import numpy as np
-from classes.camera.CameraBuffered import Camera
+import sys
 from multiprocessing import Process
-from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
 from shapely.geometry import Polygon, LineString
 
 
@@ -23,13 +25,14 @@ class EntranceLicenseDetector:
 
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
-        self.maximum_bottom_camera_detection = 1
+        self.maximum_bottom_camera_detection = 10
         self.latest_license_frames = np.zeros((self.maximum_bottom_camera_detection, 480, 720, 3), dtype='uint8')
 
     def StartProcess(self):
+        print("[EntranceLicenseDetector] Starting license detector.", file=sys.stderr)
         self.license_detector_process = Process(target=self.Start)
         self.license_detector_process.start()
-
+        
         from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
         temp_process_license_frames = ProcessLicenseFrames(broker_request_queue=self.broker_request_queue,
                                                            license_frames_request_queue=self.license_frames_request_queue,
@@ -119,7 +122,6 @@ class EntranceLicenseDetector:
                     self.should_keep_detecting_bottom_camera = True
 
                     if intersection:
-                        print("INTERSECTION: ", intersection)
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
 
                         # send the frames to another process be processed
