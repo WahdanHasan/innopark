@@ -1,9 +1,9 @@
-import cv2
-from multiprocessing import Process
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide
-
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
+import cv2
+import sys
+from multiprocessing import Process
 
 class ProcessLicenseFrames:
     def __init__(self, broker_request_queue, license_frames_request_queue, camera_id, wait_license_processing_event):
@@ -12,13 +12,14 @@ class ProcessLicenseFrames:
         self.license_processing_process = 0
         self.broker_request_queue = broker_request_queue
         self.camera_id = camera_id
+        self.should_keep_running = True
 
     def Start(self):
         from classes.system_utilities.image_utilities import LicenseDetection
         LicenseDetection.OnLoad()
 
         self.wait_license_processing_event.set()
-        while True:
+        while self.should_keep_running:
             # listen for voyager request
             latest_license_frames = self.license_frames_request_queue.get()
 
@@ -41,6 +42,8 @@ class ProcessLicenseFrames:
                 break
 
     def StartProcess(self):
+        print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
+
         self.license_processing_process = Process(target=self.Start)
         self.license_processing_process.start()
 
@@ -104,12 +107,8 @@ class ProcessLicenseFrames:
             if not found:
                 licenses[key] = 1
 
-        print("licenses: ", licenses)
-
         for key in licenses:
             if licenses[key] > licenses[prominent_license_plate]:
                 prominent_license_plate = key
-
-        print("the chosen: ", prominent_license_plate)
 
         return prominent_license_plate
