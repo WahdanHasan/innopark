@@ -16,14 +16,14 @@ def OnLoad():
 
 OnLoad()
 
-
-
-
 def to_dict(document):
 
     doc = document.to_dict()
 
     print(f'Document: {doc}')
+
+def GetDbConnection():
+    return db
 
 def AddData(collection, document=None, data=None):
     # collection and document are of type string
@@ -31,11 +31,23 @@ def AddData(collection, document=None, data=None):
     if document is not None:
         document_ref = db.collection(collection).document(document)
         document_ref.set(data)
+        # document_ref.set(data, merge=True)
     else:
         collection_ref = db.collection(collection)
         collection_ref.add(data)
 
-def GetData(collection, document):
+    print ("Successfully added to "+collection)
+
+def UpdateData(collection, document, field_to_edit, new_data):
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_to_edit: new_data
+    })
+
+    print("Successfully updated "+collection)
+
+def GetAllDataUsingDocument(collection, document):
     document_ref = db.collection(collection).document(document)
 
     data = document_ref.get()
@@ -45,6 +57,33 @@ def GetData(collection, document):
         return None
 
     return data.to_dict()
+
+def GetAllDataUsingPath(collection, document):
+    # grabs the document using path
+    # use when the document id is known
+    doc = db.document(collection + "/" + document).get()
+    return doc.to_dict()
+
+def GetPartialDataUsingPath(collection, document, requested_data):
+    # grabs the document using path
+    # use when the document id is known
+    doc = db.document(collection + "/" + document).get()
+    return (doc.to_dict())[str(requested_data)]
+
+def GetAllDataUsingEqualQuery(collection, key, value):
+    doc = db.collection(collection).where(key, "==", value).get()
+    return doc[0].to_dict()
+
+# def QueryData(collection):
+#     user_doc_ref = db.collection('users')
+#     vehicle_doc_ref = db.collection('vehicles')
+#
+#     owner="0551234567"
+#     query = user_doc_ref.where('phone_number', '==', owner).get()
+#
+#     for data in query:
+#         print(data.to_dict())
+#     return 1
 
 def GetDocuments(collection):
     collection_ref = db.collection(collection)
