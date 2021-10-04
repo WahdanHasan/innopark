@@ -18,8 +18,13 @@ def AddVehicle(license_number, date, owner=None, drivers_array=None, manufacture
         "driven_by": drivers_array
     })
 
-def GetAllVehicleInfo(license_number):
+def GetVehicleInfo(license_number):
     doc = conn.document(collection+"/"+license_number).get()
+
+    if not doc:
+        print("Vehicle does not exist")
+        return
+
     return doc.to_dict()
 
 def GetPartialVehicleInfo(license_number, requested_data):
@@ -30,5 +35,8 @@ def GetPartialVehicleInfo(license_number, requested_data):
     #     'first_name', direction=db.firestore.Query.ASCENDING).where("first_name", '>', '').get()
     # print((docs[0].id))
 
-def UpdateVehicle(license_number, field_to_edit, new_data):
+def UpdateVehicleInfo(license_number, field_to_edit, new_data):
     db.UpdateData(collection, license_number, field_to_edit, new_data)
+
+def GetAllVehicles():
+    db.GetDocuments(collection)

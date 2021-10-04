@@ -16,7 +16,7 @@ def AddUser(email_address, password, phone_number, first_name, last_name, id_car
         "vehicle_owned": vehicle_owned
     })
 
-def GetAllUserInfo(email_address):
+def GetUserInfo(email_address):
     doc = conn.collection(collection).where("email_address", "==", email_address).get()
     return doc[0].to_dict()
 

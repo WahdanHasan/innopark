@@ -36,7 +36,7 @@ def AddData(collection, document=None, data=None):
         collection_ref = db.collection(collection)
         collection_ref.add(data)
 
-    print ("Successfully added to "+collection)
+    print("Successfully added to "+collection)
 
 def UpdateData(collection, document, field_to_edit, new_data):
     document_ref = db.collection(collection).document(document)
@@ -46,6 +46,30 @@ def UpdateData(collection, document, field_to_edit, new_data):
     })
 
     print("Successfully updated "+collection)
+
+def GetAllDocuments(collection):
+    docs_id=[]
+    docs = []
+
+    result = db.collection(collection).get()
+
+    for doc in result:
+        docs_id.append(doc.id)
+        docs.append(doc.to_dict())
+
+    return docs_id, docs
+
+def GetAllSubcollectionsOfDocument(collection, document):
+    subcollections = db.collection(collection).document(document).collections()
+
+    docs_id = []
+    docs = []
+    for subcollection in subcollections:
+        for doc in subcollection.get():
+            docs_id.append(doc.id)
+            docs.append(doc.to_dict())
+
+    return docs_id, docs
 
 def GetAllDataUsingDocument(collection, document):
     document_ref = db.collection(collection).document(document)
@@ -68,11 +92,37 @@ def GetPartialDataUsingPath(collection, document, requested_data):
     # grabs the document using path
     # use when the document id is known
     doc = db.document(collection + "/" + document).get()
+
+    if not doc:
+        print("collection or document does not exist")
+        return None
+
     return (doc.to_dict())[str(requested_data)]
 
-def GetAllDataUsingEqualQuery(collection, key, value):
+def GetFirstDocContainingRequestedField(collection, key, value):
+    # get the first doc whose key field equals the value you're looking for
     doc = db.collection(collection).where(key, "==", value).get()
+
+    if not doc:
+        print("Error: requested field is not found")
+        return None
+
     return doc[0].to_dict()
+
+
+def GetAllDocsContainingRequestedField(collection, key, value):
+    # get all docs whose key field equals the value you're looking for
+    docs_id, docs = GetAllDocuments(collection)
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs_id)):
+        if(docs[i])[key] == value:
+            docs_extracted = (docs[i])[key]
+            docs_id_extracted = i
+
+    return docs_id_extracted, docs_extracted
 
 # def QueryData(collection):
 #     user_doc_ref = db.collection('users')
@@ -100,9 +150,7 @@ def GetDocuments(collection):
         return documents_list
 
 def GetDocumentsAndChildren(collection):
-    collection_ref = db.collection(collection)
-
-    documents = collection_ref.get()
+    documents = db.collection(collection).get()
 
     if not documents:
         print(u'Collection doesn\'t exist')
@@ -111,6 +159,7 @@ def GetDocumentsAndChildren(collection):
         documents_list = []
         for doc in documents:
             documents_list.append([doc.id, doc.to_dict()])
+            print("doc aaa:", doc.to_dict())
         return documents_list
 
 def DeleteDocument(collection, document):
