@@ -33,7 +33,7 @@ def AddParking(avenue, camera_id, bounding_box, is_occupied=False, parking_type=
                data={"bounding_box": bounding_box,
                      "camera_id": camera_id,
                      "is_occupied": is_occupied,
-                     "parking_types": parking_type})
+                     "parking_type": parking_type})
 
 
 def AddAvenue(gps_coordinate, name, parking_types=None):
