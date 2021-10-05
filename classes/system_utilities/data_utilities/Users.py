@@ -5,7 +5,8 @@ conn = db.GetDbConnection()
 collection = "users"
 
 # gonna need to make the vehicle_owned an array as user can have many vehicles
-def AddUser(email_address, password, phone_number, first_name, last_name, id_card_number, vehicle_owned=None):
+def AddUser(email_address, password, phone_number, first_name, last_name, id_card_number, vehicles_driven=None, vehicles_owned=None):
+    #vehicles_driven and vehicles_owned are of type array
     db.AddData(collection=collection, data={
         "email_address": email_address,
         "password": password,
@@ -13,7 +14,8 @@ def AddUser(email_address, password, phone_number, first_name, last_name, id_car
         "first_name": first_name,
         "last_name": last_name,
         "id_card_number": id_card_number,
-        "vehicle_owned": vehicle_owned
+        "vehicles_driven": vehicles_driven,
+        "vehicles_owned": vehicles_owned
     })
 
 def GetUserInfo(email_address):
