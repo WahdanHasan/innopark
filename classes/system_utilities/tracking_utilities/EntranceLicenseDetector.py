@@ -25,7 +25,7 @@ class EntranceLicenseDetector:
 
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
-        self.maximum_bottom_camera_detection = 10
+        self.maximum_bottom_camera_detection = 1
         self.latest_license_frames = np.zeros((self.maximum_bottom_camera_detection, 480, 720, 3), dtype='uint8')
 
     def StartProcess(self):

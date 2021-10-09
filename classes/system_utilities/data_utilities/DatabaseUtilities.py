@@ -8,7 +8,7 @@ db = 0
 def OnLoad():
     global db
     # Initialize Google Cloud Platform using service account credentials
-    cred = credentials.Certificate('modules\\Firebase\\ServiceAccount.json')
+    cred = credentials.Certificate('config\\firebase\\ServiceAccount.json')
     firebase_admin.initialize_app(cred)
 
     db = firestore.client()

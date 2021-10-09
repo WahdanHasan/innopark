@@ -1,9 +1,6 @@
 import cv2
 from classes.camera.Camera import Camera
-# import classes.system_utilities.image_utilities.ObjectDetection as OD
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.system_utilities.tracking_utilities.ObjectTracker as OT
-
 import time
 import numpy as np
 
@@ -15,12 +12,7 @@ def main():
 
     parked_car_mask = cv2.imread("data\\reference footage\\images\\Parked_Car_3_Mask.png")
 
-    tracker = OT.Tracker(cam_parking)
     bounding_box = [[217, 406], [319, 479]]
-    tracked_object = OT.TrackedObjectProcess([0, "A35020", bounding_box])
-    tracked_object.mask = parked_car_mask
-
-    tracker.AddToMask(tracked_object)
 
     start_time = time.time()
     seconds_before_display = 1  # displays the frame rate every 1 second
@@ -51,33 +43,7 @@ def main():
     cv2.imshow("Removed Car", IU.RescaleImageToScale(removed_car, 3.0))
     cv2.imshow("Removed Car hough", IU.RescaleImageToScale(dst, 3.0))
     cv2.waitKey(0)
-    x = 0
-    while True:
-        x = x + 1
-        frame_parking = cam_parking.GetScaledNextFrame()
 
-        subtracted_from_mask = tracker.SubtractMaskFromImage(frame_parking, tracker.base_mask)
-        if x == 1000:
-            tracker.RemoveFromMask(tracked_object)
-        base_mask = tracker.base_mask
-
-        frame_parking = IU.DrawBoundingBoxes(frame_parking, [tracked_object.bounding_box])
-
-        dst = cv2.Canny(frame_parking, 50, 200, None, 3)
-
-        cv2.imshow("OTD: canny", dst)
-        cv2.imshow("OTD: Subtracted", subtracted_from_mask)
-        cv2.imshow("OTD: Base Mask", base_mask)
-        cv2.imshow("OTD: parking Feed", frame_parking)
-        counter += 1
-        if (time.time() - start_time) > seconds_before_display:
-            print("FPS: ", counter / (time.time() - start_time))
-            counter = 0
-            start_time = time.time()
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            break
 
 if __name__ == "__main__":
     main()

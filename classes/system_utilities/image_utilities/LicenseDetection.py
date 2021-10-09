@@ -25,19 +25,19 @@ def OnLoad():
         except RuntimeError as e:
             print(e)
 
-    # Initialize license plate detector model and class categories
+    # Initialize license_plate_detector model and class categories
     global license_detection_model
     global license_category_index
 
-    configs = config_util.get_configs_from_pipeline_file("data\\license plate detector\\pipeline.config")
+    configs = config_util.get_configs_from_pipeline_file("config\\license_plate_detector\\pipeline.config")
 
     license_detection_model = model_builder.build(model_config=configs['model'],
                                                   is_training=False)
 
     temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
-    temp_model.restore("data\\license plate detector\\license_plate_model").expect_partial()
+    temp_model.restore("config\\license_plate_detector\\license_plate_model").expect_partial()
 
-    license_category_index = label_map_util.create_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
+    license_category_index = label_map_util.create_category_index_from_labelmap("config\\license_plate_detector\\label_map.pbtxt")
 
     from classes.system_utilities.helper_utilities import Constants
 

@@ -12,7 +12,7 @@ import time
 
 
 class ParkingTariffManager(TrackedObjectListener):
-    def __init__(self, amount_of_trackers, base_pool_size, new_object_in_pool_event, seconds_parked_before_charge, is_debug_mode=False):
+    def __init__(self, amount_of_trackers, base_pool_size, new_object_in_pool_event, seconds_parked_before_charge):
 
         super().__init__(amount_of_trackers, base_pool_size, new_object_in_pool_event)
 
@@ -20,7 +20,7 @@ class ParkingTariffManager(TrackedObjectListener):
         self.tariff_manager_process = 0
         self.should_keep_managing = True
         self.parking_spaces = []
-        self.is_debug_mode = is_debug_mode
+        self.is_debug_mode = True
 
     def LoadParkingSpacesFromJson(self):
         print("[ParkingTariffManager] Loading parking spaces from disk.", file=sys.stderr)

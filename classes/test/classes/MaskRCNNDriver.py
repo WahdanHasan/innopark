@@ -2,7 +2,7 @@ import cv2
 import time
 import numpy as np
 
-net = cv2.dnn.readNetFromTensorflow("modules\\MaskRCNN\\frozen_inference_graph_coco.pb", "modules\\MaskRCNN\\mask_rcnn_inception_v2_coco_2018_01_28.pbtxt")
+net = cv2.dnn.readNetFromTensorflow("modules\\maskrcnn\\frozen_inference_graph_coco.pb", "modules\\maskrcnn\\mask_rcnn_inception_v2_coco_2018_01_28.pbtxt")
 
 parked_car = cv2.imread("data\\reference footage\\images\\Parked_Car.png")
 
@@ -48,8 +48,8 @@ while True:
 
     cv2.imshow("image", parked_car)
     cv2.imshow("Mask", mask)
-    cv2.imshow("MaskRCNN Detection", rcnn_output)
-    cv2.imshow("MaskRCNN Segmentation", masked_image)
+    cv2.imshow("maskrcnn Detection", rcnn_output)
+    cv2.imshow("maskrcnn Segmentation", masked_image)
 
     counter += 1
     if (time.time() - start_time) > seconds_before_display:

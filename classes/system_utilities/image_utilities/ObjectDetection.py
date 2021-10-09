@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.test_classes.tracker as T
+import classes.test.classes.tracker as T
 
 # Global variable declarations
 yolo_net = 0
@@ -14,21 +14,21 @@ def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
 
 
-    # Initialize YOLOv3 model
+    # Initialize yolov3 model
     global yolo_net
     global yolo_class_names
     global yolo_output_layer_names
     global yolo_net_input_size
 
-    classes_file = 'modules\\YOLOv3\\coco.names'
+    classes_file = 'config\\yolov3\\coco.names'
 
     with open(classes_file, 'rt') as f:
         yolo_class_names = f.read().rstrip('\n').split('\n')
 
 
-    model_config = 'modules\\YOLOv4\\yolov4-tiny.cfg'
-    model_weights = 'modules\\YOLOv4\\yolov4-tiny.weights'
-    yolo_net_input_size = 320
+    model_config = 'config\\yolov4\\yolov4-tiny.cfg'
+    model_weights = 'config\\yolov4\\yolov4-tiny.weights'
+    yolo_net_input_size = 416
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation
