@@ -1,5 +1,5 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
-from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerListener
+from classes.super_classes.ObjectTrackerListener import ObjectTrackerListener
 from multiprocessing import Process
 
 class DetectorProcess(ObjectTrackerListener):
@@ -22,11 +22,11 @@ class DetectorProcess(ObjectTrackerListener):
         self.detector_process.terminate()
 
     def ListenForRequests(self):
-        self.Initialize()
+        self.initialize()
         OD.OnLoad()
         while self.should_keep_listening:
-            (tracker_id, requester_pipe) = self.detector_request_queue.get()
+            (camera_id, requester_pipe) = self.detector_request_queue.get()
 
             # print("[ObjectDetectionProcess] Received request from Tracker " + str(tracker_id), file=sys.stderr)
-            requester_pipe.send((OD.DetectObjectsInImage(self.GetTrackerFrameByTrackerId(tracker_id))))
+            requester_pipe.send((OD.DetectObjectsInImage(self.getFrameByCameraId(camera_id))))
 

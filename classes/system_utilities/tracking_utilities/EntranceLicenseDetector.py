@@ -2,16 +2,17 @@ from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
+from classes.system_utilities.helper_utilities import Constants
 
 import cv2
 import numpy as np
 import sys
-from multiprocessing import Process
+from multiprocessing import Process, shared_memory
 from shapely.geometry import Polygon, LineString
 
 
 class EntranceLicenseDetector:
-    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, wait_license_processing_event, shutdown_event, start_system_event):
+    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event):
         # camera is given as type array in the format [camera id, camera rtsp]
 
         self.license_frames_request_queue = license_frames_request_queue
@@ -19,12 +20,15 @@ class EntranceLicenseDetector:
         self.license_processing_process = 0
         self.broker_request_queue = broker_request_queue
         self.wait_license_processing_event = wait_license_processing_event
+        self.entrance_cameras_initialized_event = entrance_cameras_initialized_event
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
 
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
 
+        self.shared_memory_manager_frame_top = 0
+        self.shared_memory_manager_frame_bottom = 0
         self.should_keep_detecting_bottom_camera = False
         self.should_keep_detecting_top_camera = True
         self.maximum_bottom_camera_detection = 1
@@ -64,6 +68,7 @@ class EntranceLicenseDetector:
 
         subtraction_model = SubtractionModel()
         frame_top = top_camera.GetScaledNextFrame()
+        frame_bottom = bottom_camera.GetScaledNextFrame()
 
         (height, width) = frame_top.shape[:2]
         width_median = width/2
@@ -75,12 +80,29 @@ class EntranceLicenseDetector:
         total_bottom_camera_count = 0
         white_points_threshold = 95
 
+        self.shared_memory_manager_frame_top = shared_memory.SharedMemory(create=True,
+                                                                          name=Constants.frame_shared_memory_prefix + str(self.top_camera[0]),
+                                                                          size=frame_top.nbytes)
+
+        self.shared_memory_manager_frame_bottom = shared_memory.SharedMemory(create=True,
+                                                                             name=Constants.frame_shared_memory_prefix + str(self.bottom_camera[0]),
+                                                                             size=frame_bottom.nbytes)
+
+        self.entrance_cameras_initialized_event.set()
+
+        frame_top_sm = np.ndarray(frame_top.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame_top.buf)
+        frame_bottom_sm = np.ndarray(frame_bottom.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame_bottom.buf)
+
+
         self.wait_license_processing_event.wait()
         self.start_system_event.wait()
 
         while self.should_keep_detecting_top_camera:
-            frame_top = top_camera.GetScaledNextFrame()
-            frame_bottom = bottom_camera.GetScaledNextFrame()
+            frame_top_sm[:] = top_camera.GetScaledNextFrame()[:]
+            frame_bottom_sm[:] = bottom_camera.GetScaledNextFrame()[:]
+
+            frame_top = frame_top_sm
+            frame_bottom = frame_bottom_sm
 
             # Store the latest bottom camera frame
             if total_bottom_camera_count == self.maximum_bottom_camera_detection:
@@ -134,8 +156,8 @@ class EntranceLicenseDetector:
             elif white_points_percentage < white_points_threshold and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
 
-            cv2.imshow('bottom_camera', frame_top)
-            cv2.imshow('subtraction_model', mask)
+            # cv2.imshow('bottom_camera', frame_top)
+            # cv2.imshow('subtraction_model', mask)
 
             if cv2.waitKey(1) == 27:
                 bottom_camera.ReleaseFeed()

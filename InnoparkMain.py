@@ -10,12 +10,14 @@ def main():
     shutdown_event = Event()
     start_system_event = Event()
 
-    # SystemLoader.LoadComponents(shutdown_event=shutdown_event,
-    #                             start_system_event=start_system_event)
+    new_object_in_pool_event = SystemLoader.LoadComponents(shutdown_event=shutdown_event,
+                                                           start_system_event=start_system_event)
 
     app = QApplication(sys.argv)
-    main_screen = MainScreen.UI(start_system_event=start_system_event)
-    main_screen.Show()
+
+    main_screen = MainScreen.UI(new_object_in_pool_event=new_object_in_pool_event,
+                                start_system_event=start_system_event)
+    main_screen.show()
 
     app.exec_()
 

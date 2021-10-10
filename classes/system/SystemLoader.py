@@ -13,11 +13,13 @@ def LoadComponents(shutdown_event, start_system_event):
     new_tracked_object_event = Event()
     pool_initialized_event = Event()
     detector_initialized_event = Event()
+    entrance_cameras_initialized_event = Event()
     detector_request_queue = Queue()
 
     broker_request_queue = StartBroker()
 
     wait_license_processing_event = StartEntranceCameras(broker_request_queue=broker_request_queue,
+                                                         entrance_cameras_initialized_event=entrance_cameras_initialized_event,
                                                          shutdown_event=shutdown_event,
                                                          start_system_event=start_system_event)
 
@@ -32,9 +34,13 @@ def LoadComponents(shutdown_event, start_system_event):
                                                   shutdown_event=shutdown_event,
                                                   start_system_event=start_system_event)
 
+    for i in range(len(tracker_initialized_events)):
+        tracker_initialized_events[i].wait()
+
+    entrance_cameras_initialized_event.wait()
+
     StartDetectorProcess(detector_request_queue=detector_request_queue,
                          detector_initialized_event=detector_initialized_event,
-                         tracker_initialized_events=tracker_initialized_events,
                          shutdown_event=shutdown_event)
 
     StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event,
@@ -46,6 +52,8 @@ def LoadComponents(shutdown_event, start_system_event):
     wait_license_processing_event.wait()
     print("[SystemLoader] Done Loading. Awaiting system start.", file=sys.stderr)
 
+    return new_tracked_object_event
+
 def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
 
@@ -55,7 +63,7 @@ def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_sy
                                shutdown_event=shutdown_event,
                                start_system_event=start_system_event)
 
-    ptm.StartProcess()
+    ptm.startProcess()
 
     return ptm
 
@@ -110,11 +118,8 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
 
     return temp_trackers, temp_tracker_events
 
-def StartDetectorProcess(detector_request_queue, detector_initialized_event, tracker_initialized_events, shutdown_event):
+def StartDetectorProcess(detector_request_queue, detector_initialized_event, shutdown_event):
     from classes.system_utilities.image_utilities.ObjectDetectionProcess import DetectorProcess
-
-    for i in range(len(tracker_initialized_events)):
-        tracker_initialized_events[i].wait()
 
     detector = DetectorProcess(amount_of_trackers=len(camera_ids_and_links),
                                detector_request_queue=detector_request_queue,
@@ -122,7 +127,7 @@ def StartDetectorProcess(detector_request_queue, detector_initialized_event, tra
                                shutdown_event=shutdown_event)
     detector.StartProcess()
 
-def StartEntranceCameras(broker_request_queue, shutdown_event, start_system_event):
+def StartEntranceCameras(broker_request_queue, entrance_cameras_initialized_event, shutdown_event, start_system_event):
     from classes.system_utilities.tracking_utilities.EntranceLicenseDetector import EntranceLicenseDetector
 
     wait_license_processing_event = Event()
@@ -133,6 +138,7 @@ def StartEntranceCameras(broker_request_queue, shutdown_event, start_system_even
                                                broker_request_queue=broker_request_queue,
                                                top_camera=Constants.ENTRANCE_CAMERA_DETAILS[0],
                                                bottom_camera=Constants.ENTRANCE_CAMERA_DETAILS[1],
+                                               entrance_cameras_initialized_event=entrance_cameras_initialized_event,
                                                wait_license_processing_event=wait_license_processing_event,
                                                shutdown_event=shutdown_event,
                                                start_system_event=start_system_event)

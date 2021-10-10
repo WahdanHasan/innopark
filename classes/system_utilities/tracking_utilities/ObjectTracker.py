@@ -76,11 +76,11 @@ class Tracker:
         mask = subtraction_model.GetOutput()
 
         self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True,
-                                                                      name=Constants.frame_shared_memory_prefix + str(self.tracker_id),
+                                                                      name=Constants.frame_shared_memory_prefix + str(self.camera_id),
                                                                       size=frame.nbytes)
 
         self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True,
-                                                                     name=Constants.object_tracker_mask_shared_memory_prefix + str(self.tracker_id),
+                                                                     name=Constants.object_tracker_mask_shared_memory_prefix + str(self.camera_id),
                                                                      size=mask.nbytes)
 
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
@@ -300,7 +300,7 @@ class Tracker:
 
         masked_image = self.SubtractMaskFromImage(image, self.base_mask)
         masked_image = image.copy()
-        self.detector_request_queue.put((self.tracker_id, send_pipe))
+        self.detector_request_queue.put((self.camera_id, send_pipe))
         return_status, classes, bounding_boxes, _ = receive_pipe.recv()
         # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=masked_image)
 

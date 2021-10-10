@@ -386,7 +386,7 @@ border:0px
            <stylestrategy>PreferAntialias</stylestrategy>
           </font>
          </property>
-         <widget class="QWidget" name="dashboard_page">
+         <widget class="QWidget" name="dashboardPage">
           <widget class="QPushButton" name="startSystemButton">
            <property name="geometry">
             <rect>
@@ -406,8 +406,8 @@ border:0px
            </property>
           </widget>
          </widget>
-         <widget class="QWidget" name="setup_page"/>
-         <widget class="QWidget" name="debug_page">
+         <widget class="QWidget" name="setupPage"/>
+         <widget class="QWidget" name="debugPage">
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <property name="spacing">
             <number>0</number>

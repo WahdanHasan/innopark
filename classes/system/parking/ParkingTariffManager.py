@@ -1,10 +1,11 @@
-from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
+from classes.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 
-from multiprocessing import Process
+from multiprocessing import Process, shared_memory
+import numpy as np
 import cv2
 import sys
 import json
@@ -23,46 +24,63 @@ class ParkingTariffManager(TrackedObjectListener):
         self.should_keep_managing = True
         self.parking_spaces = []
         self.is_debug_mode = True
+        self.base_blank = np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)
+        self.frame_shms = []
+        self.frames = []
 
-    def LoadParkingSpacesFromJson(self):
+
+        self.createSharedMemoryStuff(amount_of_trackers)
+
+    def createSharedMemoryStuff(self, amount_of_trackers):
+
+        for i in range(amount_of_trackers):
+            temp_shm = shared_memory.SharedMemory(create=True,
+                                                  name=Constants.parking_tariff_management_shared_memory_prefix + str(i),
+                                                  size=self.base_blank.nbytes)
+
+            temp_frame = np.ndarray(self.base_blank.shape, dtype=np.uint8, buffer=temp_shm.buf)
+
+            self.frame_shms.append(temp_shm)
+            self.frames.append(temp_frame)
+
+    def loadParkingSpacesFromJson(self):
         with open(Constants.parking_spaces_json, 'r') as parking_json:
             parking_space_data = json.loads(parking_json.read())
             for parking_space in parking_space_data:
                 self.parking_spaces.append(ParkingSpace(**parking_space))
 
-    def AddParkingSpaceToManager(self, parking_space):
+    def addParkingSpaceToManager(self, parking_space):
         self.parking_spaces.append(parking_space)
 
-    def StartProcess(self):
+    def startProcess(self):
         print("[ParkingTariffManager] Starting Parking Tariff Manager.", file=sys.stderr)
-        self.tariff_manager_process = Process(target=self.StartManaging)
+        self.tariff_manager_process = Process(target=self.startManaging)
         self.tariff_manager_process.start()
 
-    def StopProcess(self):
+    def stopProcess(self):
         self.tariff_manager_process.terminate()
 
-    def StartManaging(self):
-        super().Initialize()
-        self.LoadParkingSpacesFromJson()
+    def startManaging(self):
+        super().initialize()
+        self.loadParkingSpacesFromJson()
 
         self.start_system_event.wait()
         while self.should_keep_managing:
 
-            ids, bbs = self.GetAllActiveTrackedProcessItems()
+            ids, bbs = self.getAllActiveTrackedProcessItems()
 
-            self.CheckAndUpdateParkingStatuses(ids=ids,
+            self.checkAndUpdateParkingStatuses(ids=ids,
                                                bbs=bbs)
 
             if self.is_debug_mode:
-                self.PresentDebugItems(ids=ids,
-                                       bbs=bbs)
+                self.writeDebugItems()
 
             # time.sleep(0.1)
             if cv2.waitKey(17) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
 
-    def CheckAndUpdateParkingStatuses(self, ids, bbs):
+    def checkAndUpdateParkingStatuses(self, ids, bbs):
         # An object tracker cannot be on the id 0
         if not ids or ids is None:
             return
@@ -98,10 +116,10 @@ class ParkingTariffManager(TrackedObjectListener):
                         temp_parking.occupant_park_time_start = time.time()
                         temp_parking.UpdateOccupantId(ids[2][i])
 
-    def PresentDebugItems(self, ids, bbs):
+    def writeDebugItems(self):
 
         for i in range(self.amount_of_trackers):
-            temp_frame = self.GetTrackerFrameByTrackerId(i).copy()
+            temp_frame = self.base_blank.copy()
 
             temp_parking_space_bbs = []
             temp_parking_is_occupied_list = []
@@ -114,21 +132,9 @@ class ParkingTariffManager(TrackedObjectListener):
                                              bounding_boxes=temp_parking_space_bbs,
                                              are_occupied=temp_parking_is_occupied_list)
 
-            if ids is not None and bbs is not None:
-                temp_active_ids = []
-                temp_active_bbs = []
-                for j in range(len(bbs)):
-                    if ids[0][j] == i:
-                        temp_active_bbs.append(bbs[j])
-                        temp_active_ids.append(ids[2][j])
+            self.frames[i][:] = temp_frame[:]
 
-                temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
-                                                          class_names=temp_active_ids,
-                                                          bounding_boxes=temp_active_bbs)
-
-
-
-            cv2.imshow("[ParkingTariffManager] Camera " + str(i) + " view", temp_frame)
+            # cv2.imshow("[ParkingTariffManager] Camera " + str(i) + " view", self.frames[i])
 
 
 

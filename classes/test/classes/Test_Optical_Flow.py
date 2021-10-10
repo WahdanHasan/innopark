@@ -31,7 +31,7 @@ for i in range(len(old_pts)):
 
 
 mask = np.zeros_like(frame)
-
+print(mask.shape)
 start_time = time.time()
 seconds_before_display = 1  # displays the frame rate every 1 second
 counter = 0
@@ -48,8 +48,9 @@ while True:
                                                               15, 0.08))
 
     for i in range(len(new_pts)):
-        cv2.circle(frame2, (int(new_pts[i][0][0]), int(new_pts[i][0][1])), 2, (0, 255, 0), 2)
-    combined = cv2.addWeighted(mask, 0.7, mask, 0.3, 0.1)
+        cv2.circle(mask, (int(new_pts[i][0][0]), int(new_pts[i][0][1])), 2, (0, 255, 0), 2)
+    # combined = cv2.addWeighted(frame2, 1.0, mask, 1.0, 1.0)
+    combined = cv2.add(mask, frame2)
 
     avg_x = 0
     avg_y = 0
@@ -64,7 +65,7 @@ while True:
 
     avg_x = avg_x / len(new_pts)
     avg_y = avg_y / len(new_pts)
-    print(str(avg_x) + " " + str(avg_y))
+    # print(str(avg_x) + " " + str(avg_y))
 
     bbox = [[bbox[0][0] + avg_x, bbox[0][1] + avg_y], [bbox[1][0] + avg_x, bbox[1][1] + avg_y]]
 
@@ -76,7 +77,7 @@ while True:
 
     cv2.imshow("new win", mask)
     cv2.imshow("new", frame2)
-    # cv2.imshow("wind", combined)
+    cv2.imshow("comb", combined)
 
     old_gray = copy.deepcopy(new_gray)
     old_pts = copy.deepcopy(new_pts)

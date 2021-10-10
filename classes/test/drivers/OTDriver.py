@@ -2,13 +2,8 @@ import classes.system_utilities.tracking_utilities.TrackedObject as TO
 from classes.system_utilities.tracking_utilities.ObjectTrackerBroker import ObjectTrackerBroker
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system.super_classes.TrackedObjectListener import TrackedObjectListener
-from classes.system_utilities.helper_utilities import Constants
-import time
-import numpy as np
 
 import multiprocessing
-from multiprocessing import shared_memory
 import cv2
 
 def main():
