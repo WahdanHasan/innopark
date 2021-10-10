@@ -19,7 +19,7 @@ class ObjectTrackerListener:
 
         for i in range(self.amount_of_trackers):
             # Get shared memory object tracker frames
-            temp_shm_frame = shared_memory.SharedMemory(name=Constants.object_tracker_frame_shared_memory_prefix + str(i))
+            temp_shm_frame = shared_memory.SharedMemory(name=Constants.frame_shared_memory_prefix + str(i))
             temp_frame = np.ndarray(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
                                     dtype=np.uint8,
                                     buffer=temp_shm_frame.buf)

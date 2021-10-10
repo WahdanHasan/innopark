@@ -6,10 +6,10 @@ import numpy as np
 
 class TrackedObjectListener(ObjectTrackerListener):
 
-    def __init__(self, amount_of_trackers, base_pool_size, new_object_in_pool_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event):
         super().__init__(amount_of_trackers)
 
-        self.pool_size = base_pool_size
+        self.pool_size = Constants.base_pool_size
         self.new_object_in_pool_event_listener_thread = 0
         self.new_object_in_pool_event = new_object_in_pool_event
         self.should_keep_listening_for_new_object = False

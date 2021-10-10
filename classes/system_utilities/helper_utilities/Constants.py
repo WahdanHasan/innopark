@@ -1,16 +1,16 @@
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
+base_pool_size = 3
+
 # Don't delete me. Trackers will stop working :(
 bb_shared_memory_manager_prefix = "tracked_object_bb_shared_memory_manager_"
 tracked_process_ids_shared_memory_prefix = "tracked_object_ids_in_shared_memory_manager_"
-object_tracker_frame_shared_memory_prefix = "object_tracker_frame_in_shared_memory_"
+frame_shared_memory_prefix = "frame_in_shared_memory_"
 object_tracker_mask_shared_memory_prefix = "object_tracker_mask_in_shared_memory_"
 
 bb_example = [[-1, -1], [-1, -1]]
 # idx0=tracker_id, idx1=camera_id, rest are the object_id
 tracked_process_ids_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-
 
 # [id, link]
 ENTRANCE_CAMERA_DETAILS = [

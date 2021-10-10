@@ -14,13 +14,14 @@ from multiprocessing import Process, Pipe, shared_memory
 class TrackedObjectPoolManager:
     # Manages tracked object processes in a pool.
 
-    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, pool_size=1):
+    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, shutdown_event):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
 
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
 
         self.pool_process = 0
-        self.pool_size = pool_size
+        self.pool_size = Constants.base_pool_size
+        self.shutdown_event = shutdown_event
         self.new_tracked_object_process_event = new_tracked_object_process_event
         self.initialized_event = initialized_event
 

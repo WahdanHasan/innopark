@@ -12,7 +12,7 @@ from classes.system_utilities.helper_utilities import Constants
 
 class Tracker:
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, detector_initialized_event, seconds_between_detections=1):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=1):
 
         self.tracker_process = 0
         self.parking_spaces = []
@@ -21,6 +21,9 @@ class Tracker:
         self.detector_request_queue = detector_request_queue
         self.seconds_between_detections = seconds_between_detections
         self.detector_initialized_event = detector_initialized_event
+        self.tracker_initialized_event = tracker_initialized_event
+        self.shutdown_event = shutdown_event
+        self.start_system_event = start_system_event
         self.shared_memory_manager_id = 0
         self.shared_memory_manager_frame = 0
         self.shared_memory_manager_mask = 0
@@ -73,7 +76,7 @@ class Tracker:
         mask = subtraction_model.GetOutput()
 
         self.shared_memory_manager_frame = shared_memory.SharedMemory(create=True,
-                                                                      name=Constants.object_tracker_frame_shared_memory_prefix + str(self.tracker_id),
+                                                                      name=Constants.frame_shared_memory_prefix + str(self.tracker_id),
                                                                       size=frame.nbytes)
 
         self.shared_memory_manager_mask = shared_memory.SharedMemory(create=True,
@@ -94,8 +97,9 @@ class Tracker:
         only_one = False
         return_status = False
 
+        self.tracker_initialized_event.set()
         self.detector_initialized_event.wait()
-
+        self.start_system_event.wait()
         # Main loop
         while self.should_keep_tracking:
             # Write new frame into shared memory space

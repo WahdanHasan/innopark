@@ -11,7 +11,7 @@ from shapely.geometry import Polygon, LineString
 
 
 class EntranceLicenseDetector:
-    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, wait_license_processing_event):
+    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, wait_license_processing_event, shutdown_event, start_system_event):
         # camera is given as type array in the format [camera id, camera rtsp]
 
         self.license_frames_request_queue = license_frames_request_queue
@@ -19,6 +19,8 @@ class EntranceLicenseDetector:
         self.license_processing_process = 0
         self.broker_request_queue = broker_request_queue
         self.wait_license_processing_event = wait_license_processing_event
+        self.shutdown_event = shutdown_event
+        self.start_system_event = start_system_event
 
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
@@ -74,6 +76,7 @@ class EntranceLicenseDetector:
         white_points_threshold = 95
 
         self.wait_license_processing_event.wait()
+        self.start_system_event.wait()
 
         while self.should_keep_detecting_top_camera:
             frame_top = top_camera.GetScaledNextFrame()

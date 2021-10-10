@@ -3,12 +3,13 @@ from classes.system.super_classes.ObjectTrackerListener import ObjectTrackerList
 from multiprocessing import Process
 
 class DetectorProcess(ObjectTrackerListener):
-    def __init__(self, amount_of_trackers, detector_request_queue, detector_initialized_event):
+    def __init__(self, amount_of_trackers, detector_request_queue, detector_initialized_event,  shutdown_event):
         super().__init__(amount_of_trackers)
 
         self.detector_process = 0
         self.should_keep_listening = True
 
+        self.shutdown_event = shutdown_event
         self.detector_request_queue = detector_request_queue
         detector_initialized_event.set()
 

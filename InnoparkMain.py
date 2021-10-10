@@ -8,12 +8,18 @@ import sys
 def main():
 
     shutdown_event = Event()
+    start_system_event = Event()
 
-    # ProgramLoader.LoadComponents(shutdown_event=shutdown_event)
+    SystemLoader.LoadComponents(shutdown_event=shutdown_event,
+                                start_system_event=start_system_event)
 
     app = QApplication(sys.argv)
     main_screen = MainScreen.UI()
     main_screen.Show()
+
+
+    start_system_event.set()
+
 
     app.exec_()
 
