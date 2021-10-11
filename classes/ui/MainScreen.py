@@ -34,6 +34,7 @@ class UI(QMainWindow):
         self.debug_page = self.findChild(QWidget, "debugPage")
         self.screen_stacked_widget = self.findChild(QStackedWidget, "screenStackedWidget")
         self.debug_frames_layout = self.findChild(QHBoxLayout, "debugFrames")
+        self.menu_label = self.findChild(QLabel, "screenPageLabel")
 
         self.start_system_button.clicked.connect(self.startSystemButtonOnClick)
         self.menu_button.clicked.connect(self.menuButtonOnClick)
@@ -59,6 +60,7 @@ class UI(QMainWindow):
         self.debug_update_thread = 0
         self.should_keep_updating_debug = True
         self.is_debug_screen_active = False
+        self.frame_offset_length = len(Constants.ENTRANCE_CAMERA_DETAILS)
 
         self.menu_buttons = [self.dashboard_page_button, self.setup_page_button, self.debug_page_button]
 
@@ -73,18 +75,15 @@ class UI(QMainWindow):
         self.launchDebugUpdaterThread()
 
     def initializeDebugFrames(self):
-        self.frames_listener.initialize()
-        self.tracked_object_listener.initialize()
-        self.ptm_listener.initialize()
 
         for i in range(self.amount_of_frames_in_shared_memory):
             temp_label = QLabel("test", self)
 
-            temp_frame = self.frames_listener.getFrameByCameraId(i)
-            temp_height, temp_width, temp_channel = temp_frame.shape
-            temp_bytes_per_line = 3 * temp_width
-            temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
-            temp_label.setPixmap(QPixmap(temp_q_img))
+            # temp_frame = self.frames_listener.getFrameByCameraId(i)
+            # temp_height, temp_width, temp_channel = temp_frame.shape
+            # temp_bytes_per_line = 3 * temp_width
+            # temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
+            # temp_label.setPixmap(QPixmap(temp_q_img))
 
             temp_label.setMaximumWidth(300)
             temp_label.setMaximumHeight(300)
@@ -125,18 +124,21 @@ class UI(QMainWindow):
         self.resetAllMenuButtonColors()
 
         self.dashboard_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
+        self.menu_label.setText("Dashboard")
 
     def setupButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.setup_page)
         self.resetAllMenuButtonColors()
 
         self.setup_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
+        self.menu_label.setText("Setup")
 
     def debugButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.debug_page)
         self.resetAllMenuButtonColors()
 
         self.debug_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
+        self.menu_label.setText("Debug")
 
         self.is_debug_screen_active = True
 
@@ -148,6 +150,10 @@ class UI(QMainWindow):
 
     def updateDebugScreen(self):
         import cv2
+
+        self.frames_listener.initialize()
+        self.tracked_object_listener.initialize()
+        self.ptm_listener.initialize()
 
         while self.should_keep_updating_debug:
             if self.is_debug_screen_active:
@@ -169,10 +175,8 @@ class UI(QMainWindow):
                                 temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
                                                                           class_names=temp_active_ids,
                                                                           bounding_boxes=temp_active_bbs)
-
                         if self.debug_ptm_cb.checkState():
-                            # temp_frame = cv2.add(temp_frame, self.)
-                            x=10
+                            temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
 
 
 
@@ -182,8 +186,5 @@ class UI(QMainWindow):
                     temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
                     self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
 
-            cv2.imshow("ptm2", self.ptm_listener.getFrameByCameraId(1))
+            time.sleep(UIConstants.debug_refresh_rate)
 
-            if cv2.waitKey(UIConstants.debug_refresh_rate) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break

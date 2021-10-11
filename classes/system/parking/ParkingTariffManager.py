@@ -3,6 +3,7 @@ from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
+from classes.super_classes.PtmListener import PtmListener
 
 from multiprocessing import Process, shared_memory
 import numpy as np
@@ -28,18 +29,13 @@ class ParkingTariffManager(TrackedObjectListener):
         self.frame_shms = []
         self.frames = []
 
-
-        self.createSharedMemoryStuff(amount_of_trackers)
-
     def createSharedMemoryStuff(self, amount_of_trackers):
-
         for i in range(amount_of_trackers):
             temp_shm = shared_memory.SharedMemory(create=True,
                                                   name=Constants.parking_tariff_management_shared_memory_prefix + str(i),
                                                   size=self.base_blank.nbytes)
 
             temp_frame = np.ndarray(self.base_blank.shape, dtype=np.uint8, buffer=temp_shm.buf)
-
             self.frame_shms.append(temp_shm)
             self.frames.append(temp_frame)
 
@@ -63,8 +59,10 @@ class ParkingTariffManager(TrackedObjectListener):
     def startManaging(self):
         super().initialize()
         self.loadParkingSpacesFromJson()
+        self.createSharedMemoryStuff(self.amount_of_trackers)
 
         self.start_system_event.wait()
+
         while self.should_keep_managing:
 
             ids, bbs = self.getAllActiveTrackedProcessItems()
@@ -134,7 +132,7 @@ class ParkingTariffManager(TrackedObjectListener):
 
             self.frames[i][:] = temp_frame[:]
 
-            # cv2.imshow("[ParkingTariffManager] Camera " + str(i) + " view", self.frames[i])
+            # cv2.imshow("[ParkingTariffManager] Camera " + str(1) + " view", self.frames[0])
 
 
 
