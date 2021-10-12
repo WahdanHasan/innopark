@@ -1,15 +1,18 @@
 import cv2
 # from multiprocessing import Process
-from classes.system_utilities.image_utilities import LicenseDetection
+from classes.system_utilities.image_utilities import LicenseDetection_Custom
 import time
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 
 class ProcessLicenseFrames:
-    def __init__(self, license_frames_request_queue):
-        self.license_frames_request_queue = license_frames_request_queue
-        self.license_processing_process = 0
+    # def __init__(self, license_frames_request_queue):
+    #     self.license_frames_request_queue = license_frames_request_queue
+    #     self.license_processing_process = 0
+
+    def __init__(self):
+        x = 0
 
     def Start(self, wait_license_processing_event):
         wait_license_processing_event.set()
@@ -56,7 +59,7 @@ class ProcessLicenseFrames:
         for i in range(len(latest_license_frames)):
             # detect the license plate in frame and get its bbox coordinates
             license_return_status, license_classes, \
-            license_bounding_boxes, _ = LicenseDetection.DetectLicenseInImage(latest_license_frames[i])
+            license_bounding_boxes, _ = LicenseDetection_Custom.DetectLicenseInImage(latest_license_frames[i])
 
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
@@ -76,7 +79,7 @@ class ProcessLicenseFrames:
         license_plates_info = []
 
         for plate in license_plates:
-            plate_info = LicenseDetection.GetLicenseFromImage(plate)
+            plate_info = LicenseDetection_Custom.GetLicenseFromImage(plate)
             license_plates_info.append(plate_info)
 
         return license_plates_info
