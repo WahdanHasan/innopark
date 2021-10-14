@@ -133,8 +133,6 @@ class Tracker:
 
                     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, send_pipe))
                     temp_entrant_id = receive_pipe.recv()
-                    # print(temp_entrant_id)
-                    # print(temp_entrant_side)
                     tracked_object_pipes[i].send([TrackerToTrackedObjectInstruction.STORE_NEW_ID, primary_instruction_to_send, temp_entrant_id])
                     tracked_object_ids[i] = temp_entrant_id
                     tracked_objects_without_id_indexes.pop(i)
@@ -152,7 +150,6 @@ class Tracker:
 
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
-                # print(temp_are_overlapping)
                 if temp_are_overlapping < 0.04:
                     try:
                         temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
@@ -160,14 +157,10 @@ class Tracker:
                         white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
                     except:
                         white_points_percentage = 50.0
-                    # print(white_points_percentage)
                     if white_points_percentage < 60.0:
                         temp_exit_side = self.GetExitSide(temp_bb, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))
                         print("[ObjectTracker] Object exited from " + temp_exit_side.value, file=sys.stderr)
-                        # TODO: Return tracked object to pool as well
-                        # print(white_points_percentage)
-                        # print(IU.AreBoxesOverlapping(temp_img_bb, temp_bb))
                         self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[i]))
                         tracked_object_ids.pop(i)
                         tracked_object_bbs_shared_memory.pop(i)
@@ -199,7 +192,6 @@ class Tracker:
 
                         # Create an array reference to the tracked object's shared memory bounding box
                         temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
-                        # TODO: Generate random id if the id is "none"
 
                         # Send the tracked object instructions on the object it is supposed to represent
                         temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], self.shared_memory_manager_frame, frame.shape, self.shared_memory_manager_mask, mask.shape))
@@ -302,7 +294,6 @@ class Tracker:
         masked_image = image.copy()
         self.detector_request_queue.put((self.camera_id, send_pipe))
         return_status, classes, bounding_boxes, _ = receive_pipe.recv()
-        # return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(image=masked_image)
 
         return return_status, classes, bounding_boxes
 

@@ -102,6 +102,7 @@ class UI(QMainWindow):
         self.start_system_event.set()
 
     def menuButtonOnClick(self):
+        self.is_debug_screen_active = False
         width = self.left_slide_menu.width()
 
         if width == self.left_slide_menu_min_width:
@@ -118,6 +119,8 @@ class UI(QMainWindow):
             self.animation.setEndValue(self.left_slide_menu_min_width)
             self.animation.setEasingCurve(QEasingCurve.InOutQuart)
             self.animation.start()
+
+        self.is_debug_screen_active = True
 
     def dashboardButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.dashboard_page)
@@ -184,7 +187,8 @@ class UI(QMainWindow):
                     temp_bytes_per_line = 3 * temp_width
                     temp_frame = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
                     temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
-                    self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
+                    if self.is_debug_screen_active:
+                        self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
 
             time.sleep(UIConstants.debug_refresh_rate)
 
