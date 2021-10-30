@@ -1,3 +1,4 @@
+
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
@@ -7,6 +8,7 @@ import sys
 import cv2
 import copy
 import numpy as np
+import time
 from threading import Thread
 from multiprocessing import Process, Pipe, shared_memory
 
@@ -265,8 +267,6 @@ class TrackedObjectProcess:
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
 
-        new_object_id = -1
-
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
@@ -298,15 +298,11 @@ class TrackedObjectProcess:
                 # self.UpdateStationaryObject()
 
 
-            # ttt = IU.GetFullBoundingBox([[0, 0], [self.frame.shape[1], self.frame.shape[0]]])
+            time.sleep(0.1)
 
-            # print(IU.AreBoxesOverlapping(ttt, IU.FloatBBToIntBB(self.bb)))
-            # cv2.imshow("HE", self.frame)
-
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     cv2.destroyAllWindows()
+            #     break
 
         print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 
@@ -316,9 +312,6 @@ class TrackedObjectProcess:
 
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)
-
-        # cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
-        # cv2.imshow("me smoll process frame mask cropped", cropped_mask)
 
     def UpdateStationaryObject(self):
         x=10

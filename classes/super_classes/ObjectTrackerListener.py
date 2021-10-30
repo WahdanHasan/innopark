@@ -32,3 +32,6 @@ class ObjectTrackerListener(FramesListener):
 
     def getFrameByCameraId(self, camera_id):
         return self.shared_memory_frames[camera_id]
+
+    def getMaskByCameraId(self, camera_id):
+        return self.shared_memory_tracker_masks[camera_id]

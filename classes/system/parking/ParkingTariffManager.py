@@ -73,10 +73,7 @@ class ParkingTariffManager(TrackedObjectListener):
             if self.is_debug_mode:
                 self.writeDebugItems()
 
-            # time.sleep(0.1)
-            if cv2.waitKey(17) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
+            time.sleep(0.033)
 
     def checkAndUpdateParkingStatuses(self, ids, bbs):
         # An object tracker cannot be on the id 0
@@ -131,8 +128,6 @@ class ParkingTariffManager(TrackedObjectListener):
                                              are_occupied=temp_parking_is_occupied_list)
 
             self.frames[i][:] = temp_frame[:]
-
-            # cv2.imshow("[ParkingTariffManager] Camera " + str(1) + " view", self.frames[0])
 
 
 

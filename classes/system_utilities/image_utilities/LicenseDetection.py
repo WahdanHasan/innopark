@@ -12,7 +12,6 @@ from object_detection.builders import model_builder
 # Global variable declarations
 license_detection_model = 0
 license_category_index = 0
-
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
 
@@ -45,6 +44,7 @@ def OnLoad():
     DetectLicenseInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
 def DetectLicenseInImage(image):
+    # return False, [['yes']], [[[0, 0], [0, 0]]], 'yes'
     # Attempts to detect license plates in the image.
     # Returns a True if at least 1 license was detected, otherwise False.
     # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
