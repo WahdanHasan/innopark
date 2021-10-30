@@ -119,8 +119,25 @@ def GetAllDocsContainingRequestedField(collection, key, value):
 
     for i in range(len(docs_id)):
         if(docs[i])[key] == value:
-            docs_extracted = (docs[i])[key]
-            docs_id_extracted = i
+            docs_extracted.append(docs[i])
+            docs_id_extracted.append(docs_id[i])
+
+    return docs_id_extracted, docs_extracted
+
+def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=""):
+    # get the first doc whose key field equals the value you're looking for
+    docs = db.collection(collection).where(first_key, "==", first_value).where(second_key, "==", second_value).get()
+
+    if not docs:
+        print("Error: requested field is not found")
+        return None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
 
     return docs_id_extracted, docs_extracted
 

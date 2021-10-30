@@ -23,6 +23,7 @@ class UI(QMainWindow):
 
         self.debug_ot_cb = self.findChild(QCheckBox, "debugOtCb")
         self.debug_ptm_cb = self.findChild(QCheckBox, "debugPtmCb")
+        self.debug_pvm_cb = self.findChild(QCheckBox, "debugPvmCb")
         self.start_system_button = self.findChild(QPushButton, "startSystemButton")
         self.menu_button = self.findChild(QPushButton, "menuButton")
         self.left_slide_menu = self.findChild(QWidget, "leftSlideMenu")
@@ -180,6 +181,9 @@ class UI(QMainWindow):
                                                                           bounding_boxes=temp_active_bbs)
                         if self.debug_ptm_cb.checkState():
                             temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
+
+                        # if self.debug_pvm_cb.checkState():
+                        #     temp_frame = cv2.add(temp_frame, self.pvm_listener.getFrameByCameraId(i - self.frame_offset_length))
 
 
 

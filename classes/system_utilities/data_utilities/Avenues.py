@@ -7,7 +7,7 @@ conn = db.GetDbConnection()
 
 collection = "avenues"
 
-avenue_id = "zFRQSZWp2gUm9avdWVPZ"
+avenue_id = "O8483qKcEoQc6SPTDp5e"
 
 def GetAllAvenues():
     doc = db.GetDocuments(collection)
@@ -50,6 +50,28 @@ def AddSession(avenue, vehicle, start_datetime=now, end_datetime=None, tariff_am
                      "start_datetime":start_datetime,
                      "tariff_amount": tariff_amount,
                      "vehicle": vehicle})
+
+def UpdateSessionEndtime(avenue, vehicle, end_datetime):
+    # docs_id_extracted, docs_extracted = db.GetAllDocsContainingRequestedField(collection="avenues/"+avenue+"/sessions_info",
+    #                                                                           key="vehicle", value=vehicle)
+    docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields("avenues/" + avenue_id + "/sessions_info",
+                                                                      "vehicle", "J71612", "end_datetime")
+
+
+    session = docs_id_extracted[0]
+
+    # session = ""
+    # for i in range(len(docs_id_extracted)):
+    #     if (docs_extracted[i])["end_datetime"]=="":
+    #         print("doc data: ", docs_id_extracted[i])
+    #         session = str(docs_id_extracted[i])
+    #         break
+
+    db.UpdateData(collection="avenues/"+avenue+"/sessions_info", document=session,
+                  field_to_edit="end_datetime", new_data=end_datetime)
+
+
+
 
 def GetAllParkingSession(avenue):
     docs_id, docs = db.GetAllDocuments("avenues/"+avenue+"/parkings_info")
