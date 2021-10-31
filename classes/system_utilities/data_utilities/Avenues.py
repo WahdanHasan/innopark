@@ -20,7 +20,7 @@ def GetAllAvenues():
 
     return doc
 
-def AddParking(avenue, camera_id, bounding_box, parking_type, is_occupied=False):
+def AddParking(avenue, camera_id, parking_id, bounding_box, parking_type, is_occupied=False):
     # avenues.AddParking(avenue="O8483qKcEoQc6SPTDp5e", camera_id=2,
     #                    bounding_box=[200, 100, 300, 150, 250, 100, 100, 150], parking_type="a")
 
@@ -31,6 +31,7 @@ def AddParking(avenue, camera_id, bounding_box, parking_type, is_occupied=False)
     rate_per_hour = GetRatePerHourFromAvenueInfo(avenue, parking_type)
 
     db.AddData(collection=collection+"/"+avenue+"/parkings_info",
+               document=str(parking_id),
                data={"bounding_box": bounding_box,
                      "camera_id": camera_id,
                      "is_occupied": is_occupied,
@@ -194,3 +195,4 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
 
 # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="4dkekG8hrOrJ1mpOpoO6")
 # AddParking(avenue=avenue_id, camera_id=0, bounding_box=[100,320,300,150, 400, 320, 150, 600], parking_type="a")
+AddParking(avenue_id, 3, 187, [483, 213, 604, 214, 718, 366, 718, 265], "c")
