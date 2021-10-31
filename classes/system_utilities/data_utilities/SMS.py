@@ -7,7 +7,7 @@ import sys
 
 
 def sendSmsToLicense(license_plate):
-    return
+
     vehicle_registered_phone_number = DU.GetValueOfFieldOnMatch(collection="government-registered-drivers",
                                                                 match_key=Constants.gov_license_key,
                                                                 match_value=license_plate,

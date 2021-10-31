@@ -179,13 +179,13 @@ def GetAllDocsGreaterThanOrEqualRequestedField(collection, field_key, value):
 
     return docs_id_extracted, docs_extracted
 
-def GetValueOfFieldOnMatch(collection, match_key, match_value, get_key):
+def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
     doc = GetFirstDocContainingRequestedField(collection, match_key, match_value)
 
     if doc is None:
         return None
 
-    return doc[str(get_key)]
+    return doc[str(get_value_key)]
 
 
 # def GetAllDocsEqualToRequestedField(collection, key, value):
