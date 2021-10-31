@@ -178,7 +178,6 @@ class Tracker:
                 return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
 
                 if return_status and (not only_one):
-                    print("EXECUTED")
                     for i in range(len(detected_classes)):
 
                         # Request for a tracked object to represent the new entrant from the tracked object pool

@@ -9,7 +9,7 @@ from multiprocessing import Process
 class ObjectTrackerBroker:
     # Facilitates the exchange of tracked objects between object trackers
 
-    # TODO: The broker should facilitate transfer of tracked object process pipes rather than just ids
+
     def __init__(self, broker_request_queue):
 
         # Adjacency matrix of cameras with their id in the correct spot
@@ -54,8 +54,6 @@ class ObjectTrackerBroker:
         while not self.listen_for_requests_thread_stopped:
             (instructions) = self.broker_request_queue.get()
 
-            print("Received request from " + str(instructions[1]))
-
             if instructions[0] == TrackedObjectToBrokerInstruction.GET_VOYAGER:
                 self.GetVoyagerRequest(instructions)
 
@@ -65,8 +63,7 @@ class ObjectTrackerBroker:
     def GetVoyagerRequest(self, instructions):
 
         (recipient_camera_id, arrival_direction, pipe) = instructions[1:4]
-        pipe.send("None")
-        return
+
         sender_camera_id = self.GetCameraByDirection(recipient_camera_id, arrival_direction)
 
         for i in range(len(self.voyager_holding_list)):

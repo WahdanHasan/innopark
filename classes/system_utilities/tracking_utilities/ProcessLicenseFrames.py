@@ -14,8 +14,8 @@ class ProcessLicenseFrames:
         self.should_keep_running = True
 
     def Start(self):
-        from classes.system_utilities.image_utilities import LicenseDetection
-        # from classes.system_utilities.image_utilities import LicenseDetection_Custom as LicenseDetection
+        # from classes.system_utilities.image_utilities import LicenseDetection
+        from classes.system_utilities.image_utilities import LicenseDetection_Custom as LicenseDetection
         LicenseDetection.OnLoad()
 
         self.wait_license_processing_event.set()
@@ -32,10 +32,13 @@ class ProcessLicenseFrames:
                                                                 LicenseDetection=LicenseDetection)
 
             # determine the license plate of the vehicle
-            detected_license = self.GetProminentLicensePlate(license_plates_info)
+            if license_plates_info:
+                detected_license = self.GetProminentLicensePlate(license_plates_info)
 
-            # send the license to broker
-            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
+                # send the license to broker
+                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
+            else:
+                print("[License Detector] No license was detected.", file=sys.stderr)
 
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
@@ -58,7 +61,7 @@ class ProcessLicenseFrames:
         for i in range(len(latest_license_frames)):
             # detect the license plate in frame and get its bbox coordinates
             license_return_status, license_classes, license_bounding_boxes, _ = license_detector.DetectLicenseInImage(image=latest_license_frames[i])
-
+            # print(license_bounding_boxes)
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
                 license_bounding_boxes_converted = license_bounding_boxes[0]
