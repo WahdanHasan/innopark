@@ -195,4 +195,3 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
 
 # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="4dkekG8hrOrJ1mpOpoO6")
 # AddParking(avenue=avenue_id, camera_id=0, bounding_box=[100,320,300,150, 400, 320, 150, 600], parking_type="a")
-AddParking(avenue_id, 3, 187, [483, 213, 604, 214, 718, 366, 718, 265], "c")
