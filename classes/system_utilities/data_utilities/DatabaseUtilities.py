@@ -118,6 +118,15 @@ def GetFirstDocContainingRequestedField(collection, key, value):
 
     return doc[0].to_dict()
 
+def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
+
+    doc = GetFirstDocContainingRequestedField(collection, match_key, match_value)
+
+    if not doc:
+        return None
+
+    return doc[get_value_key]
+
 def GetAllDocsEqualToRequestedField(collection, key, value):
     # get the first doc whose key field equals the value you're looking for
     docs = db.collection(collection).where(key, "==", value).get()

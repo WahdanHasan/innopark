@@ -1,46 +1,52 @@
-import cv2
-import classes.test.classes.Beta_ProcessLicenseFrames as PL
+# import cv2
+# from classes.camera.CameraBuffered import Camera
+# from classes.system_utilities.image_utilities import ObjectDetection as OD
+# from classes.system_utilities.image_utilities import ImageUtilities as IU
+# import time
+#
+# def main():
+#
+#     cam_parking = Camera(
+#         rtsp_link="data\\reference footage\\test journey\\Leg_2.mp4",
+#         camera_id=0)
+#
+#     OD.OnLoad()
+#     seconds_before_display = 1
+#     counter = 0
+#     start_time = time.time()
+#     while True:
+#         frame_parking = cam_parking.GetScaledNextFrame()
+#
+#
+#         parking_return_status, parking_classes, parking_bounding_boxes, parking_scores = OD.DetectObjectsInImage(frame_parking)
+#
+#         if parking_return_status == True:
+#             bb_parking = IU.DrawBoundingBoxAndClasses(image=frame_parking,
+#                                                       class_names=parking_classes,
+#                                                       probabilities=parking_scores,
+#                                                       bounding_boxes=parking_bounding_boxes)
+#
+#             cv2.imshow("Drawn box parking", bb_parking)
+#
+#
+#
+#         cv2.imshow("Feed parking", frame_parking)
+#         counter += 1
+#         if (time.time() - start_time) > seconds_before_display:
+#             print("FPS: ", counter / (time.time() - start_time))
+#             counter = 0
+#             start_time = time.time()
+#
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             cv2.destroyAllWindows()
+#             break
+# if __name__ == "__main__":
+#     main()
 import classes.system_utilities.image_utilities.LicenseDetection_Custom as LD
-from classes.camera.CameraBuffered import Camera
+import cv2
+# LD.BuildModel()
+LD.OnLoad()
 
-def main():
-    x=0
-    #LD.BuildModel()
-    # LD.OnLoad()
-    # LD.DetectLicenseInImage(cv2.imread("./config/license_plate_detector/carr2.jpg"))
+for i in range(10):
 
-    #pl = PL.ProcessLicenseFrames()
-    #LD.OnLoad()
-    # pl.DetectLicensePlates()
-
-    # cam_license = Camera(
-    #     rtsp_link="D:\\ProgramData\\Grad Project\\Experiments\\License_Footage\\Entrance_Bottom_Simulated_2.mp4",
-    #     camera_id=0)
-    #
-    # frame_licenses = []
-    #
-    # for i in range(12):
-    #     img = cv2.imread("./data/saves/frame"+str(i+1)+".png")
-    #     frame_licenses.append(img)
-    #
-    # while True:
-    #
-    #     pl.DetectLicensePlates(frame_licenses)
-    #     print("out in main")
-
-        # license_return_status, license_classes, license_bounding_boxes, license_scores = pl.DetectLicenseInImage(
-        #     frame_license)
-        #
-        # if license_return_status == True:
-        #     bb_license = IU.DrawBoundingBoxAndClasses(image=frame_license,
-        #                                               class_names=license_classes,
-        #                                               probabilities=license_scores,
-        #                                               bounding_boxes=license_bounding_boxes)
-        #
-        #     cv2.imshow("Drawn box license", bb_license)
-
-        # if cv2.waitKey(100) & 0xFF == ord('q'):
-        #     cv2.destroyAllWindows()
-        #     break
-if __name__ == "__main__":
-    main()
+    LD.DetectLicenseInImage(cv2.imread("./config/license_plate_detector/carr2.jpg"))

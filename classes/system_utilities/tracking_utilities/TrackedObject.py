@@ -271,6 +271,7 @@ class TrackedObjectProcess:
 
             # Wait for confirmation to read
             instruction = pipe.recv()
+
             # Validate if the message received is a proper instruction
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
                 if isinstance(instruction, list):
@@ -296,13 +297,6 @@ class TrackedObjectProcess:
             elif instruction == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY:
                 self.UpdateMovingObject()
                 # self.UpdateStationaryObject()
-
-
-            time.sleep(0.1)
-
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     cv2.destroyAllWindows()
-            #     break
 
         print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 

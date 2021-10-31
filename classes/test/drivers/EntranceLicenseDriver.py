@@ -27,8 +27,8 @@ def StartEntranceLicenseDetector(license_frames_request_queue, wait_license_proc
 
     license_detector = EntranceLicenseDetector(license_frames_request_queue)
     license_detector.InitializeCameras(
-        [0, "D:\\ProgramData\\Grad Project\\Experiments\\License_Footage\\Entrance_Bottom_Simulated_2.mp4"],
-        [1, "D:\\ProgramData\\Grad Project\\Experiments\\License_Footage\\Entrance_Top.mp4"]
+        [0, "data\\reference footage\\test journey\\Entrance_Top.mp4"],
+        [1, "data\\reference footage\\test journey\\Entrance_Bottom_Simulated_2.mp4"]
     )
 
     license_detector_process = Process(target=license_detector.Start, args=(wait_license_processing_event,))

@@ -31,3 +31,5 @@ default_camera_shape = (ImageResolution.SD.value[0], ImageResolution.SD.value[1]
 # Parking space file
 parking_spaces_json = "config\\parking_spaces.txt"
 
+gov_license_key = "licenseNumber"
+gov_phone_number_key = "phoneNumber"

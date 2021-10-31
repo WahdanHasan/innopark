@@ -33,6 +33,7 @@ def OnLoad():
     license_detection_model = model_builder.build(model_config=configs['model'],
                                                   is_training=False)
 
+
     temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
     temp_model.restore("config\\license_plate_detector\\license_plate_model").expect_partial()
 

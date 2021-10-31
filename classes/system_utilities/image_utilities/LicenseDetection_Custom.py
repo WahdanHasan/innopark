@@ -1,13 +1,16 @@
-import os
-# comment out below line to enable tensorflow outputs
-import tesserocr
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import cv2
-import numpy as np
-import tensorflow as tf
 from classes.system_utilities.image_utilities.LicenseDetectionConfig import cfg, loadConfig
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+
+import os
+# comment out below line to enable tensorflow outputs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+import tensorflow as tf
+import cv2
+import numpy as np
+import tesserocr
+from PIL import Image
+import re as regex
 
 # Global variable declarations
 license_detection_model = 0
@@ -19,7 +22,7 @@ def OnLoad():
 
     # Declare variables
     global license_detection_model
-    loaded_weights_path = './config/license_plate_detector/custom-416'
+    # loaded_weights_path = './config/license_plate_detector/custom-416'
 
     # Set tensorflow model memory allocation in megabytes
     gpus = tf.config.list_physical_devices('GPU')
@@ -37,46 +40,43 @@ def OnLoad():
     loadConfig()
 
     # Initialize/load license_plate_detector model
-    license_detection_model = tf.saved_model.load(loaded_weights_path, tags=[tag_constants.SERVING])
+    license_detection_model = tf.saved_model.load(cfg.YOLO.SAVEDMODEL)
+
+    global infer
+    global input_size
+    infer = license_detection_model.signatures['serving_default']
+
+    # Define variables
+    input_size = cfg.VAR.INPUT_SIZE
+
 
     # Run blank detection to initialize model
-    from classes.system_utilities.helper_utilities import Constants
-    DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)])
-
-
-
-
+    # from classes.system_utilities.helper_utilities import Constants
+    # print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in a list of images.
     # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
 
-    # Define variables
-    input_size = cfg.VAR.INPUT_SIZE
-    bounding_box_classes = IU.readClasses(cfg.YOLO.CLASSES)
+
 
     # Run the custom yolo4 model on each image
     #if np.all(image[0]==0):
     if not np.count_nonzero(image):
-        print("img is filled with zeros")
         return
 
-    from tensorflow.python.saved_model import tag_constants
-    license_detection_model = tf.saved_model.load(cfg.YOLO.SAVEDMODEL, tags=[tag_constants.SERVING])
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     image_data = cv2.resize(image, (input_size, input_size))
     image_data = image_data / 255.
 
-    images_data = []
+    images_data = [image_data]
 
-    for i in range(1):
-        images_data.append(image_data)
     images_data = np.asarray(images_data).astype(np.float32)
 
-    infer = license_detection_model.signatures['serving_default']
     batch_data = tf.constant(images_data)
     pred_bbox = infer(batch_data)
+
     for key, value in pred_bbox.items():
         boxes = value[:, :, 0:4]
         pred_conf = value[:, :, 4:]
@@ -101,12 +101,7 @@ def DetectLicenseInImage(image):
     # Convert bounding boxes to format [TL, BR]
     bounding_boxes_converted = [[[bb[0], bb[1]], [bb[2], bb[3]]]]
 
-    img = IU.DrawBoundingBoxAndClasses(image, bounding_box_classes, bounding_boxes_converted)
-    print("status validity: ", validity_status.numpy()[0])
-    cv2.imshow("image", img)
-    cv2.waitKey(0)
-
-    return validity_status.numpy()[0], bounding_box_classes, bounding_boxes_converted, scores.numpy()[0]
+    return validity_status.numpy()[0], classes, bounding_boxes_converted, scores.numpy()[0]
 
 def BuildModel():
     from classes.system_utilities.image_utilities.LicenseDetectionModel import YOLO, decode, filterBoxes

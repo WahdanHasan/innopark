@@ -43,6 +43,10 @@ class UI(QMainWindow):
         self.setup_page_button.clicked.connect(self.setupButtonOnClick)
         self.debug_page_button.clicked.connect(self.debugButtonOnClick)
 
+        # self.debug_ptm_cb.setCheckState(True)
+        # self.debug_pvm_cb.setCheckState(True)
+        # self.debug_ot_cb.setCheckState(True)
+
         self.start_system_event = start_system_event
         self.new_object_in_pool_event = new_object_in_pool_event
 

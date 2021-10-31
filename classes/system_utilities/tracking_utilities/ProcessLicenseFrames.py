@@ -1,7 +1,6 @@
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
-import cv2
 import sys
 from multiprocessing import Process
 
@@ -16,6 +15,7 @@ class ProcessLicenseFrames:
 
     def Start(self):
         from classes.system_utilities.image_utilities import LicenseDetection
+        # from classes.system_utilities.image_utilities import LicenseDetection_Custom as LicenseDetection
         LicenseDetection.OnLoad()
 
         self.wait_license_processing_event.set()
@@ -36,10 +36,6 @@ class ProcessLicenseFrames:
 
             # send the license to broker
             self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
-
-            if cv2.waitKey(1) == 27:
-                cv2.destroyAllWindows()
-                break
 
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)

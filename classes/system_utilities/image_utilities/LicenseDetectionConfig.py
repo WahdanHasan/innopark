@@ -18,14 +18,13 @@ __C.YOLO.STRIDES              = [8, 16, 32]
 __C.YOLO.XYSCALE              = [1.2, 1.1, 1.05]
 __C.YOLO.ANCHOR_PER_SCALE     = 3
 __C.YOLO.IOU_LOSS_THRESH      = 0.5
-__C.YOLO.IOU_LOSS_THRESH      = 0.7
 
 # model variables
 __C.VAR                      = edict()
 
 __C.VAR.INPUT_SIZE = 416
 __C.VAR.IOU = 0.45
-__C.VAR.SCORE = 0.85
+__C.VAR.SCORE = 0.5
 
 
 def loadWeights(model, weights_file):
