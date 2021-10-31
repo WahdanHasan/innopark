@@ -47,6 +47,15 @@ def UpdateData(collection, document, field_to_edit, new_data):
 
     print("Successfully updated "+collection)
 
+def UpdateDataInMap(collection, document, field_key, map_key, new_value):
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_key+"."+map_key: new_value
+    })
+
+    print("Successfully updated "+collection)
+
 def GetAllDocuments(collection):
     docs_id=[]
     docs = []
@@ -118,17 +127,95 @@ def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
 
     return doc[get_value_key]
 
-def GetAllDocsContainingRequestedField(collection, key, value):
-    # get all docs whose key field equals the value you're looking for
-    docs_id, docs = GetAllDocuments(collection)
+def GetAllDocsEqualToRequestedField(collection, key, value):
+    # get the first doc whose key field equals the value you're looking for
+    docs = db.collection(collection).where(key, "==", value).get()
+
+    if not docs:
+        print("Error: requested field is not found in any document")
+        return None
 
     docs_extracted = []
     docs_id_extracted = []
 
-    for i in range(len(docs_id)):
-        if(docs[i])[key] == value:
-            docs_extracted = (docs[i])[key]
-            docs_id_extracted = i
+    for i in range(len(docs)):
+        if(docs[i].to_dict())[key] == value:
+            docs_extracted.append(docs[i].to_dict())
+            docs_id_extracted.append(docs[i].id)
+
+    return docs_id_extracted, docs_extracted
+
+def GetAllDocsGreaterThanOrEqualRequestedFieldInMap(collection, field_key, map_key, value):
+    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    docs = db.collection(collection).where(field_key+"."+map_key, ">=", value).get()
+
+    if not docs:
+        print("Error: requested field is not found in any document")
+        return None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
+
+    return docs_id_extracted, docs_extracted
+
+def GetAllDocsGreaterThanOrEqualRequestedField(collection, field_key, value):
+    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    docs = db.collection(collection).where(field_key, ">=", value).get()
+
+    if not docs:
+        print("Error: requested field is not found in any document")
+        return None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
+
+    return docs_id_extracted, docs_extracted
+
+def GetValueOfFieldOnMatch(collection, match_key, match_value, get_key):
+    doc = GetFirstDocContainingRequestedField(collection, match_key, match_value)
+
+    if doc is None:
+        return None
+
+    return doc[str(get_key)]
+
+
+# def GetAllDocsEqualToRequestedField(collection, key, value):
+#     # get all docs whose key field equals the value you're looking for
+#     docs_id, docs = GetAllDocuments(collection)
+#
+#     docs_extracted = []
+#     docs_id_extracted = []
+#
+#     for i in range(len(docs_id)):
+#         if(docs[i])[key] == value:
+#             docs_extracted.append(docs[i])
+#             docs_id_extracted.append(docs_id[i])
+#
+#     return docs_id_extracted, docs_extracted
+
+def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=None):
+    # get the first doc whose key field equals the value you're looking for
+    docs = db.collection(collection).where(first_key, "==", first_value).where(second_key, "==", second_value).get()
+
+    if not docs:
+        print("Error: requested field is not found")
+        return None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
 
     return docs_id_extracted, docs_extracted
 
