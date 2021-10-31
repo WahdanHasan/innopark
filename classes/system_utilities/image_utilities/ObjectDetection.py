@@ -1,20 +1,18 @@
 import cv2
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.test.classes.tracker as T
 
 # Global variable declarations
 yolo_net = 0
 yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
-tracker = T.EuclideanDistTracker()
 
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
 
 
-    # Initialize yolov3 model
+    # Initialize YOLOv3 model
     global yolo_net
     global yolo_class_names
     global yolo_output_layer_names
@@ -28,7 +26,7 @@ def OnLoad():
 
     model_config = 'config\\yolov4\\yolov4-tiny.cfg'
     model_weights = 'config\\yolov4\\yolov4-tiny.weights'
-    yolo_net_input_size = 416
+    yolo_net_input_size = 320
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation
@@ -38,10 +36,6 @@ def OnLoad():
     yolo_layer_names = yolo_net.getLayerNames()
     yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
 
-    from classes.system_utilities.helper_utilities import Constants
-
-    # Run blank detection to initialize model
-    DetectObjectsInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
 def DetectObjectsInImage(image):
     # The function takes an input image and outputs all of the objects it detects in the image.
@@ -123,5 +117,3 @@ def DetectObjectsInImage(image):
 
 
     return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
-
-

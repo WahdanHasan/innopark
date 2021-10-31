@@ -4,7 +4,6 @@ import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
 from classes.system_utilities.helper_utilities import Constants
 
-import cv2
 import numpy as np
 import sys
 from multiprocessing import Process, shared_memory
@@ -101,8 +100,8 @@ class EntranceLicenseDetector:
             frame_top_sm[:] = top_camera.GetScaledNextFrame()[:]
             frame_bottom_sm[:] = bottom_camera.GetScaledNextFrame()[:]
 
-            frame_top = frame_top_sm
-            frame_bottom = frame_bottom_sm
+            frame_top = frame_top_sm.copy()
+            frame_bottom = frame_bottom_sm.copy()
 
             # Store the latest bottom camera frame
             if total_bottom_camera_count == self.maximum_bottom_camera_detection:
@@ -134,18 +133,15 @@ class EntranceLicenseDetector:
                 # if vehicle is detected, start capturing frames (max of self.maximum_bottom_camera_detection)
                 # until the vehicle's bb intersects with the frame median block
                 # once vehicle's bb intersects, send the captured frames to another process
-                if return_status:
-                    frame_top = IU.DrawBoundingBoxes(frame_top, bounding_boxes)
 
-                    polygon_bbox = Polygon([(bounding_boxes[0][0][0], bounding_boxes[0][0][1]),
-                                            (bounding_boxes[0][1][0], bounding_boxes[0][0][1]),
-                                            (bounding_boxes[0][1][0], bounding_boxes[0][1][1]),
-                                            (bounding_boxes[0][0][0], bounding_boxes[0][1][1])])
+                if return_status:
+                    bounding_boxes = bounding_boxes[0]
+                    bounding_boxes = IU.GetFullBoundingBox(bounding_boxes)
+                    polygon_bbox = Polygon(bounding_boxes)
                     line_median_right = LineString([(width_right, 0), (width_right, height)])
                     intersection = line_median_right.intersects(polygon_bbox)
 
                     self.should_keep_detecting_bottom_camera = True
-
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
 

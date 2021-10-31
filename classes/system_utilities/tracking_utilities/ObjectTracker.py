@@ -178,6 +178,7 @@ class Tracker:
                 return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
 
                 if return_status and (not only_one):
+                    print("EXECUTED")
                     for i in range(len(detected_classes)):
 
                         # Request for a tracked object to represent the new entrant from the tracked object pool
@@ -282,10 +283,22 @@ class Tracker:
         # Returns new entrants within an image by running YOLO on the image after the application of the base mask
         # This results in only untracked objects being detected
 
-        masked_image = self.SubtractMaskFromImage(image, self.base_mask)
-        masked_image = image.copy()
+        # masked_image = self.SubtractMaskFromImage(image, self.base_mask)
+        # masked_image = image.copy()
+        # send_start_time = time.time()
+
         self.detector_request_queue.put((self.camera_id, send_pipe))
+        # if self.camera_id == 2:
+        #     print("SENDING TOOK " + str(time.time() - send_start_time))
+
+
+        # receive_start_time = time.time()
         return_status, classes, bounding_boxes, _ = receive_pipe.recv()
+        # if self.camera_id == 2:
+        #     print("RECEIVING TOOK " + str(time.time() - receive_start_time))
+        # return_status = True
+        # classes = ['CAR']
+        # bounding_boxes = [[[511, 245], [720, 388]]]
 
         return return_status, classes, bounding_boxes
 

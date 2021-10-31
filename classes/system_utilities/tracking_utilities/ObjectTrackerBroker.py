@@ -65,7 +65,8 @@ class ObjectTrackerBroker:
     def GetVoyagerRequest(self, instructions):
 
         (recipient_camera_id, arrival_direction, pipe) = instructions[1:4]
-
+        pipe.send("None")
+        return
         sender_camera_id = self.GetCameraByDirection(recipient_camera_id, arrival_direction)
 
         for i in range(len(self.voyager_holding_list)):
