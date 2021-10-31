@@ -109,6 +109,14 @@ def GetFirstDocContainingRequestedField(collection, key, value):
 
     return doc[0].to_dict()
 
+def GetValueOfFieldOnMatch(collection, match_key, match_value, get_key):
+    doc = GetFirstDocContainingRequestedField(collection, match_key, match_value)
+
+    if doc is None:
+        return None
+
+    return doc[str(get_key)]
+
 
 def GetAllDocsContainingRequestedField(collection, key, value):
     # get all docs whose key field equals the value you're looking for
@@ -124,7 +132,7 @@ def GetAllDocsContainingRequestedField(collection, key, value):
 
     return docs_id_extracted, docs_extracted
 
-def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=""):
+def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=None):
     # get the first doc whose key field equals the value you're looking for
     docs = db.collection(collection).where(first_key, "==", first_value).where(second_key, "==", second_value).get()
 
