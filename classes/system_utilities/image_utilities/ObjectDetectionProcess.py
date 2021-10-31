@@ -27,6 +27,5 @@ class DetectorProcess(ObjectTrackerListener):
         while self.should_keep_listening:
             (camera_id, requester_pipe) = self.detector_request_queue.get()
 
-            # print("[ObjectDetectionProcess] Received request from Tracker " + str(tracker_id), file=sys.stderr)
             requester_pipe.send((OD.DetectObjectsInImage(self.getFrameByCameraId(camera_id))))
 

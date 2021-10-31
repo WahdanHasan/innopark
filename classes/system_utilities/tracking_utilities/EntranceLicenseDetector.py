@@ -155,12 +155,3 @@ class EntranceLicenseDetector:
             # if the white percentage is below threshold, stop detection
             elif white_points_percentage < white_points_threshold and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
-
-            # cv2.imshow('bottom_camera', frame_top)
-            # cv2.imshow('subtraction_model', mask)
-
-            if cv2.waitKey(1) == 27:
-                bottom_camera.ReleaseFeed()
-                top_camera.ReleaseFeed()
-                cv2.destroyAllWindows()
-                break

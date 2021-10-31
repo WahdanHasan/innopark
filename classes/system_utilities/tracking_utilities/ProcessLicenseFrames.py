@@ -37,10 +37,6 @@ class ProcessLicenseFrames:
             # send the license to broker
             self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
 
-            if cv2.waitKey(1) == 27:
-                cv2.destroyAllWindows()
-                break
-
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
 

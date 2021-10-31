@@ -179,10 +179,6 @@ class Tracker:
 
                 if return_status and (not only_one):
                     for i in range(len(detected_classes)):
-                        # # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
-                        # entered_object_side = self.GetEntrantSide(detected_bbs[i], height, width)
-                        # self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, entered_object_side, send_pipe))
-                        # entered_object_id = receive_pipe.recv()
 
                         # Request for a tracked object to represent the new entrant from the tracked object pool
                         self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, send_pipe))
@@ -217,10 +213,6 @@ class Tracker:
                 print("[ObjectTracker] Camera " + str(self.camera_id) + " FPS: ", counter / (time.time() - start_time))
                 counter = 0
                 start_time = time.time()
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
 
     def StopTracking(self):
         self.should_keep_tracking = False

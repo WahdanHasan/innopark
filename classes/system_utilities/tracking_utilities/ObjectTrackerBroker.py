@@ -54,6 +54,8 @@ class ObjectTrackerBroker:
         while not self.listen_for_requests_thread_stopped:
             (instructions) = self.broker_request_queue.get()
 
+            print("Received request from " + str(instructions[1]))
+
             if instructions[0] == TrackedObjectToBrokerInstruction.GET_VOYAGER:
                 self.GetVoyagerRequest(instructions)
 
