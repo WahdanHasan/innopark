@@ -68,6 +68,18 @@ def GetAllDocuments(collection):
 
     return docs_id, docs
 
+def GetAllDocumentsOrdered(collection, orderBy_key):
+    docs_id=[]
+    docs = []
+
+    result = db.collection(collection).get()
+
+    for doc in result:
+        docs_id.append(doc.id)
+        docs.append(doc.to_dict())
+
+    return docs_id, docs
+
 def GetAllSubcollectionsOfDocument(collection, document):
     subcollections = db.collection(collection).document(document).collections()
 

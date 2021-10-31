@@ -33,3 +33,14 @@ parking_spaces_json = "config\\parking_spaces.txt"
 
 gov_license_key = "licenseNumber"
 gov_phone_number_key = "phoneNumber"
+
+# Avenue information
+avenue_id = "O8483qKcEoQc6SPTDp5e"
+# avenue_id = "sXXjDt9IUyPBDaCmLTfF"
+
+# Parking_info doc
+bounding_box_key = "bounding_box"
+camera_id_key = "camera_id"
+is_occupied_key = "is_occupied"
+parking_type_key = "parking_type"
+rate_per_hour_key = "rate_per_hour"

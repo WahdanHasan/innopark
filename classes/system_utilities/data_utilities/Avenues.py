@@ -1,5 +1,6 @@
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
 from datetime import datetime, timedelta, timezone
+from classes.system_utilities.helper_utilities.Constants import avenue_id
 
 # now = datetime.now(timezone.utc).astimezone()
 now = datetime.now()
@@ -11,7 +12,7 @@ conn = db.GetDbConnection()
 collection = "avenues"
 
 #below to be deleted afterwards
-avenue_id = "O8483qKcEoQc6SPTDp5e"
+# avenue_id = "O8483qKcEoQc6SPTDp5e"
 # avenue_id = "sXXjDt9IUyPBDaCmLTfF"
 
 def GetAllAvenues():
@@ -155,13 +156,11 @@ def CalculateSessionTariffAmount(start_datetime, end_datetime, rate_per_hour):
 
     return tariff_amount
 
-def GetAllParkingSession(avenue):
+def GetAllParkings(avenue):
     docs_id, docs = db.GetAllDocuments(collection+"/"+avenue+"/parkings_info")
 
-    bbox_converted = []
-    bbox = []
-
     for doc in docs:
+        bbox_converted = []
         bbox = doc["bounding_box"]
         bbox_converted.append([bbox[0], bbox[1]])
         bbox_converted.append([bbox[2], bbox[3]])
@@ -195,3 +194,7 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
 
 # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="4dkekG8hrOrJ1mpOpoO6")
 # AddParking(avenue=avenue_id, camera_id=0, bounding_box=[100,320,300,150, 400, 320, 150, 600], parking_type="a")
+
+# n=[{"a":0}, {"b":2}]
+# print(type(n))
+    # self.parking_spaces.append(ParkingSpace(*parking_doc))

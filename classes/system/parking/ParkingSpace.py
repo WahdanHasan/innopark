@@ -5,16 +5,14 @@ import sys
 import time
 
 class ParkingSpace:
-    def __init__(self, camera_id, parking_id, bounding_box, seconds_before_considered_parked=2, seconds_before_considered_left=2):
-        # JSON initialized variables
+    def __init__(self, camera_id, parking_id, bounding_box, is_occupied, parking_type, rate_per_hour, seconds_before_considered_parked=2, seconds_before_considered_left=2):
+        # DB initialized variables
         self.camera_id = camera_id
         self.parking_id = parking_id
-        self.bb = [
-                    [bounding_box['top_left_x'], bounding_box['top_left_y']],
-                    [bounding_box['top_right_x'], bounding_box['top_right_y']],
-                    [bounding_box['bottom_left_x'], bounding_box['bottom_left_y']],
-                    [bounding_box['bottom_right_x'], bounding_box['bottom_right_y']]
-                  ]
+        self.bb = bounding_box
+        self.is_occupied = is_occupied
+        self.parking_type = parking_type
+        self.rate_per_hour = rate_per_hour
 
         # Default initialized variables
         self.seconds_before_considered_parked = seconds_before_considered_parked

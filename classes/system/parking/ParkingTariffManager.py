@@ -3,6 +3,7 @@ from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
+from classes.system_utilities.data_utilities.Avenues import GetAllParkings
 from classes.super_classes.PtmListener import PtmListener
 
 from multiprocessing import Process, shared_memory
@@ -45,6 +46,17 @@ class ParkingTariffManager(TrackedObjectListener):
             for parking_space in parking_space_data:
                 self.parking_spaces.append(ParkingSpace(**parking_space))
 
+    def loadParkingSpacesFromDb(self):
+        parkings_ids, parkings_docs = GetAllParkings(Constants.avenue_id)
+
+        for i in range(len(parkings_ids)):
+            parking_doc = parkings_docs[i]
+            parking_id = parkings_ids[i]
+
+            self.parking_spaces.append(ParkingSpace(parking_doc[Constants.camera_id_key], parking_id,
+                                                    parking_doc[Constants.bounding_box_key], parking_doc[Constants.is_occupied_key],
+                                                    parking_doc[Constants.parking_type_key], parking_doc[Constants.rate_per_hour_key]))
+
     def addParkingSpaceToManager(self, parking_space):
         self.parking_spaces.append(parking_space)
 
@@ -58,7 +70,8 @@ class ParkingTariffManager(TrackedObjectListener):
 
     def startManaging(self):
         super().initialize()
-        self.loadParkingSpacesFromJson()
+        # self.loadParkingSpacesFromJson()
+        self.loadParkingSpacesFromDb()
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
         self.start_system_event.wait()
@@ -128,8 +141,6 @@ class ParkingTariffManager(TrackedObjectListener):
                                              are_occupied=temp_parking_is_occupied_list)
 
             self.frames[i][:] = temp_frame[:]
-
-
 
 
 
