@@ -52,8 +52,7 @@ def OnLoad():
 
     # Run blank detection to initialize model
     from classes.system_utilities.helper_utilities import Constants
-    print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
-    print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
+    DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)])
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in a list of images.

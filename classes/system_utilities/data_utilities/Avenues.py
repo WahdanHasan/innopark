@@ -132,29 +132,7 @@ def UpdateSessionTariffAmount(avenue, session_id):
     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
                   field_to_edit="tariff_amount", new_data=tariff_amount)
 
-def CalculateSessionTariffAmount(start_datetime, end_datetime, rate_per_hour):
 
-    start_day = int(start_datetime.strftime('%d'))
-    end_day = int(end_datetime.strftime('%d'))
-    subtracted_day = end_day - start_day
-
-    start_time = timedelta(hours=start_datetime.hour, minutes=start_datetime.minute, seconds=start_datetime.second)
-    end_time = timedelta(hours=end_datetime.hour, minutes=end_datetime.minute, seconds=end_datetime.second)
-    subtracted_time = end_time - start_time
-
-    # print("start time: ", start_time)
-    # print("end time: ", end_time)
-    # print("subtracted time: ", subtracted_time)
-    #
-    # print("start day: ", start_day)
-    # print("end day: ", end_day)
-    # print("subtracted day: ", subtracted_day)
-
-    tariff_amount = subtracted_time.seconds//3600 * rate_per_hour
-    if (subtracted_day > 0):
-        tariff_amount += 24 * rate_per_hour
-
-    return tariff_amount
 
 def GetAllParkings(avenue):
     docs_id, docs = db.GetAllDocuments(collection+"/"+avenue+"/parkings_info")

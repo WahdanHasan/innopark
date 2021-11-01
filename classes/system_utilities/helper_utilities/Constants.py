@@ -1,6 +1,7 @@
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
 base_pool_size = 3
+seconds_in_hour = 3600
 
 # Don't delete me. Trackers will stop working :(
 bb_shared_memory_manager_prefix = "tracked_object_bb_shared_memory_manager_"

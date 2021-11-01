@@ -26,6 +26,8 @@ def sendSmsToLicense(license_plate):
                                      to=vehicle_registered_phone_number
                                      )
 
+    print("[SMS] SMS sent to " + vehicle_registered_phone_number, file=sys.stderr)
+
 
 def buildSmsPaymentMessage(license_plate, tariff_amount, payment_link):
     return "Thank you for using Innopark parkings!\n\nYour total bill for the vehicle " + license_plate + " is " + \
