@@ -1,0 +1,16 @@
+[
+	{
+		"camera_id":3,
+		"parking_id":188,
+		"bounding_box": {
+				"top_left_x":349,
+				"top_left_y":214,
+				"top_right_x":481,
+				"top_right_y":214,
+				"bottom_left_x":480,
+				"bottom_left_y":391,
+				"bottom_right_x":718,
+				"bottom_right_y":367
+				}	
+	}	
+]

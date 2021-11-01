@@ -1,14 +1,12 @@
 import cv2
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-import classes.test_classes.tracker as T
 
 # Global variable declarations
 yolo_net = 0
 yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
-tracker = T.EuclideanDistTracker()
 
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
@@ -20,14 +18,14 @@ def OnLoad():
     global yolo_output_layer_names
     global yolo_net_input_size
 
-    classes_file = 'modules\\YOLOv3\\coco.names'
+    classes_file = 'config\\yolov3\\coco.names'
 
     with open(classes_file, 'rt') as f:
         yolo_class_names = f.read().rstrip('\n').split('\n')
 
 
-    model_config = 'modules\\YOLOv4\\yolov4-tiny.cfg'
-    model_weights = 'modules\\YOLOv4\\yolov4-tiny.weights'
+    model_config = 'config\\yolov4\\yolov4-tiny.cfg'
+    model_weights = 'config\\yolov4\\yolov4-tiny.weights'
     yolo_net_input_size = 320
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
@@ -37,14 +35,6 @@ def OnLoad():
 
     yolo_layer_names = yolo_net.getLayerNames()
     yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
-
-
-
-# This function executes when the class loads
-OnLoad()
-
-
-
 
 
 def DetectObjectsInImage(image):
@@ -127,5 +117,3 @@ def DetectObjectsInImage(image):
 
 
     return is_one_detection_above_threshold, class_names, bounding_boxes, confidence_scores
-
-

@@ -121,3 +121,5 @@ tools/VideoRecorder/saved/
 tools/VideoRecorder/tests/
 data/reference footage/journey 2/
 data/reference footage/test journey/
+config/license_plate_detector/
+//.idea/

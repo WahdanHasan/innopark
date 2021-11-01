@@ -1,16 +1,17 @@
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
-import pytesseract
+import tesserocr
+from PIL import Image
 import re as regex
 import numpy as np
 from object_detection.utils import config_util
 from object_detection.utils import label_map_util
 from object_detection.builders import model_builder
-from object_detection.utils import visualization_utils as viz_utils
 
 # Global variable declarations
 license_detection_model = 0
 license_category_index = 0
-
 def OnLoad():
     # All models and internal/external dependencies should be both loaded and initialized here
 
@@ -23,31 +24,28 @@ def OnLoad():
         except RuntimeError as e:
             print(e)
 
-    # Initialize pytesseract cmd
-    pytesseract.pytesseract.tesseract_cmd = "modules\\TesseractOCR\\tesseract.exe"
-
-    # Initialize license plate detector model and class categories
+    # Initialize license_plate_detector model and class categories
     global license_detection_model
     global license_category_index
 
-    configs = config_util.get_configs_from_pipeline_file("data\\license plate detector\\pipeline.config")
+    configs = config_util.get_configs_from_pipeline_file("config\\license_plate_detector\\pipeline.config")
 
     license_detection_model = model_builder.build(model_config=configs['model'],
                                                   is_training=False)
 
+
     temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
-    temp_model.restore("data\\license plate detector\\license_plate_model").expect_partial()
+    temp_model.restore("config\\license_plate_detector\\license_plate_model").expect_partial()
 
-    license_category_index = label_map_util.create_category_index_from_labelmap("data\\license plate detector\\label_map.pbtxt")
+    license_category_index = label_map_util.create_category_index_from_labelmap("config\\license_plate_detector\\label_map.pbtxt")
 
+    from classes.system_utilities.helper_utilities import Constants
 
-
-
-
-# This function executes when the class loads
-OnLoad()
+    # Run blank detection to initialize model
+    DetectLicenseInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
 def DetectLicenseInImage(image):
+    # return False, [['yes']], [[[0, 0], [0, 0]]], 'yes'
     # Attempts to detect license plates in the image.
     # Returns a True if at least 1 license was detected, otherwise False.
     # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
@@ -127,24 +125,14 @@ def GetLicenseFromImage(license_plate):
     valid_ascii_pattern = "([A-Z]|[0-9])"
 
     # Extract text from image
-    boxes = pytesseract.image_to_boxes(license_plate)
-    # Split text into entries of Character : Bounding_box format
-    boxes = boxes.splitlines()
+    text = tesserocr.image_to_text(Image.fromarray(license_plate))
 
     # Extract characters that match the regex pattern
-    boxes_temp = []
-    for box in boxes:
-        box = box.split(' ')
-        if regex.match(valid_ascii_pattern, box[0]):
-            boxes_temp.append(box)
+    license_plate = []
+    for character in text:
+        if regex.match(valid_ascii_pattern, character[0]):
+            license_plate.append(character)
 
-    boxes = boxes_temp
-
-    license_plate = ""
-
-    # Create a list of the characters
-    for box in boxes:
-        license_plate = license_plate + box[0]
-
+    license_plate = ''.join(license_plate)
 
     return license_plate

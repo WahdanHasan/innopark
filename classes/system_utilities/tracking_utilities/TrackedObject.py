@@ -1,3 +1,4 @@
+
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
@@ -7,20 +8,22 @@ import sys
 import cv2
 import copy
 import numpy as np
+import time
 from threading import Thread
-from multiprocessing import Process, Pipe, Queue, shared_memory
+from multiprocessing import Process, Pipe, shared_memory
 
 
 class TrackedObjectPoolManager:
     # Manages tracked object processes in a pool.
 
-    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, pool_size=1):
+    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, shutdown_event):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
 
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
 
         self.pool_process = 0
-        self.pool_size = pool_size
+        self.pool_size = Constants.base_pool_size
+        self.shutdown_event = shutdown_event
         self.new_tracked_object_process_event = new_tracked_object_process_event
         self.initialized_event = initialized_event
 
@@ -75,9 +78,9 @@ class TrackedObjectPoolManager:
     def GetTrackedObjectProcessRequest(self, instructions):
         (sender_pipe) = instructions[1]
 
-        temp_pipe, bb_in_shared_memory_manager = self.GetTrackedObjectProcess()
+        temp_pipe, bb_in_shared_memory_manager, process_idx = self.GetTrackedObjectProcess()
 
-        sender_pipe.send((temp_pipe, bb_in_shared_memory_manager))
+        sender_pipe.send((temp_pipe, bb_in_shared_memory_manager, process_idx))
 
     def GetTrackedObjectProcess(self):
 
@@ -88,7 +91,7 @@ class TrackedObjectPoolManager:
             if not self.tracked_object_process_active_statuses[i]:
                 print("[TrackedObjectPoolManager] Returning process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
                 self.tracked_object_process_active_statuses[i] = True
-                return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i]
+                return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i], i
 
         print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
 
@@ -105,13 +108,16 @@ class TrackedObjectPoolManager:
         # # Reset event for all listening processes
         # self.new_tracked_object_process_event.clear()
 
-        return temp_pipe, bb_in_shared_memory_manager
+        return temp_pipe, bb_in_shared_memory_manager, self.pool_size -1
 
     def ReturnTrackedObjectProcessRequest(self, instructions):
-        x=10
+        (process_idx) = instructions[1]
 
-    def ReturnTrackedObjectProcess(self):
-        x=10
+        self.ReturnTrackedObjectProcess(process_idx)
+
+    def ReturnTrackedObjectProcess(self, process_idx):
+        self.tracked_object_process_active_statuses[process_idx] = False
+        print("[TrackedObjectPoolManager] Returned process with id " + str(process_idx + 1) + ".", file=sys.stderr)
 
     def CreateTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it
@@ -261,12 +267,11 @@ class TrackedObjectProcess:
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
 
-        new_object_id = -1
-
         while self.should_keep_tracking:
 
             # Wait for confirmation to read
             instruction = pipe.recv()
+
             # Validate if the message received is a proper instruction
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
                 if isinstance(instruction, list):
@@ -293,17 +298,6 @@ class TrackedObjectProcess:
                 self.UpdateMovingObject()
                 # self.UpdateStationaryObject()
 
-
-            # ttt = IU.GetFullBoundingBox([[0, 0], [self.frame.shape[1], self.frame.shape[0]]])
-
-            # print(IU.AreBoxesOverlapping(ttt, IU.FloatBBToIntBB(self.bb)))
-            # cv2.imshow("HE", self.frame)
-
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-
         print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 
         self.AwaitInstructions(tracking_instruction_pipe=self.tracking_instruction_pipe,
@@ -312,9 +306,6 @@ class TrackedObjectProcess:
 
     def UpdateMovingObject(self):
         self.CalculateNewBoundingBox(self.frame)
-
-        # cropped_mask = IU.CropImage(img=self.mask, bounding_set=IU.FloatBBToIntBB(self.bb))
-        # cv2.imshow("me smoll process frame mask cropped", cropped_mask)
 
     def UpdateStationaryObject(self):
         x=10

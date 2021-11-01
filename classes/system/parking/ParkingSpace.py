@@ -1,18 +1,21 @@
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.data_utilities import SMS
+from classes.system_utilities.helper_utilities import Constants
 
+import numpy as np
+from datetime import timedelta
+import sys
 import time
 
 class ParkingSpace:
-    def __init__(self, camera_id, parking_id, bounding_box, seconds_before_considered_parked=2, seconds_before_considered_left=2):
-        # JSON initialized variables
+    def __init__(self, camera_id, parking_id, bounding_box, is_occupied, parking_type, rate_per_hour, seconds_before_considered_parked=2, seconds_before_considered_left=2):
+        # DB initialized variables
         self.camera_id = camera_id
         self.parking_id = parking_id
-        self.bb = [
-                    [bounding_box['top_left_x'], bounding_box['top_left_y']],
-                    [bounding_box['top_right_x'], bounding_box['top_right_y']],
-                    [bounding_box['bottom_left_x'], bounding_box['bottom_left_y']],
-                    [bounding_box['bottom_right_x'], bounding_box['bottom_right_y']]
-                  ]
+        self.bb = bounding_box
+        self.is_occupied = is_occupied
+        self.parking_type = parking_type
+        self.rate_per_hour = rate_per_hour
 
         # Default initialized variables
         self.seconds_before_considered_parked = seconds_before_considered_parked
@@ -61,10 +64,25 @@ class ParkingSpace:
             self.ResetOccupant()
 
     def ChargeOccupant(self):
-        print("Occupant with id " + str(self.occupant_id) + " will now be charged")
+        print("Occupant with id " + str(self.occupant_id) + " will now be charged", file=sys.stderr)
 
 
 
+        SMS.sendSmsToLicense(self.occupant_id)
 
+    def CalculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):
 
+        start_day = int(start_datetime.strftime('%d'))
+        end_day = int(end_datetime.strftime('%d'))
+        subtracted_day = end_day - start_day
 
+        start_time = timedelta(hours=start_datetime.hour, minutes=start_datetime.minute, seconds=start_datetime.second)
+        end_time = timedelta(hours=end_datetime.hour, minutes=end_datetime.minute, seconds=end_datetime.second)
+        subtracted_time = end_time - start_time
+
+        tariff_amount = int(np.ceil(subtracted_time.seconds/Constants.seconds_in_hour) * rate_per_hour)
+
+        if (subtracted_day > 0):
+            tariff_amount += 24 * rate_per_hour
+
+        return tariff_amount

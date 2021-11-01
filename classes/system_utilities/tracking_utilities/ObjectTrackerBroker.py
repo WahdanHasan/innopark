@@ -9,7 +9,7 @@ from multiprocessing import Process
 class ObjectTrackerBroker:
     # Facilitates the exchange of tracked objects between object trackers
 
-    # TODO: The broker should facilitate transfer of tracked object process pipes rather than just ids
+
     def __init__(self, broker_request_queue):
 
         # Adjacency matrix of cameras with their id in the correct spot

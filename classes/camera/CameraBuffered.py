@@ -1,10 +1,11 @@
+import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.system_utilities.helper_utilities import Constants
+
+import numpy as np
 import cv2
 import sys
 from queue import Queue
 from threading import Thread
-import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.system_utilities.helper_utilities.Enums import ImageResolution
-from classes.system_utilities.helper_utilities import Constants
 
 class Camera:
     def __init__(self, rtsp_link, camera_id, buffer_size=1):
@@ -12,6 +13,8 @@ class Camera:
         self.rtsp_link = rtsp_link
         self.camera_id = camera_id
         self.default_resolution = Constants.default_camera_shape[:2]
+        self.base_blank = np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)
+
 
         # Link validation
         if not (isinstance(rtsp_link, str) or isinstance(rtsp_link, int)):
@@ -89,7 +92,10 @@ class Camera:
 
         frame = self.frame_queue.get()
 
-        frame = IU.RescaleImageToResolution(img=frame,
-                                            new_dimensions=self.default_resolution)
-
+        try:
+            frame = IU.RescaleImageToResolution(img=frame,
+                                                new_dimensions=self.default_resolution)
+        except cv2.error as cv2_error:
+            # if cv2_error == '!ssize.empty()':
+            frame = self.base_blank
         return frame

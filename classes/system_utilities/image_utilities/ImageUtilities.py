@@ -291,33 +291,7 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def AreBoxesOverlapping(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
-    # Takes 2 bounding boxes, one for the car, one for the parking spot
-    # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
-    # be in the format of [TL, BR]
-    # Returns true if overlapping, false otherwise
-
-
-    # Define each polygon
-    temp_parking_bb = [parking_bounding_box[0], parking_bounding_box[1], parking_bounding_box[3], parking_bounding_box[2]]
-    temp_car_bb = GetFullBoundingBox(car_bounding_box)
-    temp_car_bb = [temp_car_bb[0], temp_car_bb[1], temp_car_bb[3], temp_car_bb[2]]
-    polygon1_shape = Polygon(temp_parking_bb)
-    polygon2_shape = Polygon(temp_car_bb)
-
-    # Calculate intersection and union, and the IOU
-    polygon_intersection = polygon1_shape.intersection(polygon2_shape).area
-    polygon_union = polygon1_shape.area + polygon2_shape.area - polygon_intersection
-
-    iou = polygon_intersection / polygon_union
-
-    print(iou)
-    if (iou > acceptable_threshold):
-        return True
-    else:
-        return False
-
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.04): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.06): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
@@ -356,7 +330,7 @@ def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
     return temp_image
 
-def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=1):
+def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=2):
     # Takes an image and places bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -397,7 +371,7 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
 
     return temp_image
 
-def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=1):
+def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format
     # Returns the image with all the drawn boxes on it.
@@ -430,8 +404,25 @@ def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=
                                      text=f'{class_names[i]}',
                                      org=(bounding_boxes[i][0][0], bounding_boxes[i][0][1] - 10),
                                      fontFace=cv2.FONT_HERSHEY_DUPLEX,
-                                     fontScale=0.5,
-                                     color=(0, 0, 255),
-                                     thickness=1)
+                                     fontScale=0.7,
+                                     color=color,
+                                     thickness=2)
 
     return temp_image
+
+def convertBbFormat(bboxes, image_height, image_width):
+# Changes the format of the bounding boxes from normalized ymin, xmin, ymax, xmax ---> xmin, ymin, xmax, ymax
+    for box in bboxes:
+        ymin = int(box[0] * image_height)
+        xmin = int(box[1] * image_width)
+        ymax = int(box[2] * image_height)
+        xmax = int(box[3] * image_width)
+        box[0], box[1], box[2], box[3] = xmin, ymin, xmax, ymax
+    return bboxes
+
+def readClasses(file):
+    names = {}
+    with open(file, 'r') as data:
+        for ID, name in enumerate(data):
+            names[ID] = name.strip('\n')
+    return names
