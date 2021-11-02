@@ -1,6 +1,7 @@
 from classes.system_utilities.image_utilities.ImageUtilities import readClasses
 from easydict import EasyDict as edict
 import numpy as np
+import tensorflow as tf
 
 
 __C                           = edict()
@@ -27,7 +28,7 @@ __C.VAR.IOU = 0.45
 __C.VAR.SCORE = 0.5
 
 
-def loadWeights(model, weights_file):
+def LoadWeights(model, weights_file):
     layer_size = 110
     output_pos = [93, 101, 109]
 
@@ -68,10 +69,10 @@ def loadWeights(model, weights_file):
 
     wf.close()
 
-def loadConfig():
+def LoadConfig():
     STRIDES = np.array(cfg.YOLO.STRIDES)
 
-    ANCHORS = getAnchors(cfg.YOLO.ANCHORS)
+    ANCHORS = GetAnchors(cfg.YOLO.ANCHORS)
 
     XYSCALE = cfg.YOLO.XYSCALE
 
@@ -79,7 +80,51 @@ def loadConfig():
 
     return STRIDES, ANCHORS, NUM_CLASS, XYSCALE
 
-def getAnchors(anchors_path):
+def GetAnchors(anchors_path):
     anchors = np.array(anchors_path)
 
     return anchors.reshape(3, 3, 2)
+
+def BuildModel():
+    from classes.system_utilities.image_utilities.LicenseDetectionModel import YOLO, decode, filterBoxes
+    from classes.system_utilities.image_utilities.LicenseDetectionConfig import LoadWeights
+
+    # All models and internal/external dependencies should be both loaded and initialized here
+    input_size = cfg.VAR.INPUT_SIZE
+    score_threshold = cfg.YOLO.IOU_LOSS_THRESH
+    weights_path = cfg.YOLO.WEIGHTS
+    output_path = cfg.YOLO.SAVEDMODEL
+
+    STRIDES, ANCHORS, NUM_CLASS, XYSCALE = LoadConfig()
+
+    input_layer = tf.keras.layers.Input([input_size, input_size, 3])
+    feature_maps = YOLO(input_layer, NUM_CLASS)
+    bbox_tensors = []
+    prob_tensors = []
+
+    for i, fm in enumerate(feature_maps):
+        if i == 0:
+            output_tensors = decode(fm, input_size // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+        elif i == 1:
+            output_tensors = decode(fm, input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+        else:
+            output_tensors = decode(fm, input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
+        bbox_tensors.append(output_tensors[0])
+        prob_tensors.append(output_tensors[1])
+
+    pred_bbox = tf.concat(bbox_tensors, axis=1)
+    pred_prob = tf.concat(prob_tensors, axis=1)
+
+    boxes, pred_conf = filterBoxes(pred_bbox, pred_prob, score_threshold=score_threshold,
+                                   input_shape=tf.constant([input_size, input_size]))
+    pred = tf.concat([boxes, pred_conf], axis=-1)
+
+    model = tf.keras.Model(input_layer, pred)
+
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+    LoadWeights(model, weights_path)
+
+    model.save(output_path,save_format='tf')
+    print("Saved model to disk")
+    # tf.keras.models.save_model(model, output_path)

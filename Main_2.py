@@ -44,9 +44,29 @@
 #     main()
 import classes.system_utilities.image_utilities.LicenseDetection_Custom as LD
 import cv2
-# LD.BuildModel()
+
 LD.OnLoad()
 
-for i in range(10):
+# for i in range(10):
+#
+#     img = LD.DetectLicenseInImage(cv2.imread("./config/license_plate_detector/carr2.jpg"))
+#     cv2.imshow("img", img)
+#     cv2.waitKey(0)
 
-    LD.DetectLicenseInImage(cv2.imread("./config/license_plate_detector/carr2.jpg"))
+import classes.system_utilities.image_utilities.ImageUtilities as IU
+
+for i in range(4):
+    img = cv2.imread("data\\reference footage\\images\\carr2.jpg")
+
+    validity_status, classes, bounding_boxes_converted, scores = LD.DetectLicenseInImage(img)
+
+    print("validity_status: ", validity_status)
+
+    img = IU.CropImage(img, bounding_boxes_converted[0])
+
+    if validity_status==1:
+        cv2.imshow("EE", img)
+
+    print("Done")
+
+    cv2.waitKey(0)
