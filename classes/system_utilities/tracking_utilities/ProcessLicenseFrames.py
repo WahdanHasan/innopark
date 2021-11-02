@@ -14,8 +14,8 @@ class ProcessLicenseFrames:
         self.should_keep_running = True
 
     def Start(self):
-        # from classes.system_utilities.image_utilities import LicenseDetection
-        from classes.system_utilities.image_utilities import LicenseDetection_Custom as LicenseDetection
+        from classes.system_utilities.image_utilities import LicenseDetection
+        # from classes.system_utilities.image_utilities import LicenseDetection_Custom as LicenseDetection
         LicenseDetection.OnLoad()
 
         self.wait_license_processing_event.set()
@@ -32,13 +32,15 @@ class ProcessLicenseFrames:
                                                                 LicenseDetection=LicenseDetection)
 
             # determine the license plate of the vehicle
-            if license_plates_info:
-                detected_license = self.GetProminentLicensePlate(license_plates_info)
+            # if license_plates_info:
+            #     detected_license = self.GetProminentLicensePlate(license_plates_info)
+            #
+            #     # send the license to broker
+            #     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
+            # else:
+            #     print("[License Detector] No license was detected.", file=sys.stderr)
 
-                # send the license to broker
-                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
-            else:
-                print("[License Detector] No license was detected.", file=sys.stderr)
+            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'J71612', EntrantSide.LEFT))
 
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
