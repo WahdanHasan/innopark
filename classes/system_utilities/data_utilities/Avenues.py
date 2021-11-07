@@ -3,7 +3,6 @@ from datetime import datetime, timedelta, timezone
 from classes.system_utilities.helper_utilities.Constants import avenue_id
 
 # now = datetime.now(timezone.utc).astimezone()
-now = datetime.now()
 
 parking_due_in_hours = 48
 
@@ -66,72 +65,78 @@ def UpdateParkingRatePerHour(avenue, parking_type, rate_per_hour):
         db.UpdateData(collection=collection+"/"+avenue+"/parkings_info", document=parking_id,
                       field_to_edit="rate_per_hour", new_data=rate_per_hour)
 
-def AddSession(avenue, vehicle, start_datetime=now, end_datetime=None, due_datetime=None,
-               tariff_amount=0, is_paid=False, parking_id=None):
+def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, due_datetime=None, tariff_amount=0, is_paid=False):
     # call this method when vehicle enters innopark parking
     # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
     rate_per_hour = GetRatePerHourFromParkingInfo(avenue, parking_id)
 
-    db.AddData(collection=collection+"/"+avenue+"/sessions_info",
-               data={"end_datetime":end_datetime,
-                     "start_datetime":start_datetime,
-                     "due_datetime":due_datetime,
-                     "tariff_amount": tariff_amount,
-                     "vehicle": vehicle,
-                     "is_paid": is_paid,
-                     "parking_id": parking_id,
-                     "rate_per_hour": rate_per_hour})
+    document_ref =  db.AddData(collection=collection+"/"+avenue+"/sessions_info",
+                      data={"end_datetime":end_datetime,
+                            "start_datetime":start_datetime,
+                            "due_datetime":due_datetime,
+                            "tariff_amount": tariff_amount,
+                            "vehicle": vehicle,
+                            "is_paid": is_paid,
+                            "parking_id": parking_id,
+                            "rate_per_hour": rate_per_hour})
 
-def UpdateSessionParkingId(avenue, vehicle, parking_id):
-    # call this method when vehicle parks
+    return document_ref[1].path.split("/")[3]
+# def UpdateSessionParkingId(avenue, vehicle, parking_id):
+#     # call this method when vehicle parks
+#
+#     docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
+#                                                                       "vehicle", vehicle, "parking_id")
+#
+#     session = docs_id_extracted[0]
+#
+#     db.UpdateData(collection=collection+"/" + avenue + "/sessions_info", document=session,
+#                   field_to_edit="parking_id", new_data=parking_id)
+#
+#     UpdateSessionTariffAmount(avenue, session)
+#
+#
+# def UpdateSessionEndDateTime(avenue, vehicle, end_datetime=now):
+#     # call this method when vehicle exits innopark parking
+#     # UpdateSessionEndDateTime(avenue_id, "J71612")
+#
+#     docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
+#                                                                       "vehicle", vehicle, "end_datetime")
+#
+#     session_id = docs_id_extracted[0]
+#
+#     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
+#                   field_to_edit="end_datetime", new_data=end_datetime)
+#
+#     UpdateSessionTariffAmount(avenue=avenue, session_id=session_id)
+#
+#     UpdateSessionDueDateTime(avenue=avenue, session_id=session_id, end_datetime=end_datetime)
 
-    docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
-                                                                      "vehicle", vehicle, "parking_id")
-
-    session = docs_id_extracted[0]
-
-    db.UpdateData(collection=collection+"/" + avenue + "/sessions_info", document=session,
-                  field_to_edit="parking_id", new_data=parking_id)
-
-    UpdateSessionTariffAmount(avenue, session)
-
-
-def UpdateSessionEndDateTime(avenue, vehicle, end_datetime=now):
-    # call this method when vehicle exits innopark parking
-    # UpdateSessionEndDateTime(avenue_id, "J71612")
-
-    docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
-                                                                      "vehicle", vehicle, "end_datetime")
-
-    session_id = docs_id_extracted[0]
-
-    db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
-                  field_to_edit="end_datetime", new_data=end_datetime)
-
-    UpdateSessionTariffAmount(avenue=avenue, session_id=session_id)
-
-    UpdateSessionDueDateTime(avenue=avenue, session_id=session_id, end_datetime=end_datetime)
-
-def UpdateSessionDueDateTime(avenue, session_id, end_datetime):
+def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
     due_datetime = end_datetime+timedelta(hours=48)
 
     db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
                   field_to_edit="due_datetime", new_data=due_datetime)
 
+    db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
+                  field_to_edit="end_datetime", new_data=end_datetime)
 
-def UpdateSessionTariffAmount(avenue, session_id):
-    session_data = db.GetAllDataUsingPath(collection=collection+"/"+avenue+"/sessions_info", document=session_id)
-
-    start_datetime = session_data["start_datetime"]
-    end_datetime = session_data["end_datetime"]
-    rate_per_hour = session_data["rate_per_hour"]
-
-    tariff_amount = CalculateSessionTariffAmount(start_datetime, end_datetime, rate_per_hour)
 
     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
                   field_to_edit="tariff_amount", new_data=tariff_amount)
 
+
+# def UpdateSessionTariffAmount(avenue, session_id):
+#     session_data = db.GetAllDataUsingPath(collection=collection+"/"+avenue+"/sessions_info", document=session_id)
+#
+#     start_datetime = session_data["start_datetime"]
+#     end_datetime = session_data["end_datetime"]
+#     rate_per_hour = session_data["rate_per_hour"]
+#
+#     tariff_amount = CalculateSessionTariffAmount(start_datetime, end_datetime, rate_per_hour)
+#
+#     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
+#                   field_to_edit="tariff_amount", new_data=tariff_amount)
 
 
 def GetAllParkings(avenue):

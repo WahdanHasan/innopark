@@ -12,7 +12,7 @@ from classes.system_utilities.helper_utilities import Constants
 
 class Tracker:
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=1):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=2):
 
         self.tracker_process = 0
         self.parking_spaces = []

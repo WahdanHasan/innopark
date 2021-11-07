@@ -22,6 +22,11 @@ def to_dict(document):
 
     print(f'Document: {doc}')
 
+
+def get_id(document_ref):
+    doc = document_ref.get()
+    return doc[0].id
+
 def GetDbConnection():
     return db
 
@@ -31,12 +36,12 @@ def AddData(collection, document=None, data=None):
     if document is not None:
         document_ref = db.collection(collection).document(document)
         document_ref.set(data)
-        # document_ref.set(data, merge=True)
     else:
         collection_ref = db.collection(collection)
-        collection_ref.add(data)
+        document_ref = collection_ref.add(data)
 
     print("Successfully added to "+collection)
+    return document_ref
 
 def UpdateData(collection, document, field_to_edit, new_data):
     document_ref = db.collection(collection).document(document)

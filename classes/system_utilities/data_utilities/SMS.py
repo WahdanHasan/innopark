@@ -6,7 +6,7 @@ from twilio.rest import Client
 import sys
 
 
-def sendSmsToLicense(license_plate):
+def sendSmsToLicense(license_plate, tariff_amount):
 
     vehicle_registered_phone_number = DU.GetValueOfFieldOnMatch(collection="government-registered-drivers",
                                                                 match_key=Constants.gov_license_key,
@@ -17,12 +17,10 @@ def sendSmsToLicense(license_plate):
         print("[SMS] License plate is not registered to government database. This may be due to an incorrect plate number.", file=sys.stderr)
         return
 
-    tariff_amount = 50.00
-
     client = Client(config.account_sid, config.auth_token)
 
     message = client.messages.create(body=buildSmsPaymentMessage(license_plate, tariff_amount, "www.payflow.com"),
-                                     from_=config.twilio_number,
+                                     from_="Innopark",
                                      to=vehicle_registered_phone_number
                                      )
 
