@@ -115,6 +115,14 @@ def CalculatePointPositionAfterTransform(point, M):
     point_transformed_x = (M[0][0] * point[0] + M[0][1] * point[1] + M[0][2]) / (M[2][0] * point[0] + M[2][1] * point[1] + M[2][2])
     point_transformed_y = (M[1][0] * point[0] + M[1][1] * point[1] + M[1][2]) / (M[2][0] * point[0] + M[2][1] * point[1] + M[2][2])
 
+    return [int(point_transformed_x), int(point_transformed_y)]
+
+def CalculatePointPositionAfterAffineTransform(point, M, M1=np.float32([0, 0, 1])):
+    # Calculates the new position of a point after transformation with set M
+    # Returns the transformed points in the list [x, y]
+
+    point_transformed_x = (M[0][0] * point[0] + M[0][1] * point[1] + M[0][2]) / (M1[0] * point[0] + M1[1] * point[1] + M1[2])
+    point_transformed_y = (M[1][0] * point[0] + M[1][1] * point[1] + M[1][2]) / (M1[0] * point[0] + M1[1] * point[1] + M1[2])
 
     return [int(point_transformed_x), int(point_transformed_y)]
 

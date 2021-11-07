@@ -1,9 +1,10 @@
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
+from classes.system_utilities.data_utilities import Avenues
 
 import numpy as np
-from datetime import timedelta
+from datetime import timedelta, datetime
 import sys
 import time
 
@@ -24,6 +25,10 @@ class ParkingSpace:
         self.occupant_left_parking_time_start = 0
         self.occupant_id = 0
         self.status = 0
+        self.start_datetime = 0
+        self.end_datetime = 0
+        self.session_id = 0
+
 
         self.ResetOccupant()
 
@@ -32,6 +37,9 @@ class ParkingSpace:
         self.occupant_left_parking_time_start = 0
         self.occupant_id = -1
         self.status = ParkingStatus.NOT_OCCUPIED
+        self.start_datetime = 0
+        self.end_datetime = 0
+        self.session_id = 0
 
     def UpdateId(self, new_parking_id):
         self.parking_id = new_parking_id
@@ -53,6 +61,11 @@ class ParkingSpace:
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
             self.status = ParkingStatus.OCCUPIED
             self.occupant_park_time_start = time.time()
+            self.start_datetime = datetime.now()
+            self.session_id = Avenues.AddSession(avenue=Constants.avenue_id,
+                                                 vehicle=self.occupant_id,
+                                                 parking_id=self.parking_id,
+                                                 start_datetime=self.start_datetime)
 
     def CheckAndUpdateIfOccupantLeft(self):
 
@@ -66,9 +79,19 @@ class ParkingSpace:
     def ChargeOccupant(self):
         print("Occupant with id " + str(self.occupant_id) + " will now be charged", file=sys.stderr)
 
+        self.end_datetime = datetime.now()
 
+        time_elapsed = self.end_datetime - self.start_datetime
 
-        SMS.sendSmsToLicense(self.occupant_id)
+        tariff_amount = int(np.ceil(time_elapsed.seconds/Constants.seconds_in_hour) * self.rate_per_hour)
+
+        Avenues.UpdateSession(avenue=Constants.avenue_id,
+                              session_id=self.session_id,
+                              end_datetime=self.end_datetime,
+                              tariff_amount=tariff_amount)
+
+        SMS.sendSmsToLicense(license_plate=self.occupant_id,
+                             tariff_amount=tariff_amount)
 
     def CalculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):
 
