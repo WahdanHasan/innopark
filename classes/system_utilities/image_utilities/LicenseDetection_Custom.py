@@ -1,6 +1,8 @@
 from classes.system_utilities.image_utilities.LicenseDetectionConfig import cfg, LoadConfig, BuildModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
+from keras import backend
+
 import os
 # comment out below line to enable tensorflow outputs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -46,6 +48,7 @@ def OnLoad():
     # global infer
     # license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
     #
+    #
     # infer = license_detection_model.signatures['serving_default']
 
 
@@ -82,6 +85,8 @@ def DetectLicenseInImage(image):
 
     # tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
     license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    pred = license_detection_model._make_predict_function()
+    print("PREDDDD: ", pred)
 
     infer = license_detection_model.signatures['serving_default']
 

@@ -58,6 +58,9 @@ class UI(QMainWindow):
                                                              new_object_in_pool_event=new_object_in_pool_event)
         self.ptm_listener = PtmListener()
 
+        # self.pvm_listener = PvmListener()
+
+
         self.debug_frame_labels = []
         self.left_slide_menu_min_width = 0
         self.left_slide_menu_max_width = 200
