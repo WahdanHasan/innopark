@@ -12,165 +12,187 @@ import cv2
 import sys
 import json
 import time
+import math
 
 
 
-def main():
+class ParkingViolationManager(TrackedObjectListener):
+
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event):
+
+        super().__init__(amount_of_trackers, new_object_in_pool_event)
+        self.shutdown_event = shutdown_event
+        self.start_system_event = start_system_event
+        self.violation_manager_process = 0
+        self.should_keep_managing = True
+        self.base_blank = np.zeros(
+                                    shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+                                    dtype=np.uint8
+        )
+
+        # camera_id, parking_id, parking_bbs, parking_status
+        # TL, TR, BL, BR
+        self.parking_spaces = [
+            [
+                                3,
+                                188,
+                                [[349, 214],
+                                [481, 214],
+                                [480, 391],
+                                [718, 367]],
+                                False
+             ]
+        ]
+
+        self.minimum_length_of_vehicle_trail = 0
+
+        # self.maximum_tracked_vehicle_bbs = 100
+
+        self.camera_offset = len(Constants.ENTRANCE_CAMERA_DETAILS)
+
+        self.latest_tracked_vehicle_bbs = {}
+        self.should_build_vehicle_bb_history = True
+
+        # for i in range(len(Constants.CAMERA_DETAILS)):
+        #     self.latest_tracked_vehicle_frames.append([None]*self.maximum_tracked_vehicle_frame_history)
+
+        self.is_debug_mode = True
+        self.frame_shms = []
+        self.frames = []
+
+        self.temp_counter = 0
+
+    def createSharedMemoryStuff(self, amount_of_trackers):
+        for i in range(amount_of_trackers):
+            temp_shm = shared_memory.SharedMemory(create=True,
+                                                  name=Constants.parking_violation_management_shared_memory_prefix + str(i),
+                                                  size=self.base_blank.nbytes)
+
+            temp_frame = np.ndarray(self.base_blank.shape, dtype=np.uint8, buffer=temp_shm.buf)
+            self.frame_shms.append(temp_shm)
+            self.frames.append(temp_frame)
+
+    def startProcess(self):
+        print("[ParkingViolationManager] Starting Parking Violation Manager.", file=sys.stderr)
+        self.violation_manager_process = Process(target=self.startManaging)
+        self.violation_manager_process.start()
+
+    def stopProcess(self):
+        self.tariff_manager_process.terminate()
+
+    def startManaging(self):
+        super().initialize()
+        self.createSharedMemoryStuff(self.amount_of_trackers)
+
+        self.start_system_event.wait()
+
+        while self.should_keep_managing:
+
+            ids, bbs = self.getAllActiveTrackedProcessItems()
+
+            self.checkAndUpdateViolationStatuses(ids=ids,
+                                                bbs=bbs)
+
+            # if self.is_debug_mode:
+            #     self.writeDebugItems()
+
+            time.sleep(0.033)
+
+    def checkAndUpdateViolationStatuses(self, ids, bbs):
+        # An object tracker cannot be on the id 0
+        if not ids or ids is None:
+            return
+
+        if not bbs or bbs is None:
+            return
+
+        for i in range(len(bbs)):
+            self.temp_counter +=1
+            vehicle_plate = ids[2][i]
+
+            # Initialize a list to key vehicle_plate if vehicle doesn't exist
+            if vehicle_plate not in self.latest_tracked_vehicle_bbs:
+                self.latest_tracked_vehicle_bbs[vehicle_plate] = [ParkingStatus.NOT_OCCUPIED]
+
+            # Build the history of vehicle bbs if vehicle is not parked
+            if self.latest_tracked_vehicle_bbs[vehicle_plate][0] == ParkingStatus.NOT_OCCUPIED:
+                self.buildVehicleBbHistory(bbs=bbs, vehicle_plate=vehicle_plate)
+
+            for j in range(len(self.parking_spaces)):
+
+                # if camera_id != self.parking_spaces[j].camera_id:
+                if ids[1][i] != self.parking_spaces[j][0]:
+                    continue
+
+                # if self.parking_spaces.status == ParkingStatus.OCCUPIED:
+                if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter == 200:
+                    print("PARKING OCCUPIED AAAAAAAAAAAAAAAAAAAA")
+                    self.latest_tracked_vehicle_bbs[vehicle_plate][0] = ParkingStatus.OCCUPIED
+                    bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate)
+                    self.drawVehicleTrail(bbs_center_pts)
+                    break
 
 
-    frame = cv2.imread("data\\reference footage\\images\\Car_Pass3_Parked.jpg")
+    def drawVehicleTrail(self, bbs_center_pts):
+        blank_img = self.base_blank.copy()
 
-    frame = IU.RescaleImageToResolution(frame, Constants.default_camera_shape[:2])
-    IU.SaveImage(frame, "SD_parked")
+        # format of bbs_center_pt is [center_x, center_y]
+        print("length: ", len(bbs_center_pts))
+        for i in range(len(bbs_center_pts)):
+            if i % 2 == 0:
+                continue
+            center_pt1 = bbs_center_pts[i]
+            center_pt2 = bbs_center_pts[i - 1]
+            print("center pt: (", center_pt1, center_pt2, ")")
+            blank_img = IU.DrawLine(image=blank_img, point_a=(int(center_pt1[0]), int(center_pt1[1])) ,
+                        point_b=(int(center_pt2[0]), int(center_pt2[1])), color=(0, 255, 0))
 
-    # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # cv2.imshow("full trail", blank_img)
+        IU.SaveImage(blank_img,"full trail_4")
+        # cv2.waitKey(0)
 
-    #blurred_frame = cv2.GaussianBlur(gray_frame, (5,5), 1)
+    def calculateMinimumVehicleTrail(self):
+        for j in range(len(self.parking_spaces)):
+            parking_bbs = self.parking_spaces[j][2]
+            # math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            parking_lane_length_left = math.sqrt((parking_bbs[2][0]-parking_bbs[0][0])**2 + (parking_bbs[2][1]-parking_bbs[0][1])**2)
+            parking_lane_length_right = math.sqrt((parking_bbs[3][0]-parking_bbs[1][0])**2 + (parking_bbs[3][1]-parking_bbs[1][1])**2)
 
-
-    height, width = frame.shape[:2]
-
-    # Car endpoints
-    # pt_A = [465, 120]
-    # pt_B = [465, 365]
-    # pt_C = [820, 365]
-    # pt_D = [820, 120]
-
-    # Parking endpoint
-    # pt_A = [349, 214]
-    # # pt_A = [320, 175]
-    # pt_B = [480, 391]
-    # pt_C = [718, 367]
-    # pt_D = [481, 214]
-    # pt_D = [500, 170]
-
-    pt_TL = [349, 214]
-    pt_TR = [481, 214]
-    pt_BL = [480, 391]
-    pt_BR = [718, 367]
-
+            if parking_lane_length_left > parking_lane_length_right:
+                self.minimum_length_of_vehicle_trail = parking_lane_length_left
+            else:
+                self.minimum_length_of_vehicle_trail = parking_lane_length_right
 
 
-    # width_AD = np.sqrt(((pt_A[0] - pt_D[0]) ** 2) + ((pt_A[1] - pt_D[1]) ** 2))
-    # width_BC = np.sqrt(((pt_B[0] - pt_C[0]) ** 2) + ((pt_B[1] - pt_C[1]) ** 2))
-    # maxWidth = max(int(width_AD), int(width_BC))
-    #
-    # height_AB = np.sqrt(((pt_A[0] - pt_B[0]) ** 2) + ((pt_A[1] - pt_B[1]) ** 2))
-    # height_CD = np.sqrt(((pt_C[0] - pt_D[0]) ** 2) + ((pt_C[1] - pt_D[1]) ** 2))
-    # maxHeight = max(int(height_AB), int(height_CD))
+    def calculateCenterOfBbs(self, vehicle_plate):
+        # returns center pts in format [center_x, center_y]
+        bbs_center_pts = []
 
-    # coordinates in the source image
-    pts1 = np.float32([pt_TL, pt_TR , pt_BL , pt_BR])
-    # pts2 = np.float32([[0,0], [width, 0], [0, height], [width, height]])
-    # pts2 = np.float32(np.float32([[0, 0],
-    #                     [0, maxHeight - 1],
-    #                     [maxWidth - 1, maxHeight - 1],
-    #                     [maxWidth - 1, 0]]))
+        # remember that bbs start from the second element
+        # calculate the ceiling center points
+        for bb in self.latest_tracked_vehicle_bbs[vehicle_plate][1:]:
+            # Apply midpoint formula to get center of bb
+            center_pt = [math.ceil((bb[0][0]+bb[1][0])/2), math.ceil((bb[1][0]+bb[1][1])/2)]
+            # print("bb: ", bb)
+            # print("center: ", center_pt)
+            bbs_center_pts.append(center_pt)
 
-    # coordinates in the output image
-    # pts2 = np.float32(np.float32([[0, 0], [width, 0], [width, height], [0, height]]))
-    # pts2 = np.float32(np.float32([[width, height], [0, 0], [width, 0], [0, height]]))
-    pts2 = np.float32(np.float32([[860, 176], [860, 620], [234, 620], [234, 176]]))
+        return bbs_center_pts
 
-    # T1 = np.float32([[1, 0, int(50 / 2)], [0, 1, int(100 / 2)]])
+    def buildVehicleBbHistory(self, bbs, vehicle_plate):
+        bbs = bbs[0]
+        # self.latest_tracked_vehicle_frames[camera_id-self.camera_offset][self.count_latest_tracked_vehicle_frames]=bbs
 
-    # affined_img = cv2.warpAffine(frame, T1, (width + 100, height + 100))
+        # Add new bb of vehicle
+        self.latest_tracked_vehicle_bbs[vehicle_plate].append(bbs)
 
-    # warped_img = cv2.warpPerspective(frame, 50, (width + 50, height + 50))
-
-    # Crop plate
-    # temp_plate = CropPlate(plate=temp_plate, bounding_set=bounding_set)
-
-    matrix = cv2.getPerspectiveTransform(pts1, pts2)
-    warped_img = cv2.warpPerspective(frame, matrix, (width, height))
-
-
-    for x in range(4):
-        cv2.circle(frame, (int(pts1[x][0]), int(pts1[x][1])), 5, (0,0,255), cv2.FILLED)
-
-    cv2.imshow("original img: ", frame)
-    cv2.imshow("output img: ", warped_img)
-    cv2.waitKey(0)
-
-    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # # cv2.imshow("converted to gray", gray)
-    #
-    # # gray = cv2.medianBlur(gray, 5)
-    # cv2.imshow("blurred gray", gray)
-    # # cv2.waitKey(0)
-    #
-    # rows = gray.shape[0]
-    # print("rows: ", rows)
-
-
-
-
-    # CONTOURS
-    # r = 20
-    # ret,gray_threshed = cv2.threshold(gray,r,255,cv2.THRESH_BINARY)
-    # edge_detected_image = cv2.Canny(gray, 75, 200)
-    #
-    # contours, _ = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    # contour_list = []
-    # for contour in contours:
-    #     # approximte for circles
-    #     approx = cv2.approxPolyDP(contour, 0.01 * cv2.arcLength(contour, True), True)
-    #     area = cv2.contourArea(contour)
-    #     if ((len(approx) > 8) & (area > 30)):
-    #         contour_list.append(contour)
-    #
-    # # Draw contours on the original image
-    # cv2.drawContours(frame, contour_list, -1, (255, 0, 0), 2)
-
-    # # there is an outer boundary and inner boundary for each edge, so contours double
-    # print('Number of found circles: {}'.format(int(len(contour_list) / 2)))
-
-
-    # HOUGH CIRCLE
-    # circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
-    #                           param1=200, param2=30,
-    #                           minRadius=80, maxRadius=0)
-    #
-    # if circles is not None:
-    #     print("found circles!!!!!!!")
-    #     circles = np.uint16(np.around(circles))
-    #     for i in circles[0, :]:
-    #         center = (i[0], i[1])
-    #         # circle center
-    #         cv2.circle(frame, center, 1, (0, 100, 100), 3)
-    #         # circle outline
-    #         radius = i[2]
-    #         cv2.circle(frame, center, radius, (255, 0, 255), 3)
-
-
-    # HOUGHLINES
-    # edges = cv2.Canny(gray, 50, 200)
-    # # Detect points that form a line
-    # lines = cv2.HoughLinesP(edges, 1, np.pi / 180, 150, minLineLength=10, maxLineGap=250)
-    # # Draw lines on the image
-    # for line in lines:
-    #     x1, y1, x2, y2 = line[0]
-    #     cv2.line(frame, (x1, y1), (x2, y2), (255, 0, 0), 3)
-
-    # cv2.imshow("detected circles", frame)
-    # cv2.waitKey(0)
-# get the parking slot region (determine the region of interest)
-
-# construct the bg to know what's bg and fg (Guassuan Mixture Model [GMM]).
-# Get mask of car using background subtraction model -- using morphological algo for it to be filled
-#
-
-# detect and filter the car that's in the fg
-# detect number of wheels
-
-
-
-
-
-
-
-# track the object??
-
-
-if __name__ == "__main__":
-    main()
+        # Pop first bb (found at index 1) if bbs stored exceed maximum number of bbs allowed
+        # if len(self.latest_tracked_vehicle_bbs[vehicle_plate]) == self.maximum_tracked_vehicle_bbs:
+        #     self.latest_tracked_vehicle_bbs[vehicle_plate].pop(1)
+            # last_bb = self.latest_tracked_vehicle_bbs[vehicle_plate][self.maximum_tracked_vehicle_bbs-1]
+            # second_last_bb = self.latest_tracked_vehicle_bbs[vehicle_plate][self.maximum_tracked_vehicle_bbs-2]
+            #
+            # if abs(last_bb[0][0]-second_last_bb[0][0]) < 7 and abs(last_bb[0][1]-second_last_bb[0][1]) < 7:
+            #     self.should_build_vehicle_bb_history = False
+            #     self.calculateCenterOfBbs(vehicle_plate=vehicle_plate)
+            # print("popped!")

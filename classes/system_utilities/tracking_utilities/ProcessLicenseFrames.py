@@ -24,12 +24,12 @@ class ProcessLicenseFrames:
             latest_license_frames = self.license_frames_request_queue.get()
 
             # detect license plates from frames
-            license_plates = self.DetectLicensePlates(latest_license_frames=latest_license_frames,
-                                                      license_detector=LicenseDetection)
+            # license_plates = self.DetectLicensePlates(latest_license_frames=latest_license_frames,
+            #                                           license_detector=LicenseDetection)
 
             # extract info from license plates
-            license_plates_info = self.ExtractLicensePlatesInfo(license_plates=license_plates,
-                                                                LicenseDetection=LicenseDetection)
+            # license_plates_info = self.ExtractLicensePlatesInfo(license_plates=license_plates,
+            #                                                     LicenseDetection=LicenseDetection)
 
             # determine the license plate of the vehicle
             # if license_plates_info:

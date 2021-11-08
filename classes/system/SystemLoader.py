@@ -47,12 +47,29 @@ def LoadComponents(shutdown_event, start_system_event):
                               shutdown_event=shutdown_event,
                               start_system_event=start_system_event)
 
+    StartParkingViolationManager(new_tracked_object_event=new_tracked_object_event,
+                                 shutdown_event=shutdown_event,
+                                 start_system_event=start_system_event)
+
     print("[SystemLoader] Waiting for all components to finish loading..", file=sys.stderr)
     pool_initialized_event.wait()
     wait_license_processing_event.wait()
     print("[SystemLoader] Done Loading. Awaiting system start.", file=sys.stderr)
 
     return new_tracked_object_event
+
+def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event):
+    from classes.system.parking.ParkingViolationManager import ParkingViolationManager
+
+    pvm = ParkingViolationManager(amount_of_trackers=len(camera_ids_and_links),
+                               new_object_in_pool_event=new_tracked_object_event,
+                               shutdown_event=shutdown_event,
+                               start_system_event=start_system_event)
+
+    pvm.startProcess()
+
+    return pvm
+
 
 def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager

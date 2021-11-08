@@ -10,10 +10,6 @@ conn = db.GetDbConnection()
 
 collection = "avenues"
 
-#below to be deleted afterwards
-# avenue_id = "O8483qKcEoQc6SPTDp5e"
-# avenue_id = "sXXjDt9IUyPBDaCmLTfF"
-
 def GetAllAvenues():
     doc = db.GetDocuments(collection)
     print("Avenues: ", doc)
@@ -69,6 +65,11 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
     # call this method when vehicle enters innopark parking
     # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
+    print("remove the return statement to add a session to the db!!")
+    return
+
+    avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
+
     rate_per_hour = GetRatePerHourFromParkingInfo(avenue, parking_id)
 
     document_ref =  db.AddData(collection=collection+"/"+avenue+"/sessions_info",
@@ -79,9 +80,11 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
                             "vehicle": vehicle,
                             "is_paid": is_paid,
                             "parking_id": parking_id,
-                            "rate_per_hour": rate_per_hour})
+                            "rate_per_hour": rate_per_hour,
+                            "avenue_name": avenue_name})
 
     return document_ref[1].path.split("/")[3]
+
 # def UpdateSessionParkingId(avenue, vehicle, parking_id):
 #     # call this method when vehicle parks
 #
@@ -113,6 +116,9 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
 #     UpdateSessionDueDateTime(avenue=avenue, session_id=session_id, end_datetime=end_datetime)
 
 def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
+    print("remove the return to update session")
+    return
+
     due_datetime = end_datetime+timedelta(hours=48)
 
     db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
