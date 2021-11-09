@@ -43,3 +43,7 @@ class DetectedObjectAtEntrance(Enum):
     DETECTED_WITH_YOLO = 2
     NOT_DETECTED = -1
 
+
+class ShutDownEvent(Enum):
+    SHUTDOWN = 1
+

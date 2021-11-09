@@ -1,5 +1,6 @@
 from classes.system_utilities.helper_utilities.Enums import EntrantSide
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
+from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
 
 import sys
 from threading import Thread
@@ -53,6 +54,10 @@ class ObjectTrackerBroker:
 
         while not self.listen_for_requests_thread_stopped:
             (instructions) = self.broker_request_queue.get()
+
+            if instructions == ShutDownEvent.SHUTDOWN:
+                print("[ObjectTrackerBroker] Cleaning up.", file=sys.stderr)
+                return
 
             if instructions[0] == TrackedObjectToBrokerInstruction.GET_VOYAGER:
                 self.GetVoyagerRequest(instructions)

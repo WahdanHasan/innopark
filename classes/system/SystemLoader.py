@@ -37,22 +37,21 @@ def LoadComponents(shutdown_event, start_system_event):
     for i in range(len(tracker_initialized_events)):
         tracker_initialized_events[i].wait()
 
-    entrance_cameras_initialized_event.wait()
 
     StartDetectorProcess(detector_request_queue=detector_request_queue,
-                         detector_initialized_event=detector_initialized_event,
-                         shutdown_event=shutdown_event)
+                         detector_initialized_event=detector_initialized_event)
 
     StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event,
                               shutdown_event=shutdown_event,
                               start_system_event=start_system_event)
 
+    entrance_cameras_initialized_event.wait()
     print("[SystemLoader] Waiting for all components to finish loading..", file=sys.stderr)
     pool_initialized_event.wait()
     wait_license_processing_event.wait()
     print("[SystemLoader] Done Loading. Awaiting system start.", file=sys.stderr)
 
-    return new_tracked_object_event
+    return new_tracked_object_event, detector_request_queue, tracked_object_pool_request_queue, broker_request_queue
 
 def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
@@ -118,13 +117,12 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
 
     return temp_trackers, temp_tracker_events
 
-def StartDetectorProcess(detector_request_queue, detector_initialized_event, shutdown_event):
+def StartDetectorProcess(detector_request_queue, detector_initialized_event):
     from classes.system_utilities.image_utilities.ObjectDetectionProcess import DetectorProcess
 
     detector = DetectorProcess(amount_of_trackers=len(camera_ids_and_links),
                                detector_request_queue=detector_request_queue,
-                               detector_initialized_event=detector_initialized_event,
-                               shutdown_event=shutdown_event)
+                               detector_initialized_event=detector_initialized_event)
     detector.StartProcess()
 
 def StartEntranceCameras(broker_request_queue, entrance_cameras_initialized_event, shutdown_event, start_system_event):

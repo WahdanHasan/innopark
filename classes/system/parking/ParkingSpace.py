@@ -2,6 +2,7 @@ from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.data_utilities import Avenues
+from threading import Thread
 
 import numpy as np
 from datetime import timedelta, datetime
@@ -73,24 +74,30 @@ class ParkingSpace:
             self.occupant_left_parking_time_start = time.time()
 
         if (time.time() - self.occupant_left_parking_time_start) >= self.seconds_before_considered_left:
-            self.ChargeOccupant()
-            self.ResetOccupant()
+            t1 = Thread(target=self.ChargeOccupant())
+            t1.start()
 
     def ChargeOccupant(self):
-        print("Occupant with id " + str(self.occupant_id) + " will now be charged", file=sys.stderr)
-
         self.end_datetime = datetime.now()
+        end_datetime = self.end_datetime
+        start_datetime = self.start_datetime
+        session_id = self.session_id
+        occupant_id = self.occupant_id
+        self.ResetOccupant()
 
-        time_elapsed = self.end_datetime - self.start_datetime
+        print("Occupant with id " + str(occupant_id) + " will now be charged", file=sys.stderr)
+
+
+        time_elapsed = end_datetime - start_datetime
 
         tariff_amount = int(np.ceil(time_elapsed.seconds/Constants.seconds_in_hour) * self.rate_per_hour)
 
         Avenues.UpdateSession(avenue=Constants.avenue_id,
-                              session_id=self.session_id,
-                              end_datetime=self.end_datetime,
+                              session_id=session_id,
+                              end_datetime=end_datetime,
                               tariff_amount=tariff_amount)
 
-        SMS.sendSmsToLicense(license_plate=self.occupant_id,
+        SMS.sendSmsToLicense(license_plate=occupant_id,
                              tariff_amount=tariff_amount)
 
     def CalculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):

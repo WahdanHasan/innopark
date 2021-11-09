@@ -1,6 +1,7 @@
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide, ShutDownEvent
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
+import numpy
 import sys
 from multiprocessing import Process
 
@@ -22,6 +23,14 @@ class ProcessLicenseFrames:
         while self.should_keep_running:
             # listen for voyager request
             latest_license_frames = self.license_frames_request_queue.get()
+
+            if not isinstance(latest_license_frames, numpy.ndarray):
+                if latest_license_frames == ShutDownEvent.SHUTDOWN:
+                    print("[ProcessLicenseFrames] Cleaning up.", file=sys.stderr)
+                    self.cleanUp()
+                    return
+
+
 
             # detect license plates from frames
             license_plates = self.DetectLicensePlates(latest_license_frames=latest_license_frames,
@@ -113,3 +122,6 @@ class ProcessLicenseFrames:
                 prominent_license_plate = key
 
         return prominent_license_plate
+
+    def cleanUp(self):
+        self.broker_request_queue.close()
