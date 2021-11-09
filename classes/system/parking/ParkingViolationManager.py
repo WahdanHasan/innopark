@@ -140,31 +140,68 @@ class ParkingViolationManager(TrackedObjectListener):
                     print("PARKING OCCUPIED AAAAAAAAAAAAAAAAAAAA")
                     self.latest_tracked_vehicle_bbs[vehicle_plate][self.parking_status_key] = ParkingStatus.OCCUPIED
                     # bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    bbs_center_pts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
+                    bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     # bbs_center_pts = self.getBROfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    self.drawVehicleTrail(bbs_center_pts)
+                    vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], Constants.default_camera_shape[1])
+                    # self.drawVehicleTrail(pts)
+                    self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
                     break
 
-    def drawVehicleTrail(self, bbs_center_pts):
+    def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge_y):
+        x1 = last_bb_pt[0]
+        y1 = last_bb_pt[1]
+
+        x2 = 0
+        y2 = frame_edge_y
+
+        scaling_factor = y2 / y1
+        x2 = x1 * scaling_factor
+
+        return [x2, y2]
+
+
+    def drawVehicleTrailUsingVector(self, bbs_pts, vector_pt):
+        blank_img = self.calculateMinimumVehicleTrail()
+        # blank_img = self.base_blank.copy()
+
+        last_bb_pt = bbs_pts[-1]
+
+        for i in range(len(bbs_pts)):
+            if i % 2 == 0:
+                continue
+            pt1 = bbs_pts[i]
+            pt2 = bbs_pts[i - 1]
+            print("center pt: (", pt1, pt2, ")")
+            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])) ,
+                        point_b=(int(pt2[0]), int(pt2[1])), color=(0, 255, 0))
+
+        blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_bb_pt[0]), int(last_bb_pt[1])),
+                                point_b=(int(vector_pt[0]), int(vector_pt[1])), color=(0, 255, 255))
+
+        blank_img = cv2.circle(blank_img, ((int(vector_pt[0])), int(vector_pt[1])), 100, (255, 255, 0), -1)
+
+        IU.SaveImage(blank_img, "vector_3")
+
+    def drawVehicleTrail(self, pts):
         blank_img = self.calculateMinimumVehicleTrail()
         # blank_img = self.base_blank.copy()
 
         # format of bbs_center_pt is [center_x, center_y]
-        for i in range(len(bbs_center_pts)):
+        for i in range(len(pts)):
             if i % 2 == 0:
                 continue
-            center_pt1 = bbs_center_pts[i]
-            center_pt2 = bbs_center_pts[i - 1]
-            print("center pt: (", center_pt1, center_pt2, ")")
-            blank_img = IU.DrawLine(image=blank_img, point_a=(int(center_pt1[0]), int(center_pt1[1])) ,
-                        point_b=(int(center_pt2[0]), int(center_pt2[1])), color=(0, 255, 0))
+            pt1 = pts[i]
+            pt2 = pts[i - 1]
+            print("center pt: (", pt1, pt2, ")")
+            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])) ,
+                        point_b=(int(pt2[0]), int(pt2[1])), color=(0, 255, 0))
 
-        perpendicular_pts = self.getPerpendicularPointOnLine(bbs_center_pts)
-        print("BERBENDICULAAAAAAAAAAAAAAR: ", perpendicular_pts)
-        blank_img = self.drawVehicleTrailToBottomParking(blank_img, bbs_center_pts, perpendicular_pts)
+        # perpendicular_pts = self.getPerpendicularPointOnLine(bbs_center_pts)
+        # print("BERBENDICULAAAAAAAAAAAAAAR: ", perpendicular_pts)
+        # blank_img = self.drawVehicleTrailToBottomParking(blank_img, bbs_center_pts, perpendicular_pts)
 
         # cv2.imshow("full trail", blank_img)
-        IU.SaveImage(blank_img,"connect trail to bottom parking_1")
+        IU.SaveImage(blank_img,"vector")
         # cv2.waitKey(0)
 
     def drawVehicleTrailToBottomParking(self, img, bbs_pts, perpendicular_pts):
