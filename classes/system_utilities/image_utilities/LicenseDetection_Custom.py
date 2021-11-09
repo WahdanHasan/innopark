@@ -1,6 +1,7 @@
-
-from classes.system_utilities.image_utilities.LicenseDetectionConfig import cfg, loadConfig
+from classes.system_utilities.image_utilities.LicenseDetectionConfig import cfg, LoadConfig, BuildModel
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+
+from keras import backend
 
 import os
 # comment out below line to enable tensorflow outputs
@@ -20,9 +21,10 @@ def OnLoad():
     from tensorflow.compat.v1 import ConfigProto
     from tensorflow.compat.v1 import InteractiveSession
 
-    # Declare variables
-    global license_detection_model
-    # loaded_weights_path = './config/license_plate_detector/custom-416'
+    saved_model_file = str(cfg.YOLO.SAVEDMODEL)+"/saved_model.pb"
+    if os.path.isfile(saved_model_file)==False:
+        print("building model")
+        BuildModel()
 
     # Set tensorflow model memory allocation in megabytes
     gpus = tf.config.list_physical_devices('GPU')
@@ -37,27 +39,31 @@ def OnLoad():
     config.gpu_options.allow_growth = True
     InteractiveSession(config=config)
 
-    loadConfig()
+    LoadConfig()
 
     # Initialize/load license_plate_detector model
-    license_detection_model = tf.saved_model.load(cfg.YOLO.SAVEDMODEL)
+    # tf.keras.backend.clear_session()
 
-    global infer
-    global input_size
-    infer = license_detection_model.signatures['serving_default']
+    # global license_detection_model
+    # global infer
+    # license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    #
+    #
+    # infer = license_detection_model.signatures['serving_default']
+
 
     # Define variables
+    global input_size
     input_size = cfg.VAR.INPUT_SIZE
 
 
     # Run blank detection to initialize model
     from classes.system_utilities.helper_utilities import Constants
-    DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)])
+    print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in a list of images.
     # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
-
 
 
     # Run the custom yolo4 model on each image
@@ -68,6 +74,7 @@ def DetectLicenseInImage(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     image_data = cv2.resize(image, (input_size, input_size))
+
     image_data = image_data / 255.
 
     images_data = [image_data]
@@ -75,7 +82,16 @@ def DetectLicenseInImage(image):
     images_data = np.asarray(images_data).astype(np.float32)
 
     batch_data = tf.constant(images_data)
+
+    # tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    pred = license_detection_model._make_predict_function()
+    print("PREDDDD: ", pred)
+
+    infer = license_detection_model.signatures['serving_default']
+
     pred_bbox = infer(batch_data)
+    print("pred_bbox: ", pred_bbox)
 
     for key, value in pred_bbox.items():
         boxes = value[:, :, 0:4]
@@ -102,45 +118,6 @@ def DetectLicenseInImage(image):
     bounding_boxes_converted = [[[bb[0], bb[1]], [bb[2], bb[3]]]]
 
     return validity_status.numpy()[0], classes, bounding_boxes_converted, scores.numpy()[0]
-
-def BuildModel():
-    from classes.system_utilities.image_utilities.LicenseDetectionModel import YOLO, decode, filterBoxes
-    from classes.system_utilities.image_utilities.LicenseDetectionConfig import loadWeights
-
-    # All models and internal/external dependencies should be both loaded and initialized here
-    input_size = cfg.VAR.INPUT_SIZE
-    score_threshold = cfg.YOLO.IOU_LOSS_THRESH
-    weights_path = cfg.YOLO.WEIGHTS
-    output_path = cfg.YOLO.SAVEDMODEL
-
-    STRIDES, ANCHORS, NUM_CLASS, XYSCALE = loadConfig()
-
-    input_layer = tf.keras.layers.Input([input_size, input_size, 3])
-    feature_maps = YOLO(input_layer, NUM_CLASS)
-    bbox_tensors = []
-    prob_tensors = []
-
-    for i, fm in enumerate(feature_maps):
-        if i == 0:
-            output_tensors = decode(fm, input_size // 8, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
-        elif i == 1:
-            output_tensors = decode(fm, input_size // 16, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
-        else:
-            output_tensors = decode(fm, input_size // 32, NUM_CLASS, STRIDES, ANCHORS, i, XYSCALE)
-        bbox_tensors.append(output_tensors[0])
-        prob_tensors.append(output_tensors[1])
-
-    pred_bbox = tf.concat(bbox_tensors, axis=1)
-    pred_prob = tf.concat(prob_tensors, axis=1)
-
-    boxes, pred_conf = filterBoxes(pred_bbox, pred_prob, score_threshold=score_threshold,
-                                   input_shape=tf.constant([input_size, input_size]))
-    pred = tf.concat([boxes, pred_conf], axis=-1)
-
-    model = tf.keras.Model(input_layer, pred)
-    loadWeights(model, weights_path)
-    model.summary()
-    model.save(output_path)
 
 def GetLicenseFromImage(license_plate):
     # Takes a cropped license plate to extract [A-Z] and [0-9] ascii characters from the image.
