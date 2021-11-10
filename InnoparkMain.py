@@ -25,11 +25,11 @@ def main():
 
     shutdown_event.set()
 
-    detector_request_queue.put(ShutDownEvent.SHUTDOWN)
     tracked_object_pool_request_queue.put(ShutDownEvent.SHUTDOWN)
+    detector_request_queue.put(ShutDownEvent.SHUTDOWN)
     broker_request_queue.put(ShutDownEvent.SHUTDOWN)
 
-    return
+    return 0
 
 if __name__ == "__main__":
     main()

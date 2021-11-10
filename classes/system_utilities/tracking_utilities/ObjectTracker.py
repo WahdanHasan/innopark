@@ -13,7 +13,7 @@ from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
 class Tracker(ShutDownEventListener):
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=2):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=1.5):
         ShutDownEventListener.__init__(self, shutdown_event)
         self.tracker_process = 0
         self.parking_spaces = []
@@ -160,13 +160,14 @@ class Tracker(ShutDownEventListener):
 
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
-                if temp_are_overlapping < 0.04:
+                if temp_are_overlapping < 0.053:
                     try:
                         temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 
                         white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
                     except:
                         white_points_percentage = 50.0
+
                     if white_points_percentage < 60.0:
                         temp_exit_side = self.GetExitSide(temp_bb, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))

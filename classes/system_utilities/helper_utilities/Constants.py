@@ -46,3 +46,7 @@ camera_id_key = "camera_id"
 is_occupied_key = "is_occupied"
 parking_type_key = "parking_type"
 rate_per_hour_key = "rate_per_hour"
+
+
+# SMS
+sms_enabled = True

@@ -60,6 +60,8 @@ class ParkingSpace:
 
     def CheckAndUpdateIfConsideredParked(self):
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
+            if self.parking_id == 189:
+                return
             self.status = ParkingStatus.OCCUPIED
             self.occupant_park_time_start = time.time()
             self.start_datetime = datetime.now()
@@ -97,8 +99,9 @@ class ParkingSpace:
                               end_datetime=end_datetime,
                               tariff_amount=tariff_amount)
 
-        SMS.sendSmsToLicense(license_plate=occupant_id,
-                             tariff_amount=tariff_amount)
+        if Constants.sms_enabled:
+            SMS.sendSmsToLicense(license_plate=occupant_id,
+                                 tariff_amount=tariff_amount)
 
     def CalculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):
 
