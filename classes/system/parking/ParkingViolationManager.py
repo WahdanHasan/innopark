@@ -142,20 +142,25 @@ class ParkingViolationManager(TrackedObjectListener):
                     # bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     # bbs_center_pts = self.getBROfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], Constants.default_camera_shape[1])
+                    vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
                     # self.drawVehicleTrail(pts)
                     self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
                     break
 
-    def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge_y):
+    def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge):
         x1 = last_bb_pt[0]
         y1 = last_bb_pt[1]
 
         x2 = 0
-        y2 = frame_edge_y
+        y2 = frame_edge[1]
 
         scaling_factor = y2 / y1
         x2 = x1 * scaling_factor
+
+        # if x2 > frame_edge[0]:
+        #     x2 = frame_edge[0]
+
+
 
         return [x2, y2]
 
@@ -178,9 +183,7 @@ class ParkingViolationManager(TrackedObjectListener):
         blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_bb_pt[0]), int(last_bb_pt[1])),
                                 point_b=(int(vector_pt[0]), int(vector_pt[1])), color=(0, 255, 255))
 
-        blank_img = cv2.circle(blank_img, ((int(vector_pt[0])), int(vector_pt[1])), 100, (255, 255, 0), -1)
-
-        IU.SaveImage(blank_img, "vector_3")
+        IU.SaveImage(blank_img, "vector_4")
 
     def drawVehicleTrail(self, pts):
         blank_img = self.calculateMinimumVehicleTrail()
