@@ -43,10 +43,6 @@ class UI(QMainWindow):
         self.setup_page_button.clicked.connect(self.setupButtonOnClick)
         self.debug_page_button.clicked.connect(self.debugButtonOnClick)
 
-        # self.debug_ptm_cb.setCheckState(True)
-        # self.debug_pvm_cb.setCheckState(True)
-        # self.debug_ot_cb.setCheckState(True)
-
         self.start_system_event = start_system_event
         self.new_object_in_pool_event = new_object_in_pool_event
 
@@ -167,39 +163,40 @@ class UI(QMainWindow):
         self.ptm_listener.initialize()
 
         while self.should_keep_updating_debug:
-            if self.is_debug_screen_active:
-                ids, bbs = self.tracked_object_listener.getAllActiveTrackedProcessItems()
-                for i in range(self.amount_of_frames_in_shared_memory):
+            try:
+                if self.is_debug_screen_active:
+                    ids, bbs = self.tracked_object_listener.getAllActiveTrackedProcessItems()
+                    for i in range(self.amount_of_frames_in_shared_memory):
 
-                    temp_frame = self.frames_listener.getFrameByCameraId(camera_id=i).copy()
+                        temp_frame = self.frames_listener.getFrameByCameraId(camera_id=i).copy()
 
-                    if i >= (self.amount_of_frames_in_shared_memory - self.amount_of_trackers):
-                        if self.debug_ot_cb.checkState():
-                            if ids is not None and bbs is not None:
-                                temp_active_ids = []
-                                temp_active_bbs = []
-                                for j in range(len(bbs)):
-                                    if ids[1][j] == i:
-                                        temp_active_bbs.append(bbs[j])
-                                        temp_active_ids.append(ids[2][j])
+                        if i >= (self.amount_of_frames_in_shared_memory - self.amount_of_trackers):
+                            if self.debug_ot_cb.checkState():
+                                if ids is not None and bbs is not None:
+                                    temp_active_ids = []
+                                    temp_active_bbs = []
+                                    for j in range(len(bbs)):
+                                        if ids[1][j] == i:
+                                            temp_active_bbs.append(bbs[j])
+                                            temp_active_ids.append(ids[2][j])
 
-                                temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
-                                                                          class_names=temp_active_ids,
-                                                                          bounding_boxes=temp_active_bbs)
-                        if self.debug_ptm_cb.checkState():
-                            temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
+                                    temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
+                                                                              class_names=temp_active_ids,
+                                                                              bounding_boxes=temp_active_bbs)
+                            if self.debug_ptm_cb.checkState():
+                                temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
 
-                        # if self.debug_pvm_cb.checkState():
-                        #     temp_frame = cv2.add(temp_frame, self.pvm_listener.getFrameByCameraId(i - self.frame_offset_length))
+                            # if self.debug_pvm_cb.checkState():
+                            #     temp_frame = cv2.add(temp_frame, self.pvm_listener.getFrameByCameraId(i - self.frame_offset_length))
 
 
+                        temp_height, temp_width, temp_channel = temp_frame.shape
+                        temp_bytes_per_line = 3 * temp_width
+                        temp_frame = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
+                        temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
+                        if self.is_debug_screen_active:
+                            self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
 
-                    temp_height, temp_width, temp_channel = temp_frame.shape
-                    temp_bytes_per_line = 3 * temp_width
-                    temp_frame = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
-                    temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
-                    if self.is_debug_screen_active:
-                        self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
-
-            time.sleep(UIConstants.debug_refresh_rate)
-
+                time.sleep(UIConstants.debug_refresh_rate)
+            except:
+                x=10

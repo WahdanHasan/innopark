@@ -1,17 +1,21 @@
 from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
+from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
 from classes.system_utilities.helper_utilities import Constants
+from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
 
 import numpy as np
 import sys
+import time
 from multiprocessing import Process, shared_memory
 from shapely.geometry import Polygon, LineString
 
 
-class EntranceLicenseDetector:
-    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event):
+class EntranceLicenseDetector(ShutDownEventListener):
+    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event, seconds_between_detections=1):
+        ShutDownEventListener.__init__(self, shutdown_event)
         # camera is given as type array in the format [camera id, camera rtsp]
 
         self.license_frames_request_queue = license_frames_request_queue
@@ -22,6 +26,7 @@ class EntranceLicenseDetector:
         self.entrance_cameras_initialized_event = entrance_cameras_initialized_event
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
+        self.seconds_between_detections = seconds_between_detections
 
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
@@ -57,8 +62,8 @@ class EntranceLicenseDetector:
 
     def Start(self):
         import classes.system_utilities.image_utilities.ObjectDetection as OD
-
-        OD.OnLoad()
+        ShutDownEventListener.initialize(self)
+        OD.OnLoad(weight_idx=1)
 
         bottom_camera = Camera(rtsp_link=self.bottom_camera[1],
                                camera_id=self.bottom_camera[0])
@@ -92,11 +97,18 @@ class EntranceLicenseDetector:
         frame_top_sm = np.ndarray(frame_top.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame_top.buf)
         frame_bottom_sm = np.ndarray(frame_bottom.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame_bottom.buf)
 
+        time_at_detection = time.time()
 
         self.wait_license_processing_event.wait()
         self.start_system_event.wait()
 
         while self.should_keep_detecting_top_camera:
+            if not self.shutdown_should_keep_listening:
+                print("[EntranceLicenseDetector] Cleaning up.", file=sys.stderr)
+                self.license_frames_request_queue.put(ShutDownEvent.SHUTDOWN)
+                self.cleanUp()
+                return
+
             frame_top_sm[:] = top_camera.GetScaledNextFrame()[:]
             frame_bottom_sm[:] = bottom_camera.GetScaledNextFrame()[:]
 
@@ -128,19 +140,23 @@ class EntranceLicenseDetector:
             if white_points_percentage >= white_points_threshold and old_detection_status != DetectedObjectAtEntrance.DETECTED_WITH_YOLO:
                 old_detection_status = DetectedObjectAtEntrance.DETECTED
 
-                return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(frame_top)
+                if (time.time() - time_at_detection) > self.seconds_between_detections:
+                    return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(frame_top)
+                    time_at_detection = time.time()
+                else:
+                    return_status = False
+                    old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
+                    self.should_keep_detecting_bottom_camera = True
 
                 # if vehicle is detected, start capturing frames (max of self.maximum_bottom_camera_detection)
                 # until the vehicle's bb intersects with the frame median block
                 # once vehicle's bb intersects, send the captured frames to another process
-
                 if return_status:
                     bounding_boxes = bounding_boxes[0]
                     bounding_boxes = IU.GetFullBoundingBox(bounding_boxes)
                     polygon_bbox = Polygon(bounding_boxes)
                     line_median_right = LineString([(width_right, 0), (width_right, height)])
                     intersection = line_median_right.intersects(polygon_bbox)
-
                     self.should_keep_detecting_bottom_camera = True
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
@@ -151,3 +167,8 @@ class EntranceLicenseDetector:
             # if the white percentage is below threshold, stop detection
             elif white_points_percentage < white_points_threshold and old_detection_status != DetectedObjectAtEntrance.NOT_DETECTED:
                 old_detection_status = DetectedObjectAtEntrance.NOT_DETECTED
+
+    def cleanUp(self):
+        self.shared_memory_manager_frame_top.unlink()
+        self.shared_memory_manager_frame_bottom.unlink()
+        time.sleep(1)

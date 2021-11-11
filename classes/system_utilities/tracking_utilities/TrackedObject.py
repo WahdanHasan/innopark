@@ -1,23 +1,25 @@
-
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
 from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
+from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
+from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
 import sys
 import cv2
 import copy
-import numpy as np
 import time
+import numpy as np
 from threading import Thread
 from multiprocessing import Process, Pipe, shared_memory
 
 
-class TrackedObjectPoolManager:
+class TrackedObjectPoolManager(ShutDownEventListener):
     # Manages tracked object processes in a pool.
 
     def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, shutdown_event):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
+        ShutDownEventListener.__init__(self, shutdown_event)
 
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
 
@@ -35,6 +37,7 @@ class TrackedObjectPoolManager:
 
         self.process_listener_thread = 0
         self.process_listener_thread_stopped = 0
+        self.shutdown_listener_thread = 0
 
     def StartProcess(self):
 
@@ -46,6 +49,8 @@ class TrackedObjectPoolManager:
         self.pool_process.terminate()
 
     def Start(self):
+
+        ShutDownEventListener.initialize(self)
 
         # Create tracked object subprocesses
         for i in range(self.pool_size):
@@ -70,10 +75,15 @@ class TrackedObjectPoolManager:
         while not self.process_listener_thread_stopped:
             (instructions) = self.tracked_object_pool_request_queue.get()
 
-            if instructions[0] == ObjectToPoolManagerInstruction.GET_PROCESS:
+            if instructions == ShutDownEvent.SHUTDOWN:
+                print("[TrackedObjectPoolManager] Cleaning up.", file=sys.stderr)
+                self.cleanUp()
+                return
+            elif instructions[0] == ObjectToPoolManagerInstruction.GET_PROCESS:
                 self.GetTrackedObjectProcessRequest(instructions)
-            if instructions[0] == ObjectToPoolManagerInstruction.RETURN_PROCESS:
+            elif instructions[0] == ObjectToPoolManagerInstruction.RETURN_PROCESS:
                 self.ReturnTrackedObjectProcessRequest(instructions)
+
 
     def GetTrackedObjectProcessRequest(self, instructions):
         (sender_pipe) = instructions[1]
@@ -156,6 +166,18 @@ class TrackedObjectPoolManager:
         for i in range(self.pool_size):
             self.tracked_object_process_pool[i].terminate()
 
+    def cleanUp(self):
+        for shm_bb in self.tracked_object_bb_shared_memory_managers:
+            shm_bb.unlink()
+
+        for shm_id in self.tracked_object_id_shared_memory_managers:
+            shm_id.unlink()
+
+        for pipes in self.tracked_object_process_pipes:
+            pipes.send(ShutDownEvent.SHUTDOWN)
+            pipes.close()
+
+
 
 
 class TrackedObjectProcess:
@@ -199,8 +221,12 @@ class TrackedObjectProcess:
         self.ResetTrackedProcess()
 
         # Wait for instructions
-        (camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = tracking_instruction_pipe.recv()
+        instruction = tracking_instruction_pipe.recv()
 
+        if instruction == ShutDownEvent.SHUTDOWN:
+            return
+
+        (camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape) = instruction
 
 
         # Initialize new settings and begin tracking
@@ -271,6 +297,10 @@ class TrackedObjectProcess:
 
             # Wait for confirmation to read
             instruction = pipe.recv()
+
+            if instruction == ShutDownEvent.SHUTDOWN:
+                self.cleanUp()
+                return
 
             # Validate if the message received is a proper instruction
             if not isinstance(instruction, TrackerToTrackedObjectInstruction):
@@ -348,5 +378,5 @@ class TrackedObjectProcess:
 
         return IU.DrawBoundingBoxes(frame, [IU.FloatBBToIntBB(self.bb)])
 
-
-
+    def cleanUp(self):
+        self.tracking_instruction_pipe.close()

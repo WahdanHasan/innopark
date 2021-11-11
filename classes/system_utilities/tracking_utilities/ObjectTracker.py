@@ -9,11 +9,12 @@ from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 from classes.system_utilities.helper_utilities.Enums import EntrantSide, TrackerToTrackedObjectInstruction, TrackedObjectStatus, TrackedObjectToBrokerInstruction, ObjectToPoolManagerInstruction
 from classes.system_utilities.helper_utilities import Constants
+from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
-class Tracker:
+class Tracker(ShutDownEventListener):
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=2):
-
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, seconds_between_detections=1.5):
+        ShutDownEventListener.__init__(self, shutdown_event)
         self.tracker_process = 0
         self.parking_spaces = []
         self.broker_request_queue = broker_request_queue
@@ -31,6 +32,9 @@ class Tracker:
         self.camera_id = 0
         self.should_keep_tracking = True
         self.tracker_id = 0
+
+        self.receive_pipe = 0
+        self.send_pipe = 0
 
     def StartProcess(self, tracker_id, camera_rtsp, camera_id):
         # All parking spots should be instantiated prior to calling this function
@@ -53,6 +57,8 @@ class Tracker:
 
     def StartTracking(self):
 
+        ShutDownEventListener.initialize(self)
+
         # Variable declarations
         subtraction_model = SubtractionModel()
         tracked_object_pool_indexes = []
@@ -63,7 +69,7 @@ class Tracker:
         tracked_object_movement_status = []
         tracked_objects_without_id_prev_bb = []
         tracked_objects_without_id_indexes = []
-        receive_pipe, send_pipe = Pipe()
+        self.receive_pipe, self.send_pipe = Pipe()
         time_at_detection = time.time()
 
         # Initialize camera
@@ -102,6 +108,10 @@ class Tracker:
         self.start_system_event.wait()
         # Main loop
         while self.should_keep_tracking:
+            if not self.shutdown_should_keep_listening:
+                print("[ObjectTracker] Camera " + str(self.camera_id) + "  Cleaning up.", file=sys.stderr)
+                self.cleanUp()
+                return
             # Write new frame into shared memory space
             frame[:] = cam.GetScaledNextFrame()[:]
 
@@ -131,8 +141,8 @@ class Tracker:
                     temp_entrant_side = self.GetEntrantSide(old_bb=tracked_objects_without_id_prev_bb[i],
                                                             new_bb=temp_bb)
 
-                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, send_pipe))
-                    temp_entrant_id = receive_pipe.recv()
+                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, self.send_pipe))
+                    temp_entrant_id = self.receive_pipe.recv()
                     tracked_object_pipes[i].send([TrackerToTrackedObjectInstruction.STORE_NEW_ID, primary_instruction_to_send, temp_entrant_id])
                     tracked_object_ids[i] = temp_entrant_id
                     tracked_objects_without_id_indexes.pop(i)
@@ -150,13 +160,14 @@ class Tracker:
 
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
-                if temp_are_overlapping < 0.04:
+                if temp_are_overlapping < 0.053:
                     try:
                         temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 
                         white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
                     except:
                         white_points_percentage = 50.0
+
                     if white_points_percentage < 60.0:
                         temp_exit_side = self.GetExitSide(temp_bb, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))
@@ -175,16 +186,16 @@ class Tracker:
             if (time.time() - time_at_detection) > self.seconds_between_detections:
                 time_at_detection = time.time()
                 # print("[Camera " + str(self.camera_id) + "] Ran detector!")
-                return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, send_pipe, receive_pipe)
+                return_status, detected_classes, detected_bbs = self.DetectNewEntrants(frame, self.send_pipe, self.receive_pipe)
 
                 if return_status and (not only_one):
                     for i in range(len(detected_classes)):
 
                         # Request for a tracked object to represent the new entrant from the tracked object pool
-                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, send_pipe))
+                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, self.send_pipe))
 
                         # Receive the tracked object's pipe and its bounding box shared memory manager from the tracked object pool
-                        (temp_pipe, temp_shared_memory_bb_manager, temp_process_pool_idx) = receive_pipe.recv()
+                        (temp_pipe, temp_shared_memory_bb_manager, temp_process_pool_idx) = self.receive_pipe.recv()
 
                         # Create an array reference to the tracked object's shared memory bounding box
                         temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape, dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
@@ -348,4 +359,11 @@ class Tracker:
                                        img_to_place=tracked_object.mask,
                                        center_x=bounding_box_center[0],
                                        center_y=bounding_box_center[1])
+
+    def cleanUp(self):
+        self.receive_pipe.close()
+        self.send_pipe.close()
+        self.shared_memory_manager_frame.unlink()
+        self.shared_memory_manager_mask.unlink()
+
 

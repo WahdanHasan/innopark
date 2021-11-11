@@ -1,23 +1,23 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
+from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.data_utilities.Avenues import GetAllParkings
-from classes.super_classes.PtmListener import PtmListener
 
 from multiprocessing import Process, shared_memory
 import numpy as np
-import cv2
 import sys
 import json
 import time
 
 
-class ParkingTariffManager(TrackedObjectListener):
+class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
     def __init__(self, amount_of_trackers, new_object_in_pool_event, seconds_parked_before_charge, shutdown_event, start_system_event):
 
-        super().__init__(amount_of_trackers, new_object_in_pool_event)
+        TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
+        ShutDownEventListener.__init__(self, shutdown_event)
 
         self.seconds_parked_before_charge = seconds_parked_before_charge
         self.shutdown_event = shutdown_event
@@ -69,7 +69,8 @@ class ParkingTariffManager(TrackedObjectListener):
         self.tariff_manager_process.terminate()
 
     def startManaging(self):
-        super().initialize()
+        TrackedObjectListener.initialize(self)
+        ShutDownEventListener.initialize(self)
         # self.loadParkingSpacesFromJson()
         self.loadParkingSpacesFromDb()
         self.createSharedMemoryStuff(self.amount_of_trackers)
@@ -77,6 +78,11 @@ class ParkingTariffManager(TrackedObjectListener):
         self.start_system_event.wait()
 
         while self.should_keep_managing:
+
+            if not self.shutdown_should_keep_listening:
+                print("[ParkingTariffManager] Cleaning up.", file=sys.stderr)
+                self.cleanUp()
+                return
 
             ids, bbs = self.getAllActiveTrackedProcessItems()
 
@@ -142,10 +148,6 @@ class ParkingTariffManager(TrackedObjectListener):
 
             self.frames[i][:] = temp_frame[:]
 
-
-
-
-
-
-
-
+    def cleanUp(self):
+        for shm in self.frame_shms:
+            shm.unlink()

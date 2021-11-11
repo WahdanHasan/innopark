@@ -7,8 +7,6 @@ import sys
 
 
 def sendSmsToLicense(license_plate, tariff_amount):
-    print("remove the return statement to send sms")
-    return
 
     vehicle_registered_phone_number = DU.GetValueOfFieldOnMatch(collection="government-registered-drivers",
                                                                 match_key=Constants.gov_license_key,

@@ -8,7 +8,7 @@ yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
 
-def OnLoad():
+def OnLoad(weight_idx=0):
     # All models and internal/external dependencies should be both loaded and initialized here
 
 
@@ -24,9 +24,16 @@ def OnLoad():
         yolo_class_names = f.read().rstrip('\n').split('\n')
 
 
-    model_config = 'config\\yolov4\\yolov4-tiny.cfg'
-    model_weights = 'config\\yolov4\\yolov4-tiny.weights'
-    yolo_net_input_size = 320
+    if weight_idx == 0:
+        model_config = 'config\\yolov4\\yolov4-tiny.cfg'
+        model_weights = 'config\\yolov4\\yolov4-tiny.weights'
+        yolo_net_input_size = 320
+    elif weight_idx == 1:
+        model_config = 'config\\yolov3\\yolov3-320.cfg'
+        model_weights = 'config\\yolov3\\yolov3-320.weights'
+        yolo_net_input_size = 320
+
+
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
     # Set the target device for computation
