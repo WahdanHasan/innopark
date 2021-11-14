@@ -5,6 +5,7 @@ from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.data_utilities.Avenues import GetAllParkings
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
+from classes.system_utilities.image_utilities.LicenseDetection_Custom import DetectLicenseInImage
 
 from multiprocessing import Process, shared_memory
 import numpy as np
@@ -139,13 +140,95 @@ class ParkingViolationManager(TrackedObjectListener):
                 if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter == 200:
                     print("PARKING OCCUPIED AAAAAAAAAAAAAAAAAAAA")
                     self.latest_tracked_vehicle_bbs[vehicle_plate][self.parking_status_key] = ParkingStatus.OCCUPIED
+
                     # bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     # bbs_center_pts = self.getBROfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
                     # self.drawVehicleTrail(pts)
                     self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
+
+                    frame = self.getFrameByCameraId(camera_id)
+                    parking_spot_img = IU.CropImage(frame, (self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]))
+                    self.getLicensePlateBboxUsingModel(parking_spot_img)
+
                     break
+
+    def getLicensePlateBboxUsingModel(self, parking_spot_img):
+        #make sure that model is loaded before detection
+        status, classes, bounding_boxes, scores = DetectLicenseInImage(parking_spot_img)
+
+        print("status: ", status)
+        print("bounding_box", bounding_boxes)
+
+        bounding_boxes = bounding_boxes[0]
+
+        height, width = parking_spot_img[:2]
+
+        box_pts = [[0, height], [width, height]]
+        new_bb_pts = IU.GetBBInRespectTo(bounding_boxes, box_pts)
+
+
+        img = IU.DrawBoundingBoxes(box_pts, new_bb_pts)
+
+        #img not showing for some reason
+        # cv2.imshow("bb", img)
+        # cv2.waitKey(0)
+
+        # get the center of new_bb_pts or for short can just get center of bounding boxes and convert that one point in respect to larger parent
+
+
+        # get Bb vector of last tracked point to the center of license plate
+
+
+    def getLicensePlateBboxUsingContours(self, parking_spot_img):
+        # convert to gray
+        gray = cv2.cvtColor(parking_spot_img, cv2.COLOR_BGR2GRAY)
+
+        # remove noise while maintaining edges
+        gray = cv2.bilateralFilter(gray, 11, 17, 17)
+
+        # detect edges
+        canny = cv2.Canny(gray, 170, 200)
+
+        # find the contours in canny image
+        contours, hierarchy = cv2.findContours(canny.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+
+        print("HIERARCHY: ",hierarchy)
+        print("CONTOURS" ,contours)
+
+        # Create copy of original image to draw all contours
+        img1 = parking_spot_img.copy()
+        cv2.drawContours(img1, contours, -1, (0, 255, 0), 3)
+
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:30]
+
+        plate_contour = None
+        rectangle_sides = 4
+
+        img2 = parking_spot_img.copy()
+        cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
+        cv2.imshow("5- Top 30 Contours", img2)
+        cv2.waitKey(0)
+
+        # loop through the sorted contours and find the rectangle shape
+        for c in contours:
+            peri = cv2.arcLength(c, True)
+            approx = cv2.approxPolyDP(c, 0.018*peri, True)
+            if len(approx) == rectangle_sides:  # Select the contour with 4 corners
+                plate_contour = approx  # This is our approx Number Plate Contour
+
+                # Crop those contours and store it in Cropped Images folder
+                x, y, w, h = cv2.boundingRect(c)  # This will find out co-ord for plate
+                new_img = gray[y:y + h, x:x + w]  # Create new image
+                IU.SaveImage(new_img, "contoured_plate")
+
+                break
+
+        # Drawing the selected contour on the original image
+        cv2.drawContours(parking_spot_img, [plate_contour], -1, (0, 255, 0), 3)
+        IU.SaveImage(parking_spot_img, "final_img_with_contour")
+
 
     def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge):
         x1 = last_bb_pt[0]
@@ -183,7 +266,7 @@ class ParkingViolationManager(TrackedObjectListener):
         blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_bb_pt[0]), int(last_bb_pt[1])),
                                 point_b=(int(vector_pt[0]), int(vector_pt[1])), color=(0, 255, 255))
 
-        IU.SaveImage(blank_img, "vector_4")
+        IU.SaveImage(blank_img, "vector_6")
 
     def drawVehicleTrail(self, pts):
         blank_img = self.calculateMinimumVehicleTrail()

@@ -44,12 +44,12 @@ def OnLoad():
     # Initialize/load license_plate_detector model
     # tf.keras.backend.clear_session()
 
-    # global license_detection_model
-    # global infer
-    # license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    global license_detection_model
+    global infer
+    license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
     #
     #
-    # infer = license_detection_model.signatures['serving_default']
+    infer = license_detection_model.signatures['serving_default']
 
 
     # Define variables
@@ -63,7 +63,7 @@ def OnLoad():
 
 def DetectLicenseInImage(image):
     # Attempts to detect license plates in a list of images.
-    # It should be noted that the bounding boxes are in the [TL, BR] format. With [x, y] points.
+    # returns bounding box as [[[TL], [BR]]] or [[[x1, y1], [x2, y2]]]
 
 
     # Run the custom yolo4 model on each image
@@ -84,14 +84,14 @@ def DetectLicenseInImage(image):
     batch_data = tf.constant(images_data)
 
     # tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
-    license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
-    pred = license_detection_model._make_predict_function()
-    print("PREDDDD: ", pred)
+    # license_detection_model = tf.keras.models.load_model(cfg.YOLO.SAVEDMODEL, compile=False)
+    # pred = license_detection_model._make_predict_function()
+    # print("PREDDDD: ", pred)
 
-    infer = license_detection_model.signatures['serving_default']
+    # infer = license_detection_model.signatures['serving_default']
 
     pred_bbox = infer(batch_data)
-    print("pred_bbox: ", pred_bbox)
+    # print("pred_bbox: ", pred_bbox)
 
     for key, value in pred_bbox.items():
         boxes = value[:, :, 0:4]
@@ -138,3 +138,6 @@ def GetLicenseFromImage(license_plate):
     license_plate = ''.join(license_plate)
 
     return license_plate
+
+
+OnLoad()

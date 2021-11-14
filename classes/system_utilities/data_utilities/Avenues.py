@@ -65,6 +65,9 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
     # call this method when vehicle enters innopark parking
     # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
+    print("remove the return to add session")
+    return
+
     avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
 
     rate_per_hour = GetRatePerHourFromParkingInfo(avenue, parking_id)
