@@ -2,19 +2,19 @@ from classes.camera.CameraBuffered import Camera
 from classes.system_utilities.tracking_utilities.SubtractionModel import SubtractionModel
 from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 import classes.system_utilities.image_utilities.ImageUtilities as IU
-from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance
+from classes.system_utilities.helper_utilities.Enums import DetectedObjectAtEntrance, ODProcessInstruction
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
 
 import numpy as np
 import sys
 import time
-from multiprocessing import Process, shared_memory
+from multiprocessing import Process, shared_memory, Pipe
 from shapely.geometry import Polygon, LineString
 
 
 class EntranceLicenseDetector(ShutDownEventListener):
-    def __init__(self, license_frames_request_queue, broker_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event, seconds_between_detections=1):
+    def __init__(self, license_frames_request_queue, broker_request_queue, detector_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event, seconds_between_detections=1):
         ShutDownEventListener.__init__(self, shutdown_event)
         # camera is given as type array in the format [camera id, camera rtsp]
 
@@ -27,6 +27,7 @@ class EntranceLicenseDetector(ShutDownEventListener):
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.seconds_between_detections = seconds_between_detections
+        self.detector_request_queue = detector_request_queue
 
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
@@ -61,9 +62,10 @@ class EntranceLicenseDetector(ShutDownEventListener):
         self.latest_license_frames[index] = frame
 
     def Start(self):
-        import classes.system_utilities.image_utilities.ObjectDetection as OD
+
+        receive_pipe, send_pipe = Pipe()
+
         ShutDownEventListener.initialize(self)
-        OD.OnLoad(weight_idx=1)
 
         bottom_camera = Camera(rtsp_link=self.bottom_camera[1],
                                camera_id=self.bottom_camera[0])
@@ -141,7 +143,8 @@ class EntranceLicenseDetector(ShutDownEventListener):
                 old_detection_status = DetectedObjectAtEntrance.DETECTED
 
                 if (time.time() - time_at_detection) > self.seconds_between_detections:
-                    return_status, classes, bounding_boxes, _ = OD.DetectObjectsInImage(frame_top)
+                    self.detector_request_queue.put((ODProcessInstruction.IMAGE_PROVIDED, frame_top, send_pipe))
+                    return_status, classes, bounding_boxes, _ = receive_pipe.recv()
                     time_at_detection = time.time()
                 else:
                     return_status = False
@@ -160,6 +163,8 @@ class EntranceLicenseDetector(ShutDownEventListener):
                     self.should_keep_detecting_bottom_camera = True
                     if intersection:
                         old_detection_status = DetectedObjectAtEntrance.DETECTED_WITH_YOLO
+
+                        print("[EntranceLicenseDetector] Detected Vehicle.", file=sys.stderr)
 
                         # send the frames to another process be processed
                         self.license_frames_request_queue.put(self.latest_license_frames)

@@ -160,7 +160,7 @@ class Tracker(ShutDownEventListener):
 
                 temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
 
-                if temp_are_overlapping < 0.053:
+                if temp_are_overlapping < 0.04:
                     try:
                         temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
 

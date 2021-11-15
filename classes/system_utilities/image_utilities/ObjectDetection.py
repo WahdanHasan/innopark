@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.system_utilities.helper_utilities.Enums import YoloModel
 
 # Global variable declarations
 yolo_net = 0
@@ -8,7 +9,7 @@ yolo_class_names = 0
 yolo_output_layer_names = 0
 yolo_net_input_size = 0
 
-def OnLoad(weight_idx=0):
+def OnLoad(model=YoloModel.YOLOV3):
     # All models and internal/external dependencies should be both loaded and initialized here
 
 
@@ -18,21 +19,27 @@ def OnLoad(weight_idx=0):
     global yolo_output_layer_names
     global yolo_net_input_size
 
-    classes_file = 'config\\yolov3\\coco.names'
+
+
+    if model == YoloModel.YOLOV4:
+        model_config = 'config\\yolov4\\yolov4-tiny.cfg'
+        model_weights = 'config\\yolov4\\yolov4-tiny.weights'
+        classes_file = 'config\\yolov3\\coco.names'
+        yolo_net_input_size = 416
+    elif model == YoloModel.YOLOV3:
+        model_config = 'config\\yolov3\\yolov3-320.cfg'
+        model_weights = 'config\\yolov3\\yolov3-320.weights'
+        classes_file = 'config\\yolov3\\coco.names'
+        yolo_net_input_size = 320
+    elif model == YoloModel.LICENSE_DETECTOR:
+        model_config = 'config\\yolov4\\license_detector.cfg'
+        model_weights = 'config\\yolov4\\license_detector.weights'
+        classes_file = "config\\yolov4\\license_detector.names"
+        yolo_net_input_size = 416
+
 
     with open(classes_file, 'rt') as f:
         yolo_class_names = f.read().rstrip('\n').split('\n')
-
-
-    if weight_idx == 0:
-        model_config = 'config\\yolov4\\yolov4-tiny.cfg'
-        model_weights = 'config\\yolov4\\yolov4-tiny.weights'
-        yolo_net_input_size = 320
-    elif weight_idx == 1:
-        model_config = 'config\\yolov3\\yolov3-320.cfg'
-        model_weights = 'config\\yolov3\\yolov3-320.weights'
-        yolo_net_input_size = 320
-
 
 
     yolo_net = cv2.dnn.readNetFromDarknet(model_config, model_weights)
@@ -42,6 +49,8 @@ def OnLoad(weight_idx=0):
 
     yolo_layer_names = yolo_net.getLayerNames()
     yolo_output_layer_names = [yolo_layer_names[i[0] - 1] for i in yolo_net.getUnconnectedOutLayers()]
+    from classes.system_utilities.helper_utilities import Constants
+    DetectObjectsInImage(image=np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8))
 
 
 def DetectObjectsInImage(image):
@@ -96,8 +105,8 @@ def DetectObjectsInImage(image):
         index = index[0]
 
         # Filter detections by classes
-        if yolo_class_names[class_ids[index]] != 'car' and yolo_class_names[class_ids[index]] != 'truck':
-            continue
+        # if yolo_class_names[class_ids[index]] != 'car' and yolo_class_names[class_ids[index]] != 'truck':
+        #     continue
 
         box = bounding_boxes[index]
 

@@ -8,6 +8,8 @@ import numpy as np
 from object_detection.utils import config_util
 from object_detection.utils import label_map_util
 from object_detection.builders import model_builder
+from tensorflow import keras
+
 
 # Global variable declarations
 license_detection_model = 0
@@ -29,13 +31,14 @@ def OnLoad():
     global license_category_index
 
     configs = config_util.get_configs_from_pipeline_file("config\\license_plate_detector\\pipeline.config")
-
+    config_util.save_pipeline_config(configs['model'], directory=".")
     license_detection_model = model_builder.build(model_config=configs['model'],
                                                   is_training=False)
 
+    # license_detection_model = keras.models.load_model("config\\license_plate_detector\\custom-416")
 
-    temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
-    temp_model.restore("config\\license_plate_detector\\license_plate_model").expect_partial()
+    # temp_model = tf.compat.v2.train.Checkpoint(model=license_detection_model)
+    # temp_model.restore("config\\license_plate_detector\\license_plate_model").expect_partial()
 
     license_category_index = label_map_util.create_category_index_from_labelmap("config\\license_plate_detector\\label_map.pbtxt")
 

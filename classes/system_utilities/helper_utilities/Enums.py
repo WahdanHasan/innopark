@@ -47,3 +47,10 @@ class DetectedObjectAtEntrance(Enum):
 class ShutDownEvent(Enum):
     SHUTDOWN = 1
 
+class YoloModel(Enum):
+    YOLOV3 = 0,
+    YOLOV4 = 1,
+    LICENSE_DETECTOR = 2
+
+class ODProcessInstruction(Enum):
+    IMAGE_PROVIDED = 0

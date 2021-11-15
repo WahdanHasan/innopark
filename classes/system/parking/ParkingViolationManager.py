@@ -1,11 +1,10 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.data_utilities.Avenues import GetAllParkings
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
-from classes.system_utilities.image_utilities.LicenseDetection_Custom import DetectLicenseInImage
 
 from multiprocessing import Process, shared_memory
 import numpy as np
@@ -19,11 +18,12 @@ import math
 
 class ParkingViolationManager(TrackedObjectListener):
 
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event):
 
         super().__init__(amount_of_trackers, new_object_in_pool_event)
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
+        self.pvm_initialized_event = pvm_initialized_event
         self.violation_manager_process = 0
         self.should_keep_managing = True
         self.base_blank = np.zeros(
@@ -89,6 +89,11 @@ class ParkingViolationManager(TrackedObjectListener):
         super().initialize()
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
+        from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
+
+        LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
+
+        self.pvm_initialized_event.set()
         self.start_system_event.wait()
 
         while self.should_keep_managing:
@@ -96,14 +101,15 @@ class ParkingViolationManager(TrackedObjectListener):
             ids, bbs = self.getAllActiveTrackedProcessItems()
 
             self.checkAndUpdateViolationStatuses(ids=ids,
-                                                bbs=bbs)
+                                                 bbs=bbs,
+                                                 license_detector=LicenseDetector)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, ids, bbs):
+    def checkAndUpdateViolationStatuses(self, ids, bbs, license_detector):
         # An object tracker cannot be on the id 0
         if not ids or ids is None:
             return
@@ -150,13 +156,14 @@ class ParkingViolationManager(TrackedObjectListener):
 
                     frame = self.getFrameByCameraId(camera_id)
                     parking_spot_img = IU.CropImage(frame, (self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]))
-                    self.getLicensePlateBboxUsingModel(parking_spot_img)
+                    self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img,
+                                                       license_detector=license_detector)
 
                     break
 
-    def getLicensePlateBboxUsingModel(self, parking_spot_img):
+    def getLicensePlateBboxUsingModel(self, parking_spot_img, license_detector):
         #make sure that model is loaded before detection
-        status, classes, bounding_boxes, scores = DetectLicenseInImage(parking_spot_img)
+        status, classes, bounding_boxes, scores = license_detector.DetectObjectsInImage(parking_spot_img)
 
         print("status: ", status)
         print("bounding_box", bounding_boxes)
@@ -179,7 +186,6 @@ class ParkingViolationManager(TrackedObjectListener):
 
 
         # get Bb vector of last tracked point to the center of license plate
-
 
     def getLicensePlateBboxUsingContours(self, parking_spot_img):
         # convert to gray
@@ -229,7 +235,6 @@ class ParkingViolationManager(TrackedObjectListener):
         cv2.drawContours(parking_spot_img, [plate_contour], -1, (0, 255, 0), 3)
         IU.SaveImage(parking_spot_img, "final_img_with_contour")
 
-
     def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge):
         x1 = last_bb_pt[0]
         y1 = last_bb_pt[1]
@@ -247,7 +252,6 @@ class ParkingViolationManager(TrackedObjectListener):
 
         return [x2, y2]
 
-
     def drawVehicleTrailUsingVector(self, bbs_pts, vector_pt):
         blank_img = self.calculateMinimumVehicleTrail()
         # blank_img = self.base_blank.copy()
@@ -259,7 +263,7 @@ class ParkingViolationManager(TrackedObjectListener):
                 continue
             pt1 = bbs_pts[i]
             pt2 = bbs_pts[i - 1]
-            print("center pt: (", pt1, pt2, ")")
+            # print("center pt: (", pt1, pt2, ")")
             blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])) ,
                         point_b=(int(pt2[0]), int(pt2[1])), color=(0, 255, 0))
 
@@ -314,7 +318,6 @@ class ParkingViolationManager(TrackedObjectListener):
                                 color=(0, 255, 255))
         return blank_img
 
-
     def getPerpendicularPointOnLine(self, bbs_pts):
         # get [x, y] coordinates of a point on the line perpendicular to specified pts
         perpendicular_pts = []
@@ -334,7 +337,6 @@ class ParkingViolationManager(TrackedObjectListener):
             perpendicular_pts.append([math.ceil(perpendicular_x), math.ceil(perpendicular_y)])
 
         return perpendicular_pts
-
 
     def calculateMinimumVehicleTrail(self):
         blank_img = self.base_blank.copy()
@@ -358,7 +360,6 @@ class ParkingViolationManager(TrackedObjectListener):
             # else:
             #     self.minimum_length_of_vehicle_trail = parking_lane_length_right
 
-
     def calculateBottomOfBbs(self, vehicle_plate, camera_id):
         bbs_top_midpoints = []
 
@@ -369,8 +370,8 @@ class ParkingViolationManager(TrackedObjectListener):
 
             # Apply midpoint formula to get midpoint of top bb
             midpoint = [math.ceil((BL[0]+bb[1][0])/2), math.ceil((BL[1]+bb[1][1])/2)]
-            print("bb: ", bb)
-            print("center: ", midpoint)
+            # print("bb: ", bb)
+            # print("center: ", midpoint)
             bbs_top_midpoints.append(midpoint)
 
         return bbs_top_midpoints
@@ -382,7 +383,6 @@ class ParkingViolationManager(TrackedObjectListener):
             bbs_BR_pts.append([bb[1][0], bb[1][1]])
 
         return bbs_BR_pts
-
 
     def calculateCenterOfBbs(self, vehicle_plate, camera_id):
         # returns center pts in format [center_x, center_y]

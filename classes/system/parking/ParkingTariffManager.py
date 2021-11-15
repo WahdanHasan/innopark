@@ -14,7 +14,7 @@ import time
 
 
 class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, seconds_parked_before_charge, shutdown_event, start_system_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, seconds_parked_before_charge, shutdown_event, start_system_event, ptm_initialized_event):
 
         TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
         ShutDownEventListener.__init__(self, shutdown_event)
@@ -22,6 +22,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
         self.seconds_parked_before_charge = seconds_parked_before_charge
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
+        self.ptm_initialized_event = ptm_initialized_event
         self.tariff_manager_process = 0
         self.should_keep_managing = True
         self.parking_spaces = []
@@ -75,6 +76,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
         self.loadParkingSpacesFromDb()
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
+        self.ptm_initialized_event.set()
         self.start_system_event.wait()
 
         while self.should_keep_managing:
