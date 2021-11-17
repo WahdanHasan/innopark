@@ -143,49 +143,73 @@ class ParkingViolationManager(TrackedObjectListener):
                     continue
 
                 # if self.parking_spaces.status == ParkingStatus.OCCUPIED:
-                if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter == 200:
+                if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter == 250:
                     print("PARKING OCCUPIED AAAAAAAAAAAAAAAAAAAA")
                     self.latest_tracked_vehicle_bbs[vehicle_plate][self.parking_status_key] = ParkingStatus.OCCUPIED
 
                     # bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
                     # bbs_center_pts = self.getBROfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
+                    # vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
                     # self.drawVehicleTrail(pts)
-                    self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
+
 
                     frame = self.getFrameByCameraId(camera_id)
                     parking_spot_img = IU.CropImage(frame, (self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]))
-                    self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img,
+                    license_bb = self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img,
+                                                       frame=frame,
                                                        license_detector=license_detector)
+
+                    vector_pts = self.getBbVectorToLicenseCenter(last_bb_pt=bottom_midpts[-1],
+                                                                 license_bb=license_bb)
+
+                    self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
 
                     break
 
-    def getLicensePlateBboxUsingModel(self, parking_spot_img, license_detector):
-        #make sure that model is loaded before detection
-        status, classes, bounding_boxes, scores = license_detector.DetectObjectsInImage(parking_spot_img)
+    def getLicensePlateBboxUsingModel(self, parking_spot_img, frame, license_detector):
+        # returns the license plate bb in respect to the frame, not the cropped parking spot img
 
-        print("status: ", status)
-        print("bounding_box", bounding_boxes)
+        # TODO: change from parking spot parameter to vehicle bounding box tracked
+        status, classes, license_bb, scores = license_detector.DetectObjectsInImage(parking_spot_img)
 
-        bounding_boxes = bounding_boxes[0]
+        if status == 0:
+            print("ERROR: No license plate was detected.", file=sys.stderr)
+            return
 
-        height, width = parking_spot_img[:2]
+        license_bb = license_bb[0]
 
-        box_pts = [[0, height], [width, height]]
-        new_bb_pts = IU.GetBBInRespectTo(bounding_boxes, box_pts)
+        # remove lines below
+        print("License bb", license_bb)
+        blank_img = self.base_blank.copy()
+        img = IU.DrawBoundingBoxes(blank_img, [license_bb])
+
+        height, width = frame.shape[:2]
+
+        frame_bb = [[0, height], [width, height]]
+        rescaled_license_bb = IU.GetBBInRespectTo(license_bb, frame_bb)
+
+        # remove below line
+        img = IU.DrawBoundingBoxes(img, [rescaled_license_bb], color=(0, 255, 0))
+
+        return rescaled_license_bb
 
 
-        img = IU.DrawBoundingBoxes(box_pts, new_bb_pts)
-
-        #img not showing for some reason
-        # cv2.imshow("bb", img)
-        # cv2.waitKey(0)
-
-        # get the center of new_bb_pts or for short can just get center of bounding boxes and convert that one point in respect to larger parent
-
+    def getBbVectorToLicenseCenter(self, last_bb_pt, license_bb):
+        # get the center of new_bb_pts or for short can just get center of bounding boxes
+        center_pt = IU.GetBoundingBoxCenter(license_bb)
 
         # get Bb vector of last tracked point to the center of license plate
+        x1 = last_bb_pt[0]
+        y1 = last_bb_pt[1]
+
+        y2 = center_pt[1]
+
+        scaling_factor = y2 / y1
+        x2 = x1 * scaling_factor
+
+        return [x2, y2]
+
 
     def getLicensePlateBboxUsingContours(self, parking_spot_img):
         # convert to gray
@@ -239,7 +263,6 @@ class ParkingViolationManager(TrackedObjectListener):
         x1 = last_bb_pt[0]
         y1 = last_bb_pt[1]
 
-        x2 = 0
         y2 = frame_edge[1]
 
         scaling_factor = y2 / y1
@@ -247,8 +270,6 @@ class ParkingViolationManager(TrackedObjectListener):
 
         # if x2 > frame_edge[0]:
         #     x2 = frame_edge[0]
-
-
 
         return [x2, y2]
 
@@ -270,7 +291,7 @@ class ParkingViolationManager(TrackedObjectListener):
         blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_bb_pt[0]), int(last_bb_pt[1])),
                                 point_b=(int(vector_pt[0]), int(vector_pt[1])), color=(0, 255, 255))
 
-        IU.SaveImage(blank_img, "vector_6")
+        # IU.SaveImage(blank_img, "vector_to_license_center")
 
     def drawVehicleTrail(self, pts):
         blank_img = self.calculateMinimumVehicleTrail()

@@ -201,6 +201,17 @@ def GetBBInRespectTo(bbox, bbox_of_new_parent):
 
     return local_bb
 
+def GetPointInRespectTo(point, bbox_of_new_parent):
+    # Takes a point and updates its local coordinates in respect to the top left bb coordinate of new parent
+    # This is to be used when getting a point's local coordinates in respect to a larger bb.
+    # The point in this case would be a subset of the larger bb
+    # Returns the point's local coordinate values
+
+    TL = [point[0][0] - bbox_of_new_parent[0][0], point[0][1] - bbox_of_new_parent[0][1]]
+
+    local_point = [TL[0], [TL[1]]]
+    return local_point
+
 def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
     # Returns the full bounding box in the format of [TL, TR, BL, BR]

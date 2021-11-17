@@ -49,10 +49,10 @@ def LoadComponents(shutdown_event, start_system_event):
                               start_system_event=start_system_event,
                               ptm_initialized_event=ptm_initialized_event)
 
-    # StartParkingViolationManager(new_tracked_object_event=new_tracked_object_event,
-    #                              shutdown_event=shutdown_event,
-    #                              start_system_event=start_system_event,
-    #                              pvm_initialized_event=pvm_initialized_event)
+    StartParkingViolationManager(new_tracked_object_event=new_tracked_object_event,
+                                 shutdown_event=shutdown_event,
+                                 start_system_event=start_system_event,
+                                 pvm_initialized_event=pvm_initialized_event)
 
     print("[SystemLoader] Waiting for all components to finish loading..", file=sys.stderr)
     entrance_cameras_initialized_event.wait()
