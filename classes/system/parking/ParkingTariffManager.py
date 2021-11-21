@@ -50,13 +50,27 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
     def loadParkingSpacesFromDb(self):
         parkings_ids, parkings_docs = GetAllParkings(Constants.avenue_id)
 
+        parking_spaces_count = 0
+
         for i in range(len(parkings_ids)):
             parking_doc = parkings_docs[i]
             parking_id = parkings_ids[i]
 
-            self.parking_spaces.append(ParkingSpace(parking_doc[Constants.camera_id_key], parking_id,
-                                                    parking_doc[Constants.bounding_box_key], parking_doc[Constants.is_occupied_key],
-                                                    parking_doc[Constants.parking_type_key], parking_doc[Constants.rate_per_hour_key]))
+            self.parking_spaces.append(ParkingSpace(internal_id=i,
+                                                    camera_id=parking_doc[Constants.camera_id_key],
+                                                    parking_id=parking_id,
+                                                    bounding_box=parking_doc[Constants.bounding_box_key],
+                                                    is_occupied=parking_doc[Constants.is_occupied_key],
+                                                    parking_type=parking_doc[Constants.parking_type_key],
+                                                    rate_per_hour=parking_doc[Constants.rate_per_hour_key]))
+            parking_spaces_count += 1
+
+        parking_space_jsons = []
+        for i in range(parking_spaces_count):
+            parking_space_jsons.append(dict(self.parking_spaces[i]))
+
+        with open(Constants.parking_spaces_json, 'w') as parkingSpaceJsonFile:
+            json.dump(parking_space_jsons, parkingSpaceJsonFile)
 
     def addParkingSpaceToManager(self, parking_space):
         self.parking_spaces.append(parking_space)
@@ -119,18 +133,18 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
                         if car_is_in_this_parking:
                             temp_parking.occupant_left_parking_time_start = 0
                         else:
-                            temp_parking.CheckAndUpdateIfOccupantLeft()
+                            temp_parking.checkAndUpdateIfOccupantLeft()
 
                     elif temp_parking.status == ParkingStatus.NOT_OCCUPIED:
                         if car_is_in_this_parking:
-                            temp_parking.CheckAndUpdateIfConsideredParked()
+                            temp_parking.checkAndUpdateIfConsideredParked()
                         else:
-                            temp_parking.ResetOccupant()
+                            temp_parking.resetOccupant()
 
                 elif temp_parking.status == ParkingStatus.NOT_OCCUPIED:
                     if car_is_in_this_parking:
                         temp_parking.occupant_park_time_start = time.time()
-                        temp_parking.UpdateOccupantId(ids[2][i])
+                        temp_parking.updateOccupantId(ids[2][i])
 
     def writeDebugItems(self):
 

@@ -62,7 +62,7 @@ def StartTrackedObjectPool():
 
     tracked_object_pool = TO.TrackedObjectPoolManager()
     tracked_object_pool_request_queue = tracked_object_pool.Initialize(pool_size=10)
-    pool_process = multiprocessing.Process(target=tracked_object_pool.Start)
+    pool_process = multiprocessing.Process(target=tracked_object_pool.start)
     pool_process.start()
 
     return tracked_object_pool_request_queue, pool_process
