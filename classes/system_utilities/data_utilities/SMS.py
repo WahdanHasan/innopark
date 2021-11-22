@@ -11,6 +11,10 @@ def sendSmsToLicense(license_plate, tariff_amount):
     print("remove return in SMS file to send sms")
     return
 
+    print("remove license plate duct tape from sendSmsToLicense Function")
+    if license_plate == None:
+        license_plate = "J71612"
+
     vehicle_registered_phone_number = DU.GetValueOfFieldOnArrayValueMatch(collection="government-registered-drivers",
                                                                 match_key=Constants.gov_license_key,
                                                                 match_value=license_plate,

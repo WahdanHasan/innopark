@@ -164,6 +164,20 @@ def FloatBBToIntBB(bb):
 
     return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
 
+def GetTLIncreasedBB(bbox, increase_factor=0.1):
+    # Takes a bounding box and increases its TL while making sure the bounding box is not out of bounds of its image.
+
+    # Create new bbox
+    increased_bbox = [[bbox[0][0], bbox[0][1]], [bbox[1][0], bbox[1][1]]]
+
+    # Increase the top left point while making sure it does not go out of bounds, if it does, set it to max bound
+    for j in range(2):
+        increased_bbox[0][j] = int(increased_bbox[0][j] - (increased_bbox[0][j] * increase_factor))
+        if increased_bbox[0][j] < 0:
+            increased_bbox[0][j] = 0
+
+    return increased_bbox
+
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)
@@ -200,6 +214,21 @@ def GetBBInRespectTo(bbox, bbox_of_new_parent):
     local_bb = [[TL[0], TL[1]], [BR[0], BR[1]]]
 
     return local_bb
+
+def GetChildBBInRespectToNewParent(child_bbox, child_parent_bbox_irt_new_parent):
+    # Takes the child bbox of the original parent
+    # and the parent bbox that's in respect of new parent, which is the bigger bbox
+    # Return new dimension of child in respect to new parent, rather than original parent
+
+    child_irt_new_parent_TL = [child_bbox[0][0] + child_parent_bbox_irt_new_parent[0][0],
+                              child_bbox[0][1] + child_parent_bbox_irt_new_parent[0][1]]
+
+    child_irt_new_parent_BR = [child_bbox[1][0] + child_parent_bbox_irt_new_parent[0][0],
+                              child_bbox[1][1] + child_parent_bbox_irt_new_parent[0][1]]
+
+    child_irt_new_parent = [child_irt_new_parent_TL, child_irt_new_parent_BR]
+
+    return child_irt_new_parent
 
 def GetPointInRespectTo(point, bbox_of_new_parent):
     # Takes a point and updates its local coordinates in respect to the top left bb coordinate of new parent
@@ -264,6 +293,14 @@ def GetDimensionsFromBoundingBox(bounding_box):
     width = bounding_box[1][0] + bounding_box[0][0]
 
     return (height, width)
+
+def GetBoundingBoxFromDimensions(height, width):
+    # Takes dimensions
+    # Returns the bounding box [[TL], [BR]]
+
+    frame_bb = [[0, height], [width, height]]
+
+    return frame_bb
 
 def CreateInvertedMask(img, bbox):
     # Takes a full image and the bounding box of the object of interest within it.
