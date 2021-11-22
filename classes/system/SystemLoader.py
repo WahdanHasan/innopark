@@ -112,7 +112,7 @@ def StartTrackedObjectPool(new_tracked_object_event, initialized_event, shutdown
                                                                  new_tracked_object_process_event=new_tracked_object_event,
                                                                  initialized_event=initialized_event,
                                                                  shutdown_event=shutdown_event)
-    tracked_object_pool.StartProcess()
+    tracked_object_pool.startProcess()
 
     return tracked_object_pool_request_queue
 

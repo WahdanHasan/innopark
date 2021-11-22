@@ -39,29 +39,29 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         self.process_listener_thread_stopped = 0
         self.shutdown_listener_thread = 0
 
-    def StartProcess(self):
+    def startProcess(self):
 
-        self.pool_process = Process(target=self.Start)
+        self.pool_process = Process(target=self.start)
         self.pool_process.start()
 
-    def StopProcess(self):
+    def stopProcess(self):
 
         self.pool_process.terminate()
 
-    def Start(self):
+    def start(self):
 
         ShutDownEventListener.initialize(self)
 
         # Create tracked object subprocesses
         for i in range(self.pool_size):
-            self.CreateTrackedObjectProcess(process_number=i)
+            self.createTrackedObjectProcess(process_number=i)
 
         self.initialized_event.set()
 
         print("[TrackedObjectPoolManager] Starting pool manager.", file=sys.stderr)
 
         print("[TrackedObjectPoolManager] Request listener thread started.", file=sys.stderr)
-        self.process_listener_thread = Thread(target=self.ListenForProcessRequests)
+        self.process_listener_thread = Thread(target=self.listenForProcessRequests)
         self.process_listener_thread_stopped = False
         self.process_listener_thread.daemon = True
         self.process_listener_thread.start()
@@ -70,7 +70,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
         print("[TrackedObjectPoolManager] Stopped pool manager", file=sys.stderr)
 
-    def ListenForProcessRequests(self):
+    def listenForProcessRequests(self):
 
         while not self.process_listener_thread_stopped:
             (instructions) = self.tracked_object_pool_request_queue.get()
@@ -80,19 +80,18 @@ class TrackedObjectPoolManager(ShutDownEventListener):
                 self.cleanUp()
                 return
             elif instructions[0] == ObjectToPoolManagerInstruction.GET_PROCESS:
-                self.GetTrackedObjectProcessRequest(instructions)
+                self.getTrackedObjectProcessRequest(instructions)
             elif instructions[0] == ObjectToPoolManagerInstruction.RETURN_PROCESS:
-                self.ReturnTrackedObjectProcessRequest(instructions)
+                self.returnTrackedObjectProcessRequest(instructions)
 
-
-    def GetTrackedObjectProcessRequest(self, instructions):
+    def getTrackedObjectProcessRequest(self, instructions):
         (sender_pipe) = instructions[1]
 
-        temp_pipe, bb_in_shared_memory_manager, process_idx = self.GetTrackedObjectProcess()
+        temp_pipe, bb_in_shared_memory_manager, process_idx = self.getTrackedObjectProcess()
 
         sender_pipe.send((temp_pipe, bb_in_shared_memory_manager, process_idx))
 
-    def GetTrackedObjectProcess(self):
+    def getTrackedObjectProcess(self):
 
         # Returns the next free process from the pool
         # If all processes are active, creates a new process, adds it to the pool, and then returns it
@@ -105,7 +104,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
         print("[TrackedObjectPoolManager] Creating and returning process " + str(self.pool_size + 1) + " as all " + str(self.pool_size) + " tracked objects are in use.", file=sys.stderr)
 
-        self.CreateTrackedObjectProcess(process_number=self.pool_size)
+        self.createTrackedObjectProcess(process_number=self.pool_size)
 
         self.pool_size += 1
         temp_pipe = self.tracked_object_process_pipes[len(self.tracked_object_process_pipes) - 1]
@@ -120,16 +119,16 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
         return temp_pipe, bb_in_shared_memory_manager, self.pool_size -1
 
-    def ReturnTrackedObjectProcessRequest(self, instructions):
+    def returnTrackedObjectProcessRequest(self, instructions):
         (process_idx) = instructions[1]
 
-        self.ReturnTrackedObjectProcess(process_idx)
+        self.returnTrackedObjectProcess(process_idx)
 
-    def ReturnTrackedObjectProcess(self, process_idx):
+    def returnTrackedObjectProcess(self, process_idx):
         self.tracked_object_process_active_statuses[process_idx] = False
         print("[TrackedObjectPoolManager] Returned process with id " + str(process_idx + 1) + ".", file=sys.stderr)
 
-    def CreateTrackedObjectProcess(self, process_number):
+    def createTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it
         # Returns the process and the other end of the pipe
 
@@ -150,7 +149,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
         # Create a process for the tracked object and pass it the pipe and shared memory for its bounding box
         temp_tracked_object = TrackedObjectProcess()
-        tracked_object_process = Process(target=temp_tracked_object.AwaitInstructions, args=(pipe2, bb_in_shared_memory_manager, ids_in_shared_memory_manager))
+        tracked_object_process = Process(target=temp_tracked_object.awaitInstructions, args=(pipe2, bb_in_shared_memory_manager, ids_in_shared_memory_manager))
         tracked_object_process.start()
 
         # Add new tracked object values to pool
@@ -160,7 +159,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         self.tracked_object_bb_shared_memory_managers.append(bb_in_shared_memory_manager)
         self.tracked_object_id_shared_memory_managers.append(ids_in_shared_memory_manager)
 
-    def DestroyPool(self):
+    def destroyPool(self):
         # Destroys all processes stored in the pool
 
         for i in range(self.pool_size):
@@ -211,14 +210,14 @@ class TrackedObjectProcess:
                               maxLevel=50,
                               criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-    def AwaitInstructions(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
+    def awaitInstructions(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
         # The tracked object process sits idle until an object tracker sends a new task to it
 
         if self.tracking_instruction_pipe == 0:
-            self.FirstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager)
+            self.firstTimeSetup(tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager)
 
         # Reset tracked process
-        self.ResetTrackedProcess()
+        self.resetTrackedProcess()
 
         # Wait for instructions
         instruction = tracking_instruction_pipe.recv()
@@ -230,10 +229,10 @@ class TrackedObjectProcess:
 
 
         # Initialize new settings and begin tracking
-        self.Initialize(camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
-        self.StartTracking(self.tracking_instruction_pipe)
+        self.initialize(camera_id, tracker_id, new_bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape)
+        self.startTracking(self.tracking_instruction_pipe)
 
-    def FirstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
+    def firstTimeSetup(self, tracking_instruction_pipe, bb_in_shared_memory_manager, ids_in_shared_memory_manager):
 
         # Initialize instruction and info request pipes
         self.tracking_instruction_pipe = tracking_instruction_pipe
@@ -249,9 +248,9 @@ class TrackedObjectProcess:
                                                dtype=np.uint8,
                                                buffer=ids_in_shared_memory_manager.buf)
 
-        self.ResetTrackedProcess()
+        self.resetTrackedProcess()
 
-    def Initialize(self, camera_id, tracker_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
+    def initialize(self, camera_id, tracker_id, bb, shared_memory_manager_frame, base_frame_shape, shared_memory_manager_mask, base_mask_shape):
         # Sets the parameters for the tracked object
 
         self.object_id = None
@@ -280,16 +279,16 @@ class TrackedObjectProcess:
             self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
             self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
 
-    def WriteObjectIdToSharedMemory(self, object_id):
+    def writeObjectIdToSharedMemory(self, object_id):
         temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
 
         self.ids_in_shared_memory[2: temp_list.shape[0] + 2] = temp_list
 
-    def ResetTrackedProcess(self):
+    def resetTrackedProcess(self):
         self.bb_in_shared_memory[:] = Constants.bb_example.copy()[:]
         self.ids_in_shared_memory[:] = np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8)
 
-    def StartTracking(self, pipe):
+    def startTracking(self, pipe):
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
 
@@ -309,7 +308,7 @@ class TrackedObjectProcess:
                         continue
                     elif instruction[0] == TrackerToTrackedObjectInstruction.STORE_NEW_ID:
                         new_object_id = instruction[2]
-                        self.WriteObjectIdToSharedMemory(object_id=new_object_id)
+                        self.writeObjectIdToSharedMemory(object_id=new_object_id)
                         instruction = instruction[1]
                         print("[TrackedObjectProcess] Started tracking " + str(new_object_id) + ".", file=sys.stderr)
 
@@ -323,24 +322,24 @@ class TrackedObjectProcess:
 
             # Update based on object movement status
             if instruction == TrackerToTrackedObjectInstruction.OBJECT_MOVING:
-                self.UpdateMovingObject()
+                self.updateMovingObject()
             elif instruction == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY:
-                self.UpdateMovingObject()
+                self.updateMovingObject()
                 # self.UpdateStationaryObject()
 
         print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 
-        self.AwaitInstructions(tracking_instruction_pipe=self.tracking_instruction_pipe,
+        self.awaitInstructions(tracking_instruction_pipe=self.tracking_instruction_pipe,
                                bb_in_shared_memory_manager=None,
                                ids_in_shared_memory_manager=None)
 
-    def UpdateMovingObject(self):
-        self.CalculateNewBoundingBox(self.frame)
+    def updateMovingObject(self):
+        self.calculateNewBoundingBox(self.frame)
 
-    def UpdateStationaryObject(self):
+    def updateStationaryObject(self):
         x=10
 
-    def CalculateNewBoundingBox(self, frame):
+    def calculateNewBoundingBox(self, frame):
         # Takes the latest current frame and calculates the new bounding box from it
         # This function needs to be updated to improve the tracker
 
