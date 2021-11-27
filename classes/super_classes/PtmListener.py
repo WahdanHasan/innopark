@@ -46,7 +46,7 @@ class PtmListener:
             self.shared_memory_items.append(temp_items)
 
     def getOccupiedParkingSpaceItems(self):
-        return [self.getOccupiedParkingSpaceIds(), self.getOccupiedParkingSpaceOccupantIds()]
+        return self.getOccupiedParkingSpaceIds(), self.getOccupiedParkingSpaceOccupantIds()
 
     def getOccupiedParkingSpaceIds(self):
 

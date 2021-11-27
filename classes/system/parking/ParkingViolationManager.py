@@ -5,22 +5,29 @@ from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloM
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.data_utilities.Avenues import GetAllParkings
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
+import classes.system_utilities.data_utilities.DatabaseUtilities as DU
+from datetime import datetime, timezone
 
+from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday
+
+from classes.super_classes.PtmListener import PtmListener
 from multiprocessing import Process, shared_memory
 import numpy as np
 import cv2
 import sys
 import json
-import time
+import time, logging
 import math
+import threading
 
 
-
-class ParkingViolationManager(TrackedObjectListener):
+class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
     def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event):
 
-        super().__init__(amount_of_trackers, new_object_in_pool_event)
+        TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
+        PtmListener.__init__(self)
+
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.pvm_initialized_event = pvm_initialized_event
@@ -61,6 +68,10 @@ class ParkingViolationManager(TrackedObjectListener):
 
         self.should_build_vehicle_bb_history = True
 
+        self.todayDate = None
+        self.sessions_due_today_ids = []
+        self.sessions_due_today_data = []
+
         # for i in range(len(Constants.CAMERA_DETAILS)):
         #     self.latest_tracked_vehicle_frames.append([None]*self.maximum_tracked_vehicle_frame_history)
 
@@ -70,6 +81,8 @@ class ParkingViolationManager(TrackedObjectListener):
 
         self.temp_counter = 0
         self.threshold_percentage = 0.75
+
+        self.thread_check_due_dates = 0
 
     def createSharedMemoryStuff(self, amount_of_trackers):
         for i in range(amount_of_trackers):
@@ -87,10 +100,57 @@ class ParkingViolationManager(TrackedObjectListener):
         self.violation_manager_process.start()
 
     def stopProcess(self):
+        self.thread_check_due_dates.join()
         self.tariff_manager_process.terminate()
 
+    def executeEvery(self, seconds_to_delay, task):
+        while True:
+            time.sleep(seconds_to_delay)
+            try:
+                print("task is NONE", file=sys.stderr)
+                if task is not None:
+                    task()
+                elif len(self.sessions_due_today_ids) <=0:
+                    print("sessions less than 000000000", file=sys.stderr)
+                    return
+            except Exception:
+                logging.exception("Couldn't execute the thread task")
+
+    def checkDueDateComparedToNow(self):
+        now = datetime.now(timezone.utc)
+        print("now time to be compared to due date: ", now)
+        print(self.sessions_due_today_data, file=sys.stderr)
+
+
+        for i in range(len(self.sessions_due_today_ids)):
+
+            print("due date: ", self.sessions_due_today_data[i][Constants.due_datetime_key])
+
+            # check if now exceeds due datetime
+            # if it does, record a fine in the db
+            if self.sessions_due_today_data[i][Constants.due_datetime_key] > now:
+                break
+
+            doc_ref = AddFine(avenue=Constants.avenue_id,
+                              avenue_name=self.sessions_due_today_data[i]["avenue_name"],
+                              session_id=self.sessions_due_today_ids[i],
+                              vehicle=self.sessions_due_today_data[i]["vehicle"],
+                              fine_type=Constants.fine_type_exceeded_due_date)
+
+            print("doc_ref: " + doc_ref, file=sys.stderr)
+
+            # pop the sessions that are fined
+            self.sessions_due_today_ids.pop(i)
+            self.sessions_due_today_data.pop(i)
+
     def startManaging(self):
-        super().initialize()
+        TrackedObjectListener.initialize(self)
+        PtmListener.initialize(self)
+
+        # initialize thread that checks due date compared to now.
+        # if now is past due date, then add a fine with type "Exceeded Due Date"
+        self.thread_check_due_dates = threading.Thread(target=lambda: self.executeEvery(10, self.checkDueDateComparedToNow()))
+
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
         from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
@@ -100,31 +160,89 @@ class ParkingViolationManager(TrackedObjectListener):
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
 
+
+        # set the date of today
+        self.setTodayStartDate()
+
+        self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
+                                                      collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
+                                                      now_datetime=self.todayDate)
+
+        if self.sessions_due_today_ids or self.sessions_due_today_data is not None:
+            print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
+            self.thread_check_due_dates.start()
+
         while self.should_keep_managing:
+            # if skip_counter % 10 and self.sessions_due_today_ids is not None:
+            #
+            #     for i in range(len(self.sessions_due_today_ids)):
+            #         print("due datetime: ", (self.sessions_due_today_data[i][Constants.due_datetime_key]))
+            #         print(datetime.now())
+            #         if self.sessions_due_today_data[i][Constants.due_datetime_key]<= datetime.now(timezone.utc):
+            #             print("innnnnn")
 
-            ids, bbs = self.getAllActiveTrackedProcessItems()
+            # parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
+            #
+            # vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
+            #
+            # if parking_ids or parking_ids is not None:
+            #     print("parking_ids: ", parking_ids, file=sys.stderr)
+            #     print("paring_occupants: ", parking_occupants, file=sys.stderr)
 
-            self.checkAndUpdateViolationStatuses(ids=ids,
-                                                 bbs=bbs,
-                                                 license_detector=LicenseDetector)
+            # self.checkAndUpdateViolationStatuses(parking_ids=parking_ids,
+            #                                      parking_occupants=parking_occupants,
+            #                                      vehicle_ids=vehicle_ids,
+            #                                      vehicle_bbs=vehicle_bbs,
+            #                                      license_detector=LicenseDetector)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, ids, bbs, license_detector):
+
+
+    def setTodayStartDate(self):
+        # set the start of today in UTC time 08:00 PM previous day
+        today = datetime.now().astimezone() # get uae time now
+
+        today = datetime(today.year, today.month, today.day, tzinfo=today.tzinfo) # set uae time 12:00 AM of today
+
+        today = today.astimezone(timezone.utc) # convert uae time 12:00AM to UTC time 8:00PM previous day
+
+        self.todayDate = today
+
+
+    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants, vehicle_ids, vehicle_bbs, license_detector):
+        # don't check for violation if there are not parkings occupied
+        if not parking_ids or parking_ids is None:
+            return
+
         # An object tracker cannot be on the id 0
-        if not ids or ids is None:
+        if not vehicle_ids or vehicle_ids is None:
             return
 
-        if not bbs or bbs is None:
+        if not vehicle_bbs or vehicle_bbs is None:
             return
 
-        for i in range(len(bbs)):
+        print("checking and updating violation statuses", file=sys.stderr)
+
+    def FcheckAndUpdateViolationStatuses(self, parking_ids, vehicle_ids, vehicle_bbs, license_detector):
+        # don't check for violation if there are not parkings occupied
+        if not parking_ids or parking_ids is None:
+            return
+
+        # An object tracker cannot be on the id 0
+        if not vehicle_ids or vehicle_ids is None:
+            return
+
+        if not vehicle_bbs or vehicle_bbs is None:
+            return
+
+        for i in range(len(vehicle_bbs)):
             self.temp_counter +=1
-            license_plate = ids[2][i]
-            camera_id = ids[1][i]
+            license_plate = vehicle_ids[2][i]
+            camera_id = vehicle_ids[1][i]
 
             # Initialize license_plate dict for new vehicle
             if license_plate not in self.latest_tracked_vehicle_bbs:
@@ -140,7 +258,7 @@ class ParkingViolationManager(TrackedObjectListener):
 
             # Build the history of vehicle bbs if vehicle is not parked
             if self.latest_tracked_vehicle_bbs[license_plate][self.parking_status_key] == ParkingStatus.NOT_OCCUPIED:
-                self.buildVehicleBbHistory(bbs=bbs, camera_id=camera_id, vehicle_plate=license_plate)
+                self.buildVehicleBbHistory(bbs=vehicle_bbs, camera_id=camera_id, vehicle_plate=license_plate)
 
             for j in range(len(self.parking_spaces)):
                 # if camera_id != self.parking_spaces[j].camera_id:

@@ -155,12 +155,12 @@ def GetValueOfFieldOnArrayValueMatch(collection, match_key, match_value, get_val
     return doc[0].to_dict()[get_value_key]
 
 def GetAllDocsEqualToRequestedField(collection, key, value):
-    # get the first doc whose key field equals the value you're looking for
+    # get all docs whose key field equals the value you're looking for
     docs = db.collection(collection).where(key, "==", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -173,12 +173,12 @@ def GetAllDocsEqualToRequestedField(collection, key, value):
     return docs_id_extracted, docs_extracted
 
 def GetAllDocsGreaterThanOrEqualRequestedFieldInMap(collection, field_key, map_key, value):
-    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    # get all docs whose key field value is greater than or equal to the value you're looking for
     docs = db.collection(collection).where(field_key+"."+map_key, ">=", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -190,12 +190,29 @@ def GetAllDocsGreaterThanOrEqualRequestedFieldInMap(collection, field_key, map_k
     return docs_id_extracted, docs_extracted
 
 def GetAllDocsGreaterThanOrEqualRequestedField(collection, field_key, value):
-    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    # get all docs whose key field value is greater than or equal to the value you're looking for
     docs = db.collection(collection).where(field_key, ">=", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
+
+    return docs_id_extracted, docs_extracted
+
+def GetAllDocsGreaterThanRequestedField(collection, field_key, value):
+    # get all docs whose key field value is greater than or equal to the value you're looking for
+    docs = db.collection(collection).where(field_key, ">", value).get()
+
+    if not docs:
+        print("Error: requested field is not found in any document")
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -229,13 +246,13 @@ def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
 #
 #     return docs_id_extracted, docs_extracted
 
-def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=None):
+def GetAllDocsEqualToTwoFields(collection, first_key, first_value, second_key, second_value=None):
     # get the first doc whose key field equals the value you're looking for
     docs = db.collection(collection).where(first_key, "==", first_value).where(second_key, "==", second_value).get()
 
     if not docs:
         print("Error: requested field is not found")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []

@@ -1,10 +1,13 @@
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
+from classes.system_utilities.helper_utilities.Constants import parking_due_in_hours
 from datetime import datetime, timedelta, timezone
-from classes.system_utilities.helper_utilities.Constants import avenue_id
+from classes.system_utilities.helper_utilities.Constants import avenue_id, max_parking_duration_in_hours, \
+    fine_due_in_months, fines_info_subcollection_name, sessions_info_subcollection_name
+from classes.system_utilities.helper_utilities.Constants import fine_type_double_parking, fine_type_exceeded_due_date, fine_type_exceeded_allowed_duration
+from classes.system_utilities.helper_utilities.Constants import fine_amount_double_parking, fine_amount_exceeded_due_date, fine_amount_exceeded_allowed_duration
+from dateutil.relativedelta import relativedelta
 
 # now = datetime.now(timezone.utc).astimezone()
-
-parking_due_in_hours = 48
 
 conn = db.GetDbConnection()
 
@@ -89,7 +92,7 @@ def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
     print("remove return statement from updateSession in Avenues.py")
     return
 
-    due_datetime = end_datetime+timedelta(hours=48)
+    due_datetime = end_datetime+timedelta(hours=parking_due_in_hours)
 
     db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
                   field_to_edit="due_datetime", new_data=due_datetime)
@@ -117,7 +120,7 @@ def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
 # def UpdateSessionParkingId(avenue, vehicle, parking_id):
 #     # call this method when vehicle parks
 #
-#     docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
+#     docs_id_extracted, docs_extracted = db.GetAllDocsEqualToTwoFields(collection+"/" + avenue + "/sessions_info",
 #                                                                       "vehicle", vehicle, "parking_id")
 #
 #     session = docs_id_extracted[0]
@@ -132,7 +135,7 @@ def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
 #     # call this method when vehicle exits innopark parking
 #     # UpdateSessionEndDateTime(avenue_id, "J71612")
 #
-#     docs_id_extracted, docs_extracted = db.GetAllDocsBasedOnTwoFields(collection+"/" + avenue + "/sessions_info",
+#     docs_id_extracted, docs_extracted = db.GetAllDocsEqualToTwoFields(collection+"/" + avenue + "/sessions_info",
 #                                                                       "vehicle", vehicle, "end_datetime")
 #
 #     session_id = docs_id_extracted[0]
@@ -180,9 +183,79 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
 
     return rate_per_hour
 
-# AddSession(avenue=avenue_id, vehicle="J71612", parking_id="4dkekG8hrOrJ1mpOpoO6")
-# AddParking(avenue=avenue_id, camera_id=0, bounding_box=[100,320,300,150, 400, 320, 150, 600], parking_type="a")
+def CheckFineExists(avenue, session_id, fine_type):
+    docs = db.db.collection(collection + "/" + avenue + "/" +sessions_info_subcollection_name)\
+        .where("session_id", "==", session_id)\
+        .where("fine_type", "==",fine_type)\
+        .get()
 
-# n=[{"a":0}, {"b":2}]
-# print(type(n))
-    # self.parking_spaces.append(ParkingSpace(*parking_doc))
+    if not docs:
+        print("fine already exists")
+        return False
+
+    return True
+
+def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetime=datetime.now().astimezone()):
+# add a fine to the database based on session info
+
+    fine_amount, fine_description = GetFineInfo(fine_type, vehicle)
+    due_datetime = created_datetime+relativedelta(months=fine_due_in_months)
+
+    # avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
+
+    fine_exists = CheckFineExists(avenue=avenue, session_id=session_id, fine_type=fine_type)
+
+    if fine_exists:
+        print("Fine already exists")
+        return None
+
+    document_ref = db.AddData(collection=collection + "/" + avenue + "/" +fines_info_subcollection_name,
+                              data={"created_datetime": created_datetime,
+                                    "due_datetime": due_datetime,
+                                    "fine_amount": fine_amount,
+                                    "fine_type": fine_type,
+                                    "fine_description": fine_description,
+                                    "vehicle": vehicle,
+                                    "is_paid": False,
+                                    "session_id": session_id,
+                                    "avenue_name": avenue_name})
+
+    return document_ref[1].path.split("/")[3]
+
+def GetFineInfo(fine_type, vehicle):
+    fine_amount = 0
+    fine_description = ""
+
+    if fine_type == fine_type_exceeded_due_date:
+        fine_amount = fine_amount_exceeded_due_date
+        fine_description = "A parking session of your vehicle "+ vehicle +" has not been paid by the due date."\
+                            +"\nKindly pay the session and the fine before the fine due date or legal action will be taken."
+
+    elif fine_type == fine_type_double_parking:
+        fine_amount = fine_amount_double_parking
+        fine_description = "Your vehicle "+ vehicle +" is occupying more than one parking space."+ \
+                           "\nKindly pay the fine before the due date or legal action will be taken."
+
+    elif fine_type == fine_type_exceeded_allowed_duration:
+        fine_amount == fine_amount_exceeded_allowed_duration
+        fine_description = "Your vehicle "+vehicle +" has been parked for more than "+max_parking_duration_in_hours+" hours."+ \
+                           "\nKindly pay the fine before the due date or legal action will be taken."
+
+    return fine_amount, fine_description
+
+def GetSessionsDueToday(collection, now_datetime):
+    # get all docs whose key field value is greater than or equal to the value you're looking for
+    docs = db.db.collection(collection).where("due_datetime", ">=", now_datetime).where("is_paid", "==", False).order_by("due_datetime").get()
+
+    if not docs:
+        print("No sessions are due today")
+        return None, None
+
+    sessions_id_extracted = []
+    sessions_extracted = []
+
+    for i in range(len(docs)):
+        sessions_extracted.append(docs[i].to_dict())
+        sessions_id_extracted.append(docs[i].id)
+
+    return sessions_id_extracted, sessions_extracted
