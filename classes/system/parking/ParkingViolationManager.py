@@ -68,7 +68,11 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         self.should_build_vehicle_bb_history = True
 
-        self.todayDate = None
+        # Variables for Violation Type "Exceeding Due Date"
+        self.time_interval_to_check_violation = 60 # in seconds
+        self.today_start_date = None
+        self.today_end_date = None
+
         self.sessions_due_today_ids = []
         self.sessions_due_today_data = []
 
@@ -103,41 +107,39 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.thread_check_due_dates.join()
         self.tariff_manager_process.terminate()
 
-    def executeEvery(self, seconds_to_delay, task):
+    def checkForViolationTypeExceedingDueDateEvery(self, seconds_to_delay):
         while True:
             time.sleep(seconds_to_delay)
             try:
-                print("task is NONE", file=sys.stderr)
-                if task is not None:
-                    task()
-                elif len(self.sessions_due_today_ids) <=0:
-                    print("sessions less than 000000000", file=sys.stderr)
+                if len(self.sessions_due_today_ids) <=0:
+                    logging.critical(" - Will stop checking for violation type 'Exceeded Due Dates'.")
                     return
+
+                self.checkDueDateComparedToNow()
             except Exception:
                 logging.exception("Couldn't execute the thread task")
 
     def checkDueDateComparedToNow(self):
-        now = datetime.now(timezone.utc)
-        print("now time to be compared to due date: ", now)
-        print(self.sessions_due_today_data, file=sys.stderr)
+        now_datetime = datetime.now(timezone.utc)
+        # print("now time to be compared to due date: ", now, file=sys.stderr)
+        # print(self.sessions_due_today_data, file=sys.stderr)
 
 
         for i in range(len(self.sessions_due_today_ids)):
 
-            print("due date: ", self.sessions_due_today_data[i][Constants.due_datetime_key])
+            # print("due date being compared: ", self.sessions_due_today_data[i][Constants.due_datetime_key])
 
             # check if now exceeds due datetime
             # if it does, record a fine in the db
-            if self.sessions_due_today_data[i][Constants.due_datetime_key] > now:
+            if self.sessions_due_today_data[i][Constants.due_datetime_key] > now_datetime:
                 break
 
-            doc_ref = AddFine(avenue=Constants.avenue_id,
-                              avenue_name=self.sessions_due_today_data[i]["avenue_name"],
-                              session_id=self.sessions_due_today_ids[i],
-                              vehicle=self.sessions_due_today_data[i]["vehicle"],
-                              fine_type=Constants.fine_type_exceeded_due_date)
+            AddFine(avenue=Constants.avenue_id,
+                      avenue_name=self.sessions_due_today_data[i]["avenue_name"],
+                      session_id=self.sessions_due_today_ids[i],
+                      vehicle=self.sessions_due_today_data[i]["vehicle"],
+                      fine_type=Constants.fine_type_exceeded_due_date)
 
-            print("doc_ref: " + doc_ref, file=sys.stderr)
 
             # pop the sessions that are fined
             self.sessions_due_today_ids.pop(i)
@@ -147,9 +149,11 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         TrackedObjectListener.initialize(self)
         PtmListener.initialize(self)
 
-        # initialize thread that checks due date compared to now.
-        # if now is past due date, then add a fine with type "Exceeded Due Date"
-        self.thread_check_due_dates = threading.Thread(target=lambda: self.executeEvery(10, self.checkDueDateComparedToNow()))
+        # initialize thread that checks sessions' due datetime compared to now datetime.
+        # if now datetime is past due date, then add a record of the fine with type "Exceeded Due Date"
+        # if it doesn't yet exist in db
+        self.thread_check_due_dates = threading.Thread(
+            target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
 
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
@@ -161,14 +165,16 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.start_system_event.wait()
 
 
-        # set the date of today
-        self.setTodayStartDate()
+        # set the start and end datetimes of today in UTC
+        self.setTodayStartEndDate()
 
         self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
                                                       collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
-                                                      now_datetime=self.todayDate)
+                                                      today_start_datetime=self.today_start_date,
+                                                      today_end_datetime=self.today_end_date)
 
-        if self.sessions_due_today_ids or self.sessions_due_today_data is not None:
+        # if there exists sessions due today, start the thread.
+        if len(self.sessions_due_today_ids)>0:
             print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
             self.thread_check_due_dates.start()
 
@@ -202,16 +208,20 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
 
 
-    def setTodayStartDate(self):
+    def setTodayStartEndDate(self):
         # set the start of today in UTC time 08:00 PM previous day
         today = datetime.now().astimezone() # get uae time now
 
-        today = datetime(today.year, today.month, today.day, tzinfo=today.tzinfo) # set uae time 12:00 AM of today
+        today_start = datetime(today.year, today.month, today.day, tzinfo=today.tzinfo) # set to uae time 12:00:00 AM of today
 
-        today = today.astimezone(timezone.utc) # convert uae time 12:00AM to UTC time 8:00PM previous day
+        today_start = today_start.astimezone(timezone.utc) # convert uae time 12:00:00 AM to UTC time 8:00:00 PM previous day
 
-        self.todayDate = today
+        today_end = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=today.tzinfo)  # set to uae time 11:59:59 PM of today
 
+        today_end = today_end.astimezone(timezone.utc)  # convert uae time 11:59:59 AM to UTC time 8:59:59 AM previous day
+
+        self.today_start_date = today_start
+        self.today_end_date = today_end
 
     def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants, vehicle_ids, vehicle_bbs, license_detector):
         # don't check for violation if there are not parkings occupied

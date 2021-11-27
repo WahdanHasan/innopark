@@ -1,3 +1,5 @@
+import sys
+
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
 from classes.system_utilities.helper_utilities.Constants import parking_due_in_hours
 from datetime import datetime, timedelta, timezone
@@ -184,13 +186,13 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
     return rate_per_hour
 
 def CheckFineExists(avenue, session_id, fine_type):
-    docs = db.db.collection(collection + "/" + avenue + "/" +sessions_info_subcollection_name)\
+    docs = db.db.collection(collection + "/" + avenue + "/" +fines_info_subcollection_name)\
         .where("session_id", "==", session_id)\
         .where("fine_type", "==",fine_type)\
         .get()
 
-    if not docs:
-        print("fine already exists")
+    if not docs or docs is None:
+        print("fine doesnt exist")
         return False
 
     return True
@@ -206,7 +208,7 @@ def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetim
     fine_exists = CheckFineExists(avenue=avenue, session_id=session_id, fine_type=fine_type)
 
     if fine_exists:
-        print("Fine already exists")
+        print("Couldn't add fine. Fine already exists", file=sys.stderr)
         return None
 
     document_ref = db.AddData(collection=collection + "/" + avenue + "/" +fines_info_subcollection_name,
@@ -219,6 +221,8 @@ def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetim
                                     "is_paid": False,
                                     "session_id": session_id,
                                     "avenue_name": avenue_name})
+
+    print("doc_ref of fine: " + document_ref, file=sys.stderr)
 
     return document_ref[1].path.split("/")[3]
 
@@ -243,13 +247,16 @@ def GetFineInfo(fine_type, vehicle):
 
     return fine_amount, fine_description
 
-def GetSessionsDueToday(collection, now_datetime):
+def GetSessionsDueToday(collection, today_start_datetime, today_end_datetime):
     # get all docs whose key field value is greater than or equal to the value you're looking for
-    docs = db.db.collection(collection).where("due_datetime", ">=", now_datetime).where("is_paid", "==", False).order_by("due_datetime").get()
+
+    docs = db.db.collection(collection).where("due_datetime", "<=", today_end_datetime)\
+        .where("due_datetime", ">=", today_start_datetime)\
+        .where("is_paid", "==", False).get()
 
     if not docs:
-        print("No sessions are due today")
-        return None, None
+        print("No sessions are due today.", file=sys.stderr)
+        return -1
 
     sessions_id_extracted = []
     sessions_extracted = []
