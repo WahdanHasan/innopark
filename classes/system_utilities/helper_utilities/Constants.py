@@ -22,13 +22,14 @@ ptm_debug_items_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 # [id, link]
 ENTRANCE_CAMERA_DETAILS = [
-                            [0, "data\\reference footage\\test journey\\Entrance_Top.mp4"],
-                            [1, "data\\reference footage\\test journey\\Entrance_Bottom.mp4"]
+                            [0, "data\\journeys\\set_2\\et.mp4"],
+                            [1, "data\\journeys\\set_2\\eb.mp4"]
                           ]
 
 CAMERA_DETAILS = [
-                    [2, "data\\reference footage\\test journey\\Leg_1.mp4"],
-                    [3, "data\\reference footage\\test journey\\Leg_2.mp4"]
+                    [2, "data\\journeys\\set_2\\l1.mp4"],
+                    [3, "data\\journeys\\set_2\\l2.mp4"],
+                    [4, "data\\journeys\\set_2\\l3.mp4"]
                  ]
 
 

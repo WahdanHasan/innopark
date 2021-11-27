@@ -334,9 +334,13 @@ class TrackedObjectProcess:
                                ids_in_shared_memory_manager=None)
 
     def updateMovingObject(self):
+        self.calculateBoundingBoxResize(self.frame)
         self.calculateNewBoundingBox(self.frame)
 
     def updateStationaryObject(self):
+        x=10
+
+    def calculateBoundingBoxResize(self, frame):
         x=10
 
     def calculateNewBoundingBox(self, frame):
@@ -374,8 +378,6 @@ class TrackedObjectProcess:
 
         # Write the new bounding box to shared memory
         self.bb_in_shared_memory[:] = np.asarray(IU.FloatBBToIntBB(self.bb), dtype=np.int32)
-
-        return IU.DrawBoundingBoxes(frame, [IU.FloatBBToIntBB(self.bb)])
 
     def cleanUp(self):
         self.tracking_instruction_pipe.close()

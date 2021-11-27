@@ -14,10 +14,17 @@ class ObjectTrackerBroker:
     def __init__(self, broker_request_queue):
 
         # Adjacency matrix of cameras with their id in the correct spot
+        # self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
+        #                          [-1, -1, 2, -1],
+        #                          [-1, -1, 1, 3],
+        #                          [-1, -1, 2, -1]
+        #                         ]
+
         self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
-                                 [-1, -1, 2, -1],
+                                 [-1, -1, -1, 2],
                                  [-1, -1, 1, 3],
-                                 [-1, -1, 2, -1]
+                                 [-1, -1, 2, 4],
+                                 [-1, -1, 3, -5]
                                 ]
 
         self.voyager_holding_list = []
