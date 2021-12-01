@@ -60,7 +60,7 @@ fine_amount_exceeded_due_date = 350
 fine_amount_exceeded_allowed_duration = 200
 
 
-# local_timezone = datetime.now().astimezone().tzinfo
+local_timezone = datetime.now().astimezone().tzinfo
 # print("timezone: ", datetime.now(local_timezone))
 
 
@@ -69,8 +69,18 @@ avenues_collection_name = "avenues"
 fines_info_subcollection_name = "fines_info"
 sessions_info_subcollection_name = "sessions_info"
 
-# Session_info doc
+# Fine_info doc
+created_datetime_key = "created_datetime"
 due_datetime_key = "due_datetime"
+fine_amount_key = "fine_amount"
+fine_description_key = "fine_description"
+fine_type_key = "fine_type"
+is_accepted_key = "is_accepted"
+is_reviewed_key = "is_reviewed"
+is_disputed_key = "is_disputed"
+is_paid_key = "is_paid"
+session_id_key = "session_id"
+vehicle_key = "vehicle"
 
 # Parking_info doc
 bounding_box_key = "bounding_box"

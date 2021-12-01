@@ -1,12 +1,8 @@
 import sys
 
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
-from classes.system_utilities.helper_utilities.Constants import parking_due_in_hours
 from datetime import datetime, timedelta, timezone
-from classes.system_utilities.helper_utilities.Constants import avenue_id, max_parking_duration_in_hours, \
-    fine_due_in_months, fines_info_subcollection_name, sessions_info_subcollection_name
-from classes.system_utilities.helper_utilities.Constants import fine_type_double_parking, fine_type_exceeded_due_date, fine_type_exceeded_allowed_duration
-from classes.system_utilities.helper_utilities.Constants import fine_amount_double_parking, fine_amount_exceeded_due_date, fine_amount_exceeded_allowed_duration
+from classes.system_utilities.helper_utilities import Constants
 from dateutil.relativedelta import relativedelta
 
 # now = datetime.now(timezone.utc).astimezone()
@@ -186,7 +182,7 @@ def GetRatePerHourFromParkingInfo(avenue, parking_id):
     return rate_per_hour
 
 def CheckFineExists(avenue, session_id, fine_type):
-    docs = db.db.collection(collection + "/" + avenue + "/" +fines_info_subcollection_name)\
+    docs = db.db.collection(collection + "/" + avenue + "/" +Constants.fines_info_subcollection_name)\
         .where("session_id", "==", session_id)\
         .where("fine_type", "==",fine_type)\
         .get()
@@ -201,7 +197,7 @@ def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetim
 # add a fine to the database based on session info
 
     fine_amount, fine_description = GetFineInfo(fine_type, vehicle)
-    due_datetime = created_datetime+relativedelta(months=fine_due_in_months)
+    due_datetime = created_datetime+relativedelta(months=Constants.fine_due_in_months)
 
     # avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
 
@@ -211,7 +207,12 @@ def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetim
         print("Couldn't add fine. Fine already exists", file=sys.stderr)
         return None
 
-    document_ref = db.AddData(collection=collection + "/" + avenue + "/" +fines_info_subcollection_name,
+    if fine_type == Constants.fine_type_double_parking:
+        is_accepted = False
+    else:
+        is_accepted = True
+
+    document_ref = db.AddData(collection=collection + "/" + avenue + "/" +Constants.fines_info_subcollection_name,
                               data={"created_datetime": created_datetime,
                                     "due_datetime": due_datetime,
                                     "fine_amount": fine_amount,
@@ -219,8 +220,12 @@ def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetim
                                     "fine_description": fine_description,
                                     "vehicle": vehicle,
                                     "is_paid": False,
+                                    "is_disputed": False,
+                                    "is_reviewed": False,
+                                    "is_accepted": is_accepted,
                                     "session_id": session_id,
-                                    "avenue_name": avenue_name})
+                                    "avenue_name": avenue_name,
+                                    "footage":""})
 
     print("doc_ref of fine: " + document_ref, file=sys.stderr)
 
@@ -230,19 +235,19 @@ def GetFineInfo(fine_type, vehicle):
     fine_amount = 0
     fine_description = ""
 
-    if fine_type == fine_type_exceeded_due_date:
-        fine_amount = fine_amount_exceeded_due_date
+    if fine_type == Constants.fine_type_exceeded_due_date:
+        fine_amount = Constants.fine_amount_exceeded_due_date
         fine_description = "A parking session of your vehicle "+ vehicle +" has not been paid by the due date."\
                             +"\nKindly pay the session and the fine before the fine due date or legal action will be taken."
 
-    elif fine_type == fine_type_double_parking:
-        fine_amount = fine_amount_double_parking
+    elif fine_type == Constants.fine_type_double_parking:
+        fine_amount = Constants.fine_amount_double_parking
         fine_description = "Your vehicle "+ vehicle +" is occupying more than one parking space."+ \
                            "\nKindly pay the fine before the due date or legal action will be taken."
 
-    elif fine_type == fine_type_exceeded_allowed_duration:
-        fine_amount == fine_amount_exceeded_allowed_duration
-        fine_description = "Your vehicle "+vehicle +" has been parked for more than "+max_parking_duration_in_hours+" hours."+ \
+    elif fine_type == Constants.fine_type_exceeded_allowed_duration:
+        fine_amount == Constants.fine_amount_exceeded_allowed_duration
+        fine_description = "Your vehicle "+vehicle +" has been parked for more than "+Constants.max_parking_duration_in_hours+" hours."+ \
                            "\nKindly pay the fine before the due date or legal action will be taken."
 
     return fine_amount, fine_description
@@ -266,3 +271,13 @@ def GetSessionsDueToday(collection, today_start_datetime, today_end_datetime):
         sessions_id_extracted.append(docs[i].id)
 
     return sessions_id_extracted, sessions_extracted
+
+def GetFinesFromDb(avenue):
+    fines_id_extracted, fines_extracted = db.GetAllDocsEqualToRequestedField(collection=collection+"/"+avenue+"/"+Constants.fines_info_subcollection_name,
+                                              key=Constants.is_accepted_key, value=False)
+
+    if fines_id_extracted is None or not fines_id_extracted:
+        print("Couldn't retrieve fines from Db")
+        return None, None
+
+    return fines_id_extracted, fines_extracted

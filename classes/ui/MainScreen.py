@@ -1,19 +1,24 @@
+import datetime
+
 from assets.resource import logos_rc, icons_rc
 from classes.system_utilities.helper_utilities import UIConstants, Constants
 from classes.super_classes.FramesListener import FramesListener
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.super_classes.PtmListener import PtmListener
 from classes.system_utilities.image_utilities import ImageUtilities as IU
+from classes.system_utilities.data_utilities.Avenues import GetFinesFromDb
 
 from PyQt5.QtWidgets import QMainWindow, QCheckBox, QPushButton, QWidget, QStackedWidget, QLabel, QHBoxLayout
 from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap, QImage, QBrush, QColor
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5 import uic
 from threading import Thread
 from multiprocessing import shared_memory
 import numpy as np
 import sys
 import time
+from datetime import datetime
 
 class UI(QMainWindow):
     def __init__(self, new_object_in_pool_event, start_system_event):
@@ -29,19 +34,26 @@ class UI(QMainWindow):
         self.left_slide_menu = self.findChild(QWidget, "leftSlideMenu")
         self.dashboard_page_button = self.findChild(QPushButton, "dashboardButton")
         self.setup_page_button = self.findChild(QPushButton, "setupButton")
+        self.violation_review_page_button = self.findChild(QPushButton, "violationReviewButton")
         self.debug_page_button = self.findChild(QPushButton, "debugButton")
         self.dashboard_page = self.findChild(QWidget, "dashboardPage")
         self.setup_page = self.findChild(QWidget, "setupPage")
         self.debug_page = self.findChild(QWidget, "debugPage")
+        self.violation_review_page = self.findChild(QWidget, "violationReviewPage")
         self.screen_stacked_widget = self.findChild(QStackedWidget, "screenStackedWidget")
         self.debug_frames_layout = self.findChild(QHBoxLayout, "debugFrames")
         self.menu_label = self.findChild(QLabel, "screenPageLabel")
+        self.review_fines_table_widget = self.findChild(QTableWidget, "tableWidget")
+        self.violation_refresh_button = self.findChild(QPushButton, "violationRefreshButton")
 
         self.start_system_button.clicked.connect(self.startSystemButtonOnClick)
         self.menu_button.clicked.connect(self.menuButtonOnClick)
         self.dashboard_page_button.clicked.connect(self.dashboardButtonOnClick)
         self.setup_page_button.clicked.connect(self.setupButtonOnClick)
+        self.violation_review_page_button.clicked.connect(self.violationReviewButtonOnClick)
         self.debug_page_button.clicked.connect(self.debugButtonOnClick)
+
+        self.violation_refresh_button.clicked.connect(self.loadReviewFinesFromDb)
 
         self.start_system_event = start_system_event
         self.new_object_in_pool_event = new_object_in_pool_event
@@ -66,7 +78,11 @@ class UI(QMainWindow):
         self.is_debug_screen_active = False
         self.frame_offset_length = len(Constants.ENTRANCE_CAMERA_DETAILS)
 
-        self.menu_buttons = [self.dashboard_page_button, self.setup_page_button, self.debug_page_button]
+        self.menu_buttons = [self.dashboard_page_button, self.setup_page_button, self.debug_page_button,
+                             self.violation_review_page_button]
+
+        self.review_fines_columns = [Constants.fine_type_key, Constants.vehicle_key,
+                                Constants.created_datetime_key, Constants.due_datetime_key]
 
         self.onLoad()
 
@@ -77,6 +93,9 @@ class UI(QMainWindow):
         self.initializeDebugFrames()
 
         self.launchDebugUpdaterThread()
+
+        # load data from the db
+        self.loadReviewFinesFromDb()
 
     def initializeDebugFrames(self):
 
@@ -140,6 +159,76 @@ class UI(QMainWindow):
         self.setup_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
         self.menu_label.setText("Setup")
 
+    def violationReviewButtonOnClick(self):
+        self.screen_stacked_widget.setCurrentWidget(self.violation_review_page)
+        self.resetAllMenuButtonColors()
+
+        self.violation_review_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
+        self.menu_label.setText("Violation Review")
+
+    def loadReviewFinesFromDb(self):
+        print("coming in")
+        # fines = [{self.review_fines_columns[0]:Constants.fine_type_double_parking, self.review_fines_columns[1]:"J71612",
+        #           self.review_fines_columns[2]:"29/11/2021", self.review_fines_columns[3]:"25/11/2021"},
+        #          {
+        #              self.review_fines_columns[0]: Constants.fine_type_double_parking,
+        #              self.review_fines_columns[1]: "A12345",
+        #              self.review_fines_columns[2]: "30/12/2021", self.review_fines_columns[3]: "05/02/2022"
+        #          }]
+        #
+        # for i in range (30):
+        #     fines.append({self.review_fines_columns[0]:Constants.fine_type_double_parking, self.review_fines_columns[1]:"J71612",
+        #           self.review_fines_columns[2]:"29/11/2021", self.review_fines_columns[3]:"25/11/2021"})
+
+        fines_id, fines_data = GetFinesFromDb(Constants.avenue_id)
+
+        if fines_id is None or not fines_id:
+            # set the number of rows to one
+            self.review_fines_table_widget.setRowCount(1)
+
+            # set row and column (0,0) to the below
+            self.review_fines_table_widget.setItem(0, 0, QTableWidgetItem("No fines available to review"))
+            self.review_fines_table_widget.item(0,0).setForeground(QColor(255, 0, 0))
+
+            # resize the column index 0
+            self.review_fines_table_widget.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+            return
+
+        extracted_fines_length = len(fines_id)
+        column_length = len(self.review_fines_columns)
+
+        # set the number of rows to the length of extracted fines
+        self.review_fines_table_widget.setRowCount(extracted_fines_length)
+
+        # display the fines on the system screen
+        resize_column = True
+        for row in range(extracted_fines_length):
+            for column in range(column_length):
+
+                fine_data_key = self.review_fines_columns[column]
+                fine_data_value = fines_data[row][self.review_fines_columns[column]]
+
+                # if datetime then convert datetime object to string
+                # and resize column only on first iteration
+                if "datetime" in fine_data_key:
+                    local_datetime = datetime.combine(date=fine_data_value.date(), time=fine_data_value.time(), tzinfo=Constants.local_timezone)
+
+                    fine_data_value = datetime.strftime(local_datetime, '%Y-%m-%d %H:%M:%S')
+
+                    if resize_column:
+                        self.review_fines_table_widget.horizontalHeader().setSectionResizeMode(column, QHeaderView.Stretch)
+
+                self.review_fines_table_widget.setItem(row, column, QTableWidgetItem(str(fine_data_value)))
+            resize_column = False
+
+            # add a review button
+            self.review_fines_table_widget.setCellWidget(row, column_length, QPushButton("Review"))
+
+
+        # self.review_fines_table_widget.horizontalHeader().setStretchLastSection(True)
+        # self.review_fines_table_widget.horizontalHeader().setSectionResizeMode(
+        #     QHeaderView.Stretch)
+
     def debugButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.debug_page)
         self.resetAllMenuButtonColors()
@@ -200,3 +289,6 @@ class UI(QMainWindow):
                 time.sleep(UIConstants.debug_refresh_rate)
             except:
                 x=10
+
+    def updateViolationReviewScreen(self):
+        x = 0
