@@ -14,7 +14,7 @@ from shapely.geometry import Polygon, LineString
 
 
 class EntranceLicenseDetector(ShutDownEventListener):
-    def __init__(self, license_frames_request_queue, broker_request_queue, detector_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event, seconds_between_detections=1):
+    def __init__(self, license_frames_request_queue, broker_request_queue, detector_request_queue, license_detector_request_queue, top_camera, bottom_camera, entrance_cameras_initialized_event, wait_license_processing_event, shutdown_event, start_system_event, seconds_between_detections=1):
         ShutDownEventListener.__init__(self, shutdown_event)
         # camera is given as type array in the format [camera id, camera rtsp]
 
@@ -28,6 +28,7 @@ class EntranceLicenseDetector(ShutDownEventListener):
         self.start_system_event = start_system_event
         self.seconds_between_detections = seconds_between_detections
         self.detector_request_queue = detector_request_queue
+        self.license_detector_request_queue = license_detector_request_queue
 
         self.bottom_camera = bottom_camera
         self.top_camera = top_camera
@@ -47,6 +48,7 @@ class EntranceLicenseDetector(ShutDownEventListener):
         from classes.system_utilities.tracking_utilities.ProcessLicenseFrames import ProcessLicenseFrames
         temp_process_license_frames = ProcessLicenseFrames(broker_request_queue=self.broker_request_queue,
                                                            license_frames_request_queue=self.license_frames_request_queue,
+                                                           license_detector_request_queue=self.license_detector_request_queue,
                                                            camera_id=self.bottom_camera[0],
                                                            wait_license_processing_event=self.wait_license_processing_event)
 

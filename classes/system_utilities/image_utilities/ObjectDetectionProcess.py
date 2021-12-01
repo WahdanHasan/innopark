@@ -1,16 +1,17 @@
 import classes.system_utilities.image_utilities.ObjectDetection as OD
 from classes.super_classes.ObjectTrackerListener import ObjectTrackerListener
-from classes.system_utilities.helper_utilities.Enums import ShutDownEvent, YoloModel, ODProcessInstruction
+from classes.system_utilities.helper_utilities.Enums import ShutDownEvent, ODProcessInstruction
 
 from multiprocessing import Process
 
 class DetectorProcess(ObjectTrackerListener):
-    def __init__(self, amount_of_trackers, detector_request_queue, detector_initialized_event):
+    def __init__(self, amount_of_trackers, detector_request_queue, detector_initialized_event, model):
         ObjectTrackerListener.__init__(self, amount_of_trackers)
 
         self.detector_process = 0
         self.should_keep_listening = True
 
+        self.model = model
         self.detector_request_queue = detector_request_queue
         self.detector_initialized_event = detector_initialized_event
 
@@ -25,7 +26,7 @@ class DetectorProcess(ObjectTrackerListener):
     def ListenForRequests(self):
         ObjectTrackerListener.initialize(self)
 
-        OD.OnLoad(model=YoloModel.YOLOV3)
+        OD.OnLoad(model=self.model)
 
         self.detector_initialized_event.set()
 

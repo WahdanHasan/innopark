@@ -1,16 +1,13 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
-from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ODProcessInstruction
 from classes.system_utilities.image_utilities import ImageUtilities as IU
-from classes.system_utilities.data_utilities.Avenues import GetAllParkings
-from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
-from multiprocessing import Process, shared_memory
+
+from multiprocessing import Process, shared_memory, Pipe
 import numpy as np
 import cv2
 import sys
-import json
 import time
 import math
 
@@ -18,14 +15,17 @@ import math
 
 class ParkingViolationManager(TrackedObjectListener):
 
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event, license_detector_request_queue):
 
         super().__init__(amount_of_trackers, new_object_in_pool_event)
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.pvm_initialized_event = pvm_initialized_event
         self.violation_manager_process = 0
+        self.receive_pipe = 0
+        self.send_pipe = 0
         self.should_keep_managing = True
+        self.license_detector_request_queue = license_detector_request_queue
         self.base_blank = np.zeros(
                                     shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
                                     dtype=np.uint8
@@ -89,9 +89,7 @@ class ParkingViolationManager(TrackedObjectListener):
         super().initialize()
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
-        from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
-
-        LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
+        self.receive_pipe, self.send_pipe = Pipe()
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
@@ -101,15 +99,14 @@ class ParkingViolationManager(TrackedObjectListener):
             ids, bbs = self.getAllActiveTrackedProcessItems()
 
             self.checkAndUpdateViolationStatuses(ids=ids,
-                                                 bbs=bbs,
-                                                 license_detector=LicenseDetector)
+                                                 bbs=bbs)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, ids, bbs, license_detector):
+    def checkAndUpdateViolationStatuses(self, ids, bbs):
         # An object tracker cannot be on the id 0
         if not ids or ids is None:
             return
@@ -156,14 +153,14 @@ class ParkingViolationManager(TrackedObjectListener):
 
                     frame = self.getFrameByCameraId(camera_id)
                     parking_spot_img = IU.CropImage(frame, (self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]))
-                    self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img,
-                                                       license_detector=license_detector)
+                    self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img)
 
                     break
 
-    def getLicensePlateBboxUsingModel(self, parking_spot_img, license_detector):
+    def getLicensePlateBboxUsingModel(self, parking_spot_img):
         #make sure that model is loaded before detection
-        status, classes, bounding_boxes, scores = license_detector.DetectObjectsInImage(parking_spot_img)
+        self.license_detector_request_queue.put((ODProcessInstruction.IMAGE_PROVIDED, parking_spot_img, self.send_pipe))
+        status, classes, bounding_boxes, scores = self.receive_pipe.recv()
 
         print("status: ", status)
         print("bounding_box", bounding_boxes)

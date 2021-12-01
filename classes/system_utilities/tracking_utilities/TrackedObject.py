@@ -267,17 +267,21 @@ class TrackedObjectProcess:
         self.ids_in_shared_memory[0] = np.uint8(tracker_id)
         self.ids_in_shared_memory[1] = np.uint8(camera_id)
 
+        self.initializeOpticalFlow(bb=self.bb)
+
+
+    def initializeOpticalFlow(self, bb):
         # Optical flow LK params
 
-        temp_cropped = IU.CropImage(self.frame_in_shared_memory, self.bb)
+        temp_cropped = IU.CropImage(self.frame_in_shared_memory, bb)
         self.old_gray_cropped = cv2.cvtColor(temp_cropped, cv2.COLOR_BGR2GRAY)
         self.old_gray = cv2.cvtColor(self.frame_in_shared_memory, cv2.COLOR_BGR2GRAY)
 
         self.old_points_cropped = cv2.goodFeaturesToTrack(self.old_gray_cropped, 100, 0.2, 10)
 
         for i in range(len(self.old_points_cropped)):
-            self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + self.bb[0][0]
-            self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + self.bb[0][1]
+            self.old_points_cropped[i][0][0] = self.old_points_cropped[i][0][0] + bb[0][0]
+            self.old_points_cropped[i][0][1] = self.old_points_cropped[i][0][1] + bb[0][1]
 
     def writeObjectIdToSharedMemory(self, object_id):
         temp_list = np.array([ord(c) for c in object_id], dtype=np.uint8)
@@ -311,6 +315,10 @@ class TrackedObjectProcess:
                         self.writeObjectIdToSharedMemory(object_id=new_object_id)
                         instruction = instruction[1]
                         print("[TrackedObjectProcess] Started tracking " + str(new_object_id) + ".", file=sys.stderr)
+                    elif instruction[0] == TrackerToTrackedObjectInstruction.STORE_NEW_BB:
+                        self.initializeOpticalFlow(instruction[1])
+                        self.bb[:] = instruction[1][:]
+
 
             if instruction == TrackerToTrackedObjectInstruction.STOP_TRACKING:
                 self.should_keep_tracking = False

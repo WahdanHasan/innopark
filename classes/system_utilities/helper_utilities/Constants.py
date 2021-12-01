@@ -2,6 +2,7 @@ from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
 base_pool_size = 3
 seconds_in_hour = 3600
+ot_bb_area_difference_percentage_threshold = 10
 
 # Don't delete me. Trackers will stop working :(
 bb_shared_memory_manager_prefix = "tracked_object_bb_shared_memory_manager_"
@@ -28,7 +29,7 @@ ENTRANCE_CAMERA_DETAILS = [
 
 CAMERA_DETAILS = [
                     [2, "data\\journeys\\set_2\\l1.mp4"],
-                    [3, "data\\journeys\\set_2\\l2.mp4"],
+                    [3, "data\\journeys\\set_2\\l2_1.mp4"],
                     [4, "data\\journeys\\set_2\\l3.mp4"]
                  ]
 

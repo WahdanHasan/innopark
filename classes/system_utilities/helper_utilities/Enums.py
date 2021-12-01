@@ -23,6 +23,7 @@ class TrackerToTrackedObjectInstruction(Enum):
     OBJECT_MOVING = 1
     OBJECT_STATIONARY = 2
     STORE_NEW_ID = 3
+    STORE_NEW_BB = 4
 
 class ParkingStatus(Enum):
     OCCUPIED = True
