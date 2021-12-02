@@ -54,7 +54,8 @@ class Camera:
             #     self.UpdateFeed(self.rtsp_link)
             #     continue
 
-            self.frame_queue.put(frame)
+            self.frame_queue.put(IU.RescaleImageToResolution(img=frame,
+                                                             new_dimensions=self.default_resolution))
 
     def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
         # Changes the rtsp link for the camera feed
@@ -92,10 +93,10 @@ class Camera:
 
         frame = self.frame_queue.get()
 
-        try:
-            frame = IU.RescaleImageToResolution(img=frame,
-                                                new_dimensions=self.default_resolution)
-        except cv2.error as cv2_error:
-            # if cv2_error == '!ssize.empty()':
-            frame = self.base_blank
+        # try:
+        #     frame = IU.RescaleImageToResolution(img=frame,
+        #                                         new_dimensions=self.default_resolution)
+        # except cv2.error as cv2_error:
+        #     # if cv2_error == '!ssize.empty()':
+        #     frame = self.base_blank
         return frame

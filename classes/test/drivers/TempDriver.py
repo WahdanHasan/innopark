@@ -1,6 +1,6 @@
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
-bb_b = [[0, 0], [485, 485]]
-bb_a = [[0, 0], [500, 500]]
+bb_a = [[50, 50], [100, 100]]
+bb_b = [[50, 50], [100, 100]]
 
-print(IU.CheckIfPolygonsAreIntersectingTF(IU.GetFullBoundingBox(bb_a), IU.GetFullBoundingBox(bb_b)))
+print(IU.CheckIfPolygonFullyContainsPolygonTF(bb_a, bb_b))

@@ -331,6 +331,7 @@ def AreBoxesOverlapping(parking_bounding_box, car_bounding_box): # TODO: Change 
     return iou
 
 def CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b):
+
     bounding_box_a = [bounding_box_a[0], bounding_box_a[1], bounding_box_a[3], bounding_box_a[2]]
     bounding_box_b = [bounding_box_b[0], bounding_box_b[1], bounding_box_b[3], bounding_box_b[2]]
 
@@ -339,7 +340,10 @@ def CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b):
 
     intersection = polygon_a.intersection(polygon_b)
 
-    return (intersection.area/polygon_a.area) * 100
+    if polygon_a.area == 0.0:
+        return 0.00
+    else:
+        return (intersection.area/polygon_a.area) * 100
 
 def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_threshold=95):
     intersection_p = CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b)
@@ -348,6 +352,24 @@ def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_
         return True
     else:
         return False
+
+def CheckIfPolygonFullyContainsPolygonTF(big_box, small_box):
+
+
+    if big_box[0][0] > small_box[0][0]:
+        return False
+
+    if big_box[0][1] > small_box[0][1]:
+        return False
+
+    if big_box[1][0] < small_box[1][0]:
+        return False
+
+    if big_box[1][1] < small_box[1][1]:
+        return False
+
+    return True
+
 
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 

@@ -131,6 +131,8 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
     temp_trackers = []
     temp_tracker_events = []
 
+    seconds_before_detection = Constants.ot_seconds_before_scan
+
     for i in range(len(camera_ids_and_links)):
         temp_tracker_events.append(Event())
         temp_tracker = OT.Tracker(tracked_object_pool_request_queue=tracked_object_pool_request_queue,
@@ -140,9 +142,12 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
                                   tracker_initialized_event=temp_tracker_events[i],
                                   shutdown_event=shutdown_event,
                                   start_system_event=start_system_event,
-                                  ptm_initialized_event=ptm_initialized_event)
+                                  ptm_initialized_event=ptm_initialized_event,
+                                  seconds_between_detections=seconds_before_detection)
 
         temp_trackers.append(temp_tracker)
+
+        seconds_before_detection += Constants.ot_seconds_before_scan_growth
 
 
     for i in range(len(temp_trackers)):

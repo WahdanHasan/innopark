@@ -15,7 +15,7 @@ from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
 class Tracker(ShutDownEventListener):
 
-    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event, seconds_between_detections=1.5):
+    def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event, seconds_between_detections):
         ShutDownEventListener.__init__(self, shutdown_event)
         self.tracker_process = 0
         self.parking_spaces = []
@@ -126,10 +126,10 @@ class Tracker(ShutDownEventListener):
             frame[:] = cam.GetScaledNextFrame()[:]
 
             # Feed subtraction model
-            subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
-
-            # Write new mask into shared memory space
-            mask[:] = subtraction_model.GetOutput()[:]
+            # subtraction_model.FeedSubtractionModel(image=frame, learningRate=0.0001)
+            #
+            # # Write new mask into shared memory space
+            # mask[:] = subtraction_model.GetOutput()[:]
 
             # Send signal to tracked object processes to read frame and mask along with an instruction
             # TODO: Validate for noise on the last and new bounding box if object doesnt have an id. The object can be going the wrong direction as a result.
@@ -151,12 +151,12 @@ class Tracker(ShutDownEventListener):
                 # Get the side from which the object appeared in the camera, then request the broker for information on the entrant
                 if object_doesnt_have_id:
 
-                    temp_bb = tracked_object_bbs_shared_memory[i].tolist()
-                    if temp_bb == Constants.bb_example:
+                    temp_bb_a = tracked_object_bbs_shared_memory[i].tolist()
+                    if temp_bb_a == Constants.bb_example:
                         tracked_object_pipes[i].send(primary_instruction_to_send)
 
                     temp_entrant_side = self.GetEntrantSide(old_bb=tracked_objects_without_ids_bbs[temp_idx],
-                                                            new_bb=temp_bb)
+                                                            new_bb=temp_bb_a)
 
                     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.GET_VOYAGER, self.camera_id, temp_entrant_side, self.send_pipe))
                     temp_entrant_id = self.receive_pipe.recv()
@@ -169,24 +169,25 @@ class Tracker(ShutDownEventListener):
 
             # Check if tracked objects are still within the image
             for i in range(len(tracked_object_pipes)):
-                temp_img_bb = IU.GetFullBoundingBox([[0, 0], [width, height]])
-                temp_bb = tracked_object_bbs_shared_memory[i].tolist()
+                temp_img_bb = [[0, 0], [width, height]]
+                temp_bb_b = tracked_object_bbs_shared_memory[i].tolist()[:]
 
-                if temp_bb == Constants.bb_example:
+                if temp_bb_b == Constants.bb_example:
                     continue
 
-                temp_are_overlapping = IU.AreBoxesOverlapping(temp_img_bb, temp_bb)
+                a_contains_b = IU.CheckIfPolygonFullyContainsPolygonTF(big_box=temp_img_bb, small_box=temp_bb_b)
 
-                if temp_are_overlapping < 0.04:
+                if not a_contains_b:
+                    print("Intersection", file=sys.stderr)
                     try:
-                        temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb)
+                        temp_mask = IU.CropImage(img=mask, bounding_set=temp_bb_b)
 
                         white_points_percentage = (np.sum(temp_mask == 255) / (temp_mask.shape[1] * temp_mask.shape[0])) * 100
                     except:
                         white_points_percentage = 50.0
 
                     if white_points_percentage < 60.0:
-                        temp_exit_side = self.GetExitSide(temp_bb, height, width)
+                        temp_exit_side = self.GetExitSide(temp_bb_b, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[i], temp_exit_side))
                         print("[ObjectTracker] Camera " + str(self.camera_id) + " Object exited from " + temp_exit_side.value, file=sys.stderr)
                         self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[i]))
@@ -197,6 +198,8 @@ class Tracker(ShutDownEventListener):
                         tracked_object_pipes[i].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
                         tracked_object_pipes.pop(i)
                         tracked_object_pool_indexes.pop(i)
+
+                        i -= 1
 
 
             # Detect new entrants
@@ -328,7 +331,7 @@ class Tracker(ShutDownEventListener):
 
                     if temp_dist < temp_closest_bb_dist:
                         temp_closest_bb_dist = temp_dist
-                        temp_closest_bb = detected_bbs[j]
+                        temp_closest_bb = detected_bbs[j][:]
                         temp_closest_bb_idx = j
                         bbs_to_be_updated.append([tracked_object_pipes[i], temp_closest_bb])
 
