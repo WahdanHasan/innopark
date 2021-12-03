@@ -1,5 +1,3 @@
-import webbrowser
-
 from PyQt5.QtCore import QUrl
 
 from classes.ui import MainScreen

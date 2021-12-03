@@ -67,6 +67,17 @@ def UpdateData(collection, document, field_to_edit, new_data):
 
     print("Successfully updated "+collection)
 
+def UpdateDataTwoFields(collection, document, field_to_edit1, new_data1, field_to_edit2, new_data2):
+
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_to_edit1: new_data1,
+        field_to_edit2: new_data2
+    })
+
+    print("Successfully updated "+collection)
+
 def UpdateDataInMap(collection, document, field_key, map_key, new_value):
     document_ref = db.collection(collection).document(document)
 

@@ -16,6 +16,9 @@ from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
 from PyQt5.QtWebEngineWidgets import *
+import webbrowser
+
+from classes.system_utilities.data_utilities.DatabaseUtilities import UpdateDataTwoFields, UpdateData
 
 import urllib
 
@@ -26,118 +29,6 @@ import numpy as np
 import sys
 import time
 from datetime import datetime
-
-class ReviewFineUI(QDialog):
-    def __init__(self, vehicle, fine_type, url):
-        QDialog.__init__(self)
-        uic.loadUi("assets\\ui\\ReviewFineScreen.ui", self)
-
-        # set the fine data
-        self.vehicle_line_edit = self.findChild(QLineEdit, "vehicleLineEdit").setText(vehicle)
-        self.fine_type_line_edit = self.findChild(QLineEdit, "fineTypeLineEdit").setText(fine_type)
-
-        # add a media player
-        self.media_player = QMediaPlayer(None, QMediaPlayer.VideoSurface)
-        self.video_widget = QVideoWidget()
-
-        # videoItem = QGraphicsVideoItem()
-        # videoItem.setSize(QSizeF(1920, 1080))
-        # scene = QGraphicsScene(self)
-        # scene.addItem(videoItem)
-        # graphicsView = QGraphicsView(scene)
-
-        # add a play button for media player
-        self.play_button = QPushButton()
-        self.play_button.setEnabled(False)
-        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-        self.play_button.clicked.connect(self.play_video)
-
-        self.error_label = QLabel()
-        self.error_label.setSizePolicy(QSizePolicy.Preferred,
-                                      QSizePolicy.Maximum)
-
-        # add a stop button for media player
-        self.stop_button = QPushButton()
-        self.stop_button.setEnabled(False)
-        self.stop_button.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
-        self.stop_button.clicked.connect(self.stop_video)
-
-        # add a slider for media player
-        self.video_slider = QSlider(Qt.Horizontal)
-        self.video_slider.setRange(0,0)
-        self.video_slider.sliderMoved.connect(self.set_media_player_position)
-
-        # add the buttons to the bottom of the media player
-        self.bottom_media_player = QHBoxLayout()
-        self.bottom_media_player.setContentsMargins(0,0,0,0)
-        self.bottom_media_player.addWidget(self.play_button)
-        self.bottom_media_player.addWidget(self.stop_button)
-        self.bottom_media_player.addWidget(self.video_slider)
-
-        self.media_player_screen = self.findChild(QVBoxLayout, "media_player_screen")
-        self.media_player_screen.addWidget(self.video_widget)
-        # self.media_player_screen.addWidget(graphicsView)
-        self.media_player_screen.addLayout(self.bottom_media_player)
-        self.media_player_screen.addWidget(self.error_label)
-
-        self.media_player.setVideoOutput(self.video_widget)
-        # self.media_player.setVideoOutput(videoItem)
-
-        self.media_player.stateChanged.connect(self.change_media_button_icon)
-        self.media_player.positionChanged.connect(self.set_slider_position)
-        self.media_player.durationChanged.connect(self.set_slider_duration)
-        self.media_player.error.connect(self.handle_media_player_error)
-
-        self.open_video(url)
-
-
-    def open_video(self, url):
-        print("adding media")
-        # url = "https://storage.googleapis.com/innopark-1fe10.appspot.com/D%3A%5CGradProject%5Cinnopark%5Cdata%5Creference%20footage%5Ctest%20journey%5CEntrance_Bottom.mp4"
-
-        self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(url)))
-        # self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile("D:\\GradProject\\innopark\data\\reference footage\\journey 1\\Leg_1.mp4")))
-        # fileName, _ = QFileDialog.getOpenFileName(self, "Selecciona los mediose",
-        #                                           ".", "Video Files (*.mp4 *.flv *.ts *.mts *.avi)")
-        #
-        # if fileName != '':
-        #     print("fileName: ", fileName)
-        #     self.media_player.setMedia(QMediaContent(QUrl.fromLocalFile(fileName)))
-        self.play_button.setEnabled(True)
-        print("done adding media")
-
-    def play_video(self):
-        self.stop_button.setEnabled(True)
-        if self.media_player.state() == QMediaPlayer.PlayingState:
-            self.media_player.pause()
-            return
-
-        self.media_player.play()
-
-    def stop_video(self):
-        self.media_player.stop()
-        self.stop_button.setEnabled(False)
-
-    def change_media_button_icon(self):
-        if self.media_player.state() == QMediaPlayer.PlayingState:
-            self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
-            return
-
-        self.play_button.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
-
-    def set_slider_position(self, position):
-        self.video_slider.setValue(position)
-
-    def set_slider_duration(self, duration):
-        self.video_slider.setRange(0, duration)
-
-    def set_media_player_position(self, position):
-        self.media_player.setPosition(position)
-
-    def handle_media_player_error(self):
-        self.play_button.setEnabled(False)
-        self.error_label.setText("Error: " + self.media_player.errorString())
-        print("Error: " + self.media_player.errorString())
 
 class UI(QMainWindow):
     def __init__(self, new_object_in_pool_event, start_system_event):
@@ -205,7 +96,7 @@ class UI(QMainWindow):
                              self.violation_review_page_button]
 
         self.review_fines_columns = [Constants.fine_type_key, Constants.vehicle_key,
-                                Constants.created_datetime_key, Constants.due_datetime_key]
+                                Constants.created_datetime_key, Constants.due_datetime_key, Constants.footage_key]
 
         self.onLoad()
 
@@ -318,12 +209,13 @@ class UI(QMainWindow):
             return
 
         extracted_fines_length = len(self.fines_id)
-        column_length = len(self.review_fines_columns)
+        # don't consider the url (last index) as part of column length so it is not displayed
+        column_length = len(self.review_fines_columns)-1
 
         # set the number of rows to the length of extracted fines
         self.review_fines_table_widget.setRowCount(extracted_fines_length)
 
-        # display the fines on the system screen
+        # display the fines info on the system screen
         resize_column = True
         for row in range(extracted_fines_length):
             for column in range(column_length):
@@ -415,12 +307,61 @@ class UI(QMainWindow):
 
     def reviewButtonOnClick(self, row):
         # get fine data of the button row
+        fine_id = self.fines_id[row]
         vehicle = self.fines_data[row][Constants.vehicle_key]
         fine_type = self.fines_data[row][Constants.fine_type_key]
+        footage_url = self.fines_data[row][Constants.footage_key]
 
         # execute the review fine ui page
-        url = "D:\\GradProject\\innopark\data\\reference footage\\journey 1\\Leg_1.mp4"
-        review_fine_ui = ReviewFineUI(vehicle=vehicle, fine_type=fine_type, url=url)
+        review_fine_ui = ReviewFineUI(fine_id=fine_id, vehicle=vehicle, fine_type=fine_type, footage_url=footage_url)
         review_fine_ui.setWindowFlags(Qt.WindowCloseButtonHint)
         review_fine_ui.exec_()
 
+class ReviewFineUI(QDialog):
+    def __init__(self, fine_id, vehicle, fine_type, footage_url):
+        QDialog.__init__(self)
+        uic.loadUi("assets\\ui\\ReviewFineScreen.ui", self)
+
+        self.fine_id = fine_id
+        self.url = footage_url
+
+        # display the fine details
+        self.vehicle_line_edit = self.findChild(QLineEdit, "vehicleLineEdit").setText(vehicle)
+        self.fine_type_line_edit = self.findChild(QLineEdit, "fineTypeLineEdit").setText(fine_type)
+
+        # get the buttons
+        self.view_footage_button = self.findChild(QPushButton, "viewFootageButton")
+        self.view_footage_button.clicked.connect(self.open_footage_in_browser)
+
+        self.accept_fine_button = self.findChild(QPushButton, "acceptFineButton")
+        self.accept_fine_button.clicked.connect(lambda: self.updateFine(fine_is_accepted=True, fine_is_reviewed=True))
+
+        self.decline_fine_button = self.findChild(QPushButton, "declineFineButton")
+        self.decline_fine_button.clicked.connect(lambda: self.updateFine(fine_is_accepted=False, fine_is_reviewed=True))
+
+        self.error_label = self.findChild(QLabel, "errorLabel")
+
+    def updateFine(self, fine_is_accepted, fine_is_reviewed):
+        if fine_is_accepted:
+            print("fine is accepted")
+            UpdateDataTwoFields(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
+                                document=self.fine_id, field_to_edit1=Constants.is_accepted_key, new_data1=fine_is_accepted,
+                                field_to_edit2=Constants.is_reviewed_key, new_data2=fine_is_reviewed)
+        else:
+            print("fine is declined")
+            # only update the is_reviewed field because is_accepted is originally false
+            UpdateData(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
+                       document=self.fine_id, field_to_edit=Constants.is_reviewed_key, new_data=fine_is_reviewed)
+
+        print("closing dialog")
+        self.close_dialog()
+
+    def close_dialog(self):
+        self.close()
+
+
+    def open_footage_in_browser(self):
+        if not self.url or self.url == "":
+            self.error_label.setText("ERROR: No footage available")
+            return
+        webbrowser.open(self.url)

@@ -273,8 +273,9 @@ def GetSessionsDueToday(collection, today_start_datetime, today_end_datetime):
     return sessions_id_extracted, sessions_extracted
 
 def GetFinesFromDb(avenue):
-    fines_id_extracted, fines_extracted = db.GetAllDocsEqualToRequestedField(collection=collection+"/"+avenue+"/"+Constants.fines_info_subcollection_name,
-                                              key=Constants.is_accepted_key, value=False)
+    fines_id_extracted, fines_extracted = db.GetAllDocsEqualToTwoFields(collection=collection+"/"+avenue+"/"+Constants.fines_info_subcollection_name,
+                                              first_key=Constants.is_reviewed_key, first_value=False,
+                                              second_key=Constants.is_accepted_key, second_value=False)
 
     if fines_id_extracted is None or not fines_id_extracted:
         print("Couldn't retrieve fines from Db")
