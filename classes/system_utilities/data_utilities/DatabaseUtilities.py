@@ -1,20 +1,34 @@
 import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
+from firebase_admin import credentials, firestore, storage
 
 # Remember that the db hierarchy is Collection > Document > Data
 
 db = 0
 def OnLoad():
     global db
+    global bucket
+
     # Initialize Google Cloud Platform using service account credentials
     cred = credentials.Certificate('config\\firebase\\ServiceAccount.json')
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'innopark-1fe10.appspot.com'
+    })
+
+    bucket = storage.bucket()
 
     db = firestore.client()
 
 
 OnLoad()
+
+def uploadBlob(file_name):
+    blob = bucket.blob(file_name)
+    blob.upload_from_filename(file_name)
+
+    # Opt : if you want to make public access from the URL
+    blob.make_public()
+
+    print("your file url", blob.public_url)
 
 def to_dict(document):
 
@@ -310,3 +324,5 @@ def DeleteDocument(collection, document):
 
     document_ref.delete()
     print(u'Successfully deleted document!')
+
+# uploadBlob("D:\\GradProject\\innopark\\data\\reference footage\\test journey\\Entrance_Bottom.mp4")

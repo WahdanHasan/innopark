@@ -569,7 +569,10 @@ border:0px
           </layout>
          </widget>
          <widget class="QWidget" name="violationReviewPage">
-          <widget class="QFrame" name="frame_4">
+          <widget class="QFrame" name="reviewFineForm">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
            <property name="geometry">
             <rect>
              <x>0</x>
@@ -728,6 +731,7 @@ border:0px
  <resources>
   <include location="../resource/icons.qrc"/>
   <include location="../resource/logos.qrc"/>
+  <include location="../resource/icons.qrc"/>
  </resources>
  <connections/>
 </ui>
