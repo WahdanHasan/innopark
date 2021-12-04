@@ -261,7 +261,7 @@ def GetSessionsDueToday(collection, today_start_datetime, today_end_datetime):
 
     if not docs:
         print("No sessions are due today.", file=sys.stderr)
-        return -1
+        return None, None
 
     sessions_id_extracted = []
     sessions_extracted = []

@@ -174,23 +174,16 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
                                                       today_end_datetime=self.today_end_date)
 
         # if there exists sessions due today, start the thread.
-        if len(self.sessions_due_today_ids)>0:
+        if self.sessions_due_today_ids is not None:
             print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
             self.thread_check_due_dates.start()
 
         while self.should_keep_managing:
-            # if skip_counter % 10 and self.sessions_due_today_ids is not None:
-            #
-            #     for i in range(len(self.sessions_due_today_ids)):
-            #         print("due datetime: ", (self.sessions_due_today_data[i][Constants.due_datetime_key]))
-            #         print(datetime.now())
-            #         if self.sessions_due_today_data[i][Constants.due_datetime_key]<= datetime.now(timezone.utc):
-            #             print("innnnnn")
 
             # parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
-            #
+
             # vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
-            #
+
             # if parking_ids or parking_ids is not None:
             #     print("parking_ids: ", parking_ids, file=sys.stderr)
             #     print("paring_occupants: ", parking_occupants, file=sys.stderr)
@@ -206,7 +199,19 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
             time.sleep(0.033)
 
+    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants, vehicle_ids, vehicle_bbs, license_detector):
+        # don't check for violation if there are not parkings occupied
+        if not parking_ids or parking_ids is None:
+            return
 
+        # An object tracker cannot be on the id 0
+        if not vehicle_ids or vehicle_ids is None:
+            return
+
+        if not vehicle_bbs or vehicle_bbs is None:
+            return
+
+        print("checking and updating violation statuses", file=sys.stderr)
 
     def setTodayStartEndDate(self):
         # set the start of today in UTC time 08:00 PM previous day
@@ -223,19 +228,18 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.today_start_date = today_start
         self.today_end_date = today_end
 
-    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants, vehicle_ids, vehicle_bbs, license_detector):
-        # don't check for violation if there are not parkings occupied
-        if not parking_ids or parking_ids is None:
-            return
 
-        # An object tracker cannot be on the id 0
-        if not vehicle_ids or vehicle_ids is None:
-            return
 
-        if not vehicle_bbs or vehicle_bbs is None:
-            return
 
-        print("checking and updating violation statuses", file=sys.stderr)
+
+
+
+
+
+
+
+
+
 
     def FcheckAndUpdateViolationStatuses(self, parking_ids, vehicle_ids, vehicle_bbs, license_detector):
         # don't check for violation if there are not parkings occupied
@@ -388,7 +392,6 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         x2 = x1 * scaling_factor
 
         return [x2, y2]
-
 
     def getLicensePlateBboxUsingContours(self, parking_spot_img):
         # convert to gray
