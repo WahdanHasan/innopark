@@ -415,13 +415,14 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:30]
 
-        plate_contour = None
-        rectangle_sides = 4
 
         img2 = parking_spot_img.copy()
         cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
         cv2.imshow("5- Top 30 Contours", img2)
         cv2.waitKey(0)
+
+        plate_contour = None
+        rectangle_sides = 4
 
         # loop through the sorted contours and find the rectangle shape
         for c in contours:
