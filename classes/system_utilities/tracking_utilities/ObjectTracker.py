@@ -44,7 +44,7 @@ class Tracker(ShutDownEventListener):
     def StartProcess(self, tracker_id, camera_rtsp, camera_id):
         # All parking spots should be instantiated prior to calling this function
 
-        print("[ObjectTracker] Starting tracker for camera " + str(camera_id) + ".", file=sys.stderr)
+        print("[ObjectTracker]:[Camera " + str(camera_id) + "] Starting Tracker.", file=sys.stderr)
         self.Initialize(tracker_id, camera_rtsp, camera_id)
         self.tracker_process = Process(target=self.StartTracking)
         self.tracker_process.start()
@@ -267,7 +267,7 @@ class Tracker(ShutDownEventListener):
             # Print fps rate of tracker
             counter += 1
             if (time.time() - start_time) > seconds_before_display:
-                print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", counter / (time.time() - start_time))
+                print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
                 counter = 0
                 start_time = time.time()
 

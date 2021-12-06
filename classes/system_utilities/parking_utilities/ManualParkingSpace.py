@@ -32,8 +32,8 @@ def Load(camera):
     # Get base image to display
     global base_image
     # base_image = camera.GetScaledNextFrame()
-    base_image = cv2.imread("data\\reference footage\\images\\l3.jpg")
-
+    base_image = cv2.imread("data\\reference footage\\images\\l3_p.jpg")
+    base_image = IU.RescaleImageToResolution(base_image, Constants.default_camera_shape[:2])
     # Create the window for display and set the mouse event function for it
     cv2.namedWindow(image_window_name)
     cv2.setMouseCallback(image_window_name, MouseClickCallBack)

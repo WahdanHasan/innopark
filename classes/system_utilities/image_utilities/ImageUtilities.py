@@ -299,7 +299,7 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.06): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.95): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
@@ -345,7 +345,7 @@ def CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b):
     else:
         return (intersection.area/polygon_a.area) * 100
 
-def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_threshold=95):
+def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_threshold=0.55):
     intersection_p = CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b)
 
     if (intersection_p > acceptable_threshold):

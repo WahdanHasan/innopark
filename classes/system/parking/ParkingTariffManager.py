@@ -60,9 +60,11 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
                                                     camera_id=parking_doc[Constants.camera_id_key],
                                                     parking_id=parking_id,
                                                     bounding_box=parking_doc[Constants.bounding_box_key],
+                                                    occupancy_box=parking_doc[Constants.occupancy_box_key],
                                                     is_occupied=parking_doc[Constants.is_occupied_key],
                                                     parking_type=parking_doc[Constants.parking_type_key],
                                                     rate_per_hour=parking_doc[Constants.rate_per_hour_key]))
+
             parking_spaces_count += 1
 
         parking_space_jsons = []
@@ -123,7 +125,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
                 if ids[1][i] != self.parking_spaces[j].camera_id:
                     continue
 
-                car_is_in_this_parking = IU.AreBoxesOverlappingTF(parking_bounding_box=self.parking_spaces[j].bb,
+                car_is_in_this_parking = IU.AreBoxesOverlappingTF(parking_bounding_box=self.parking_spaces[j].ob,
                                                                   car_bounding_box=bbs[i])
 
                 temp_parking = self.parking_spaces[j]

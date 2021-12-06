@@ -81,6 +81,7 @@ class ObjectTrackerBroker:
         for i in range(len(self.voyager_holding_list)):
             if self.voyager_holding_list[i][0] == sender_camera_id and self.voyager_holding_list[i][1] == recipient_camera_id:
                 pipe.send(self.voyager_holding_list[i][2])
+                self.voyager_holding_list.pop(i)
                 return
 
         # If entrant is not found, send none through pipe

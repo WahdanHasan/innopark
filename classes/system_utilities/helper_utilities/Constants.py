@@ -56,6 +56,7 @@ avenue_id = "O8483qKcEoQc6SPTDp5e"
 
 # Parking_info doc
 bounding_box_key = "bounding_box"
+occupancy_box_key = "occupancy_box"
 camera_id_key = "camera_id"
 is_occupied_key = "is_occupied"
 parking_type_key = "parking_type"

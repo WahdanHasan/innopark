@@ -17,6 +17,7 @@ class ProcessLicenseFrames:
         self.should_keep_running = True
         self.receive_pipe = 0
         self.send_pipe = 0
+        self.counter = 0
 
     def Start(self):
         self.receive_pipe, self.send_pipe = Pipe()
@@ -38,10 +39,9 @@ class ProcessLicenseFrames:
             # extract info from license plates
             license_plates_info = self.ExtractLicensePlatesInfo(license_plates=license_plates)
 
-            print(license_plates_info)
-
-
-            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'J71612', EntrantSide.LEFT))
+            if self.counter == 0:
+                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'J71612', EntrantSide.RIGHT))
+                self.counter += 1
 
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
