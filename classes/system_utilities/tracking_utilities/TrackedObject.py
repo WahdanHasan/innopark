@@ -1,8 +1,6 @@
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction
-from classes.system_utilities.helper_utilities.Enums import TrackerToTrackedObjectInstruction
-from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
+from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction, TrackedObjectStatus, TrackerToTrackedObjectInstruction, ShutDownEvent
 from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
 import sys
@@ -98,7 +96,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
         for i in range(self.pool_size):
             if not self.tracked_object_process_active_statuses[i]:
-                print("[TrackedObjectPoolManager] Returning process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
+                print("[TrackedObjectPoolManager] Lending process " + str(i+1) + " of " + str(self.pool_size) + ".", file=sys.stderr)
                 self.tracked_object_process_active_statuses[i] = True
                 return self.tracked_object_process_pipes[i], self.tracked_object_bb_shared_memory_managers[i], i
 
@@ -126,7 +124,15 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
     def returnTrackedObjectProcess(self, process_idx):
         self.tracked_object_process_active_statuses[process_idx] = False
-        print("[TrackedObjectPoolManager] Returned process with id " + str(process_idx + 1) + ".", file=sys.stderr)
+        print("[TrackedObjectPoolManager] Received return request for process with id " + str(process_idx + 1) + ".", file=sys.stderr)
+
+        count = 0
+
+        for i in range(len(self.tracked_object_process_active_statuses)):
+            if self.tracked_object_process_active_statuses[i]:
+                count += 1
+
+        print("[TrackedObjectPoolManager] " + str(count) + " of " + str(self.pool_size) + " are currently active.", file=sys.stderr)
 
     def createTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it
@@ -295,6 +301,7 @@ class TrackedObjectProcess:
     def startTracking(self, pipe):
         # Continues tracking the object until the object tracker sends -1 through the pipe.
         # In which case the process then returns and awaits for the next set of instructions
+        pipe.send((TrackedObjectStatus.BB_UPDATED))
 
         while self.should_keep_tracking:
 
@@ -318,6 +325,7 @@ class TrackedObjectProcess:
                     elif instruction[0] == TrackerToTrackedObjectInstruction.STORE_NEW_BB:
                         self.initializeOpticalFlow(instruction[1])
                         self.bb[:] = instruction[1][:]
+                        continue
 
 
             if instruction == TrackerToTrackedObjectInstruction.STOP_TRACKING:
@@ -331,9 +339,8 @@ class TrackedObjectProcess:
             # Update based on object movement status
             if instruction == TrackerToTrackedObjectInstruction.OBJECT_MOVING:
                 self.updateMovingObject()
-            elif instruction == TrackerToTrackedObjectInstruction.OBJECT_STATIONARY:
-                self.updateMovingObject()
-                # self.UpdateStationaryObject()
+
+            pipe.send((TrackedObjectStatus.BB_UPDATED))
 
         print("[TrackedObjectProcess] Process released by tracker. Awaiting instructions. ", file=sys.stderr)
 

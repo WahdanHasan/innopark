@@ -49,13 +49,12 @@ class Camera:
 
             _, frame = self.feed.read()
 
-            # Comment this out if not using video files
-            # if not _:
-            #     self.UpdateFeed(self.rtsp_link)
-            #     continue
-
-            self.frame_queue.put(IU.RescaleImageToResolution(img=frame,
-                                                             new_dimensions=self.default_resolution))
+            try:
+                self.frame_queue.put(IU.RescaleImageToResolution(img=frame,
+                                                                 new_dimensions=self.default_resolution))
+            except:
+                frame = self.base_blank
+                self.feed_stopped = True
 
     def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
         # Changes the rtsp link for the camera feed

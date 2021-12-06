@@ -109,8 +109,9 @@ class ParkingSpace:
             self.occupant_left_parking_time_start = time.time()
 
         if (time.time() - self.occupant_left_parking_time_start) >= self.seconds_before_considered_left:
-            t1 = Thread(target=self.chargeOccupant())
-            t1.start()
+            # t1 = Thread(target=self.chargeOccupant())
+            # t1.start()
+            return
 
     def chargeOccupant(self):
         self.end_datetime = datetime.now()

@@ -11,6 +11,7 @@ class ImageResolution(Enum):
 class TrackedObjectStatus(Enum):
     MOVING = 0
     STATIONARY = 1
+    BB_UPDATED = 2
 
 class EntrantSide(Enum):
     TOP = "top"

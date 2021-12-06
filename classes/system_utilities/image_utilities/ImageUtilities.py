@@ -353,6 +353,15 @@ def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_
     else:
         return False
 
+def CheckIfPolygonIntersects(bounding_box_a, bounding_box_b):
+    bounding_box_a = [bounding_box_a[0], bounding_box_a[1], bounding_box_a[3], bounding_box_a[2]]
+    bounding_box_b = [bounding_box_b[0], bounding_box_b[1], bounding_box_b[3], bounding_box_b[2]]
+
+    polygon_a = Polygon(bounding_box_a)
+    polygon_b = Polygon(bounding_box_b)
+
+    return polygon_a.intersects(polygon_b)
+
 def CheckIfPolygonFullyContainsPolygonTF(big_box, small_box):
 
 
@@ -370,6 +379,18 @@ def CheckIfPolygonFullyContainsPolygonTF(big_box, small_box):
 
     return True
 
+def CheckIfBBAreSame(bb_a, bb_b):
+
+    if len(bb_a) != len(bb_b):
+        return False
+
+    for i in range(len(bb_a)):
+        for j in range(len(bb_a[i])):
+            if bb_a[i][j] != bb_b[i][j]:
+                return False
+
+
+    return True
 
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 

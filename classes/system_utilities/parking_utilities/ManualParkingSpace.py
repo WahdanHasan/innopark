@@ -1,4 +1,6 @@
 from tkinter import *
+from classes.system_utilities.image_utilities import ImageUtilities as IU
+from classes.system_utilities.helper_utilities import Constants
 import cv2
 
 image_window_name = "parking Space Manual"
@@ -30,7 +32,7 @@ def Load(camera):
     # Get base image to display
     global base_image
     # base_image = camera.GetScaledNextFrame()
-    base_image = cv2.imread("..\\..\\..\\data\\reference footage\\images\\Frame_Parking.png")
+    base_image = cv2.imread("data\\reference footage\\images\\l3.jpg")
 
     # Create the window for display and set the mouse event function for it
     cv2.namedWindow(image_window_name)
@@ -213,29 +215,29 @@ def MouseClickCallBack(event, x, y, flags, param):
             print(valid)
 
     # Check for bounding box pt intersection
-    if valid > 3:
-        if (bounding_box[1][0] < min(bounding_box[0][0], bounding_box[2][0])):
-            print("Lines cannot intersect1")
-            bounding_box[index] = invalid_point
-        if ((bounding_box[1][0] < max(bounding_box[2][0], bounding_box[3][0]) and bounding_box[1][1] > max(bounding_box[2][1], bounding_box[3][1]))):
-            print("Lines cannot intersect2")
-            bounding_box[index] = invalid_point
-        if (bounding_box[2][0] > max(bounding_box[1][0], bounding_box[3][0])):
-            print("Lines cannot intersect3")
-            bounding_box[index] = invalid_point
-        if ((bounding_box[2][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[2][1] < max(bounding_box[0][1], bounding_box[1][1]))):
-            print("Lines cannot intersect4")
-            bounding_box[index] = invalid_point
-        if (bounding_box[0][0] > max(bounding_box[1][0], bounding_box[3][0])):
-            print("Lines cannot intersect5")
-            bounding_box[index] = invalid_point
-        if (bounding_box[3][0] < max(bounding_box[0][0], bounding_box[2][0])):
-            print("Lines cannot intersect6")
-            bounding_box[index] = invalid_point
-        if ((bounding_box[3][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[3][1] < max(bounding_box[0][1], bounding_box[1][1]))):
-            print("Lines cannot intersect7")
-            bounding_box[index] = invalid_point
-    print(bounding_box)
+    # if valid > 3:
+    #     if (bounding_box[1][0] < min(bounding_box[0][0], bounding_box[2][0])):
+    #         print("Lines cannot intersect1")
+    #         bounding_box[index] = invalid_point
+    #     if ((bounding_box[1][0] < max(bounding_box[2][0], bounding_box[3][0]) and bounding_box[1][1] > max(bounding_box[2][1], bounding_box[3][1]))):
+    #         print("Lines cannot intersect2")
+    #         bounding_box[index] = invalid_point
+    #     if (bounding_box[2][0] > max(bounding_box[1][0], bounding_box[3][0])):
+    #         print("Lines cannot intersect3")
+    #         bounding_box[index] = invalid_point
+    #     if ((bounding_box[2][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[2][1] < max(bounding_box[0][1], bounding_box[1][1]))):
+    #         print("Lines cannot intersect4")
+    #         bounding_box[index] = invalid_point
+    #     if (bounding_box[0][0] > max(bounding_box[1][0], bounding_box[3][0])):
+    #         print("Lines cannot intersect5")
+    #         bounding_box[index] = invalid_point
+    #     if (bounding_box[3][0] < max(bounding_box[0][0], bounding_box[2][0])):
+    #         print("Lines cannot intersect6")
+    #         bounding_box[index] = invalid_point
+    #     if ((bounding_box[3][0] < max(bounding_box[0][0], bounding_box[1][0]) and bounding_box[3][1] < max(bounding_box[0][1], bounding_box[1][1]))):
+    #         print("Lines cannot intersect7")
+    #         bounding_box[index] = invalid_point
+    # print(bounding_box)
 
     # Redraw image
     image = base_image.copy()
