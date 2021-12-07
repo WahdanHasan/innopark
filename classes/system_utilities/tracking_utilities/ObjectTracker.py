@@ -14,7 +14,7 @@ import copy
 import numpy as np
 from multiprocessing import Process, Pipe, shared_memory
 
-
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 class Tracker(ShutDownEventListener):
 
     def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event, seconds_between_detections):
@@ -95,6 +95,9 @@ class Tracker(ShutDownEventListener):
                                                                      name=Constants.object_tracker_mask_shared_memory_prefix + str(self.camera_id),
                                                                      size=mask.nbytes)
 
+        if self.camera_id == 2:
+            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 2, 'J71612', EntrantSide.RIGHT))
+
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
         mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)
 
@@ -120,6 +123,7 @@ class Tracker(ShutDownEventListener):
         counter = 0
 
         temp_loop_counter = 0
+
         # Main loop
         while self.should_keep_tracking:
             if not self.shutdown_should_keep_listening:
@@ -210,6 +214,9 @@ class Tracker(ShutDownEventListener):
             for i in range(len(tracked_object_pipes)):
                 tracked_object_movement_status[i] = TrackedObjectStatus.MOVING
 
+                if self.camera_id == 3:
+                    tracked_object_movement_status[0] = TrackedObjectStatus.STATIONARY
+
             # Check if tracked objects are still within the image
             while temp_should_keep_looping:
 
@@ -265,11 +272,11 @@ class Tracker(ShutDownEventListener):
                 break
 
             # Print fps rate of tracker
-            counter += 1
-            if (time.time() - start_time) > seconds_before_display:
-                # print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
-                counter = 0
-                start_time = time.time()
+            # counter += 1
+            # if (time.time() - start_time) > seconds_before_display:
+            #     print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
+            #     counter = 0
+            #     start_time = time.time()
 
     def StopTracking(self):
         self.should_keep_tracking = False

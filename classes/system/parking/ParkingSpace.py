@@ -35,11 +35,11 @@ class ParkingSpace:
         self.shared_memory_manager = 0
         self.shared_memory_items = 0
 
-        self.createSharedMemoryItems()
-
         self.resetOccupant()
 
     def __iter__(self):
+        yield 'internal_id', self.internal_id
+        yield 'is_occupied', self.is_occupied
         yield 'camera_id', self.camera_id
         yield 'parking_id', self.parking_id
         yield 'parking_type', self.parking_type

@@ -484,8 +484,8 @@ def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=2):
 
     for i in range(len(bounding_boxes)):
         temp_image = cv2.rectangle(img=temp_image,
-                                   pt1=int(bounding_boxes[i][0]),
-                                   pt2=int(bounding_boxes[i][1]),
+                                   pt1=bounding_boxes[i][0],
+                                   pt2=bounding_boxes[i][1],
                                    color=color,
                                    thickness=thickness)
 
@@ -524,7 +524,6 @@ def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=3):
     cv2.line(temp_image, (int(bounding_box[1][0]), int(bounding_box[1][1])), (int(bounding_box[3][0]), int(bounding_box[3][1])), color, thickness)
 
     return temp_image
-
 
 def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.

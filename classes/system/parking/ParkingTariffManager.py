@@ -46,6 +46,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
             parking_space_data = json.loads(parking_json.read())
             for parking_space in parking_space_data:
                 self.parking_spaces.append(ParkingSpace(**parking_space))
+                self.parking_spaces[len(self.parking_spaces)-1].createSharedMemoryItems()
 
     def loadParkingSpacesFromDb(self):
         parkings_ids, parkings_docs = GetAllParkings(Constants.avenue_id)
@@ -64,7 +65,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
                                                     is_occupied=parking_doc[Constants.is_occupied_key],
                                                     parking_type=parking_doc[Constants.parking_type_key],
                                                     rate_per_hour=parking_doc[Constants.rate_per_hour_key]))
-
+            self.parking_spaces[len(self.parking_spaces) - 1].createSharedMemoryItems()
             parking_spaces_count += 1
 
         parking_space_jsons = []
