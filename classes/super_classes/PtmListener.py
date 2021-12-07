@@ -38,8 +38,8 @@ class PtmListener:
 
         for i in range(parking_spaces_count):
             temp_shm_items = shared_memory.SharedMemory(name=Constants.parking_space_shared_memory_prefix + str(i))
-            temp_items = np.ndarray(shape=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint8).shape,
-                                    dtype=np.uint8,
+            temp_items = np.ndarray(shape=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint16).shape,
+                                    dtype=np.uint16,
                                     buffer=temp_shm_items.buf)
 
             self.shared_memory_item_managers.append(temp_shm_items)

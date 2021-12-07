@@ -194,7 +194,6 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
             # print(self.getAllParkingSpaces())
 
 
-
             vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
 
             # if occupied_parking_ids or occupied_parking_ids is not None:
