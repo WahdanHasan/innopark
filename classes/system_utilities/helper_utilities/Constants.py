@@ -1,4 +1,5 @@
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
+from datetime import datetime
 
 base_pool_size = 10
 seconds_in_hour = 3600
@@ -24,7 +25,7 @@ bb_example = [[-1, -1], [-1, -1]]
 # idx0=tracker_id, idx1=camera_id, rest are the object_id
 tracked_process_ids_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-# idx0=parking space number, idx1= parking space occupancy status, rest are object_id
+# idx0=parking space number, idx1= parking space occupancy status [1 is occupied], rest are object_id
 ptm_debug_items_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
@@ -49,12 +50,51 @@ default_camera_shape = (ImageResolution.NTSC.value[0], ImageResolution.NTSC.valu
 # Parking space file
 parking_spaces_json = "config\\parking\\parking_spaces.txt"
 
+gov_collection_key = "government-registered-drivers"
 gov_license_key = "licenseNumber"
 gov_phone_number_key = "phoneNumber"
 
 # Avenue information
 avenue_id = "O8483qKcEoQc6SPTDp5e"
 # avenue_id = "sXXjDt9IUyPBDaCmLTfF"
+parking_due_in_hours = 48
+fine_due_in_months = 1
+max_parking_duration_in_hours = 4
+
+# Fine Types
+fine_type_double_parking = "Double Parking"
+fine_type_exceeded_due_date = "Exceeded Due Date"
+fine_type_exceeded_allowed_duration = "Exceeded Allowed Duration"
+
+# Fine Amounts
+fine_amount_double_parking = 500
+fine_amount_exceeded_due_date = 350
+fine_amount_exceeded_allowed_duration = 200
+
+
+local_timezone = datetime.now().astimezone().tzinfo
+# print("timezone: ", datetime.now(local_timezone))
+
+
+# avenues doc
+avenues_collection_name = "avenues"
+fines_info_subcollection_name = "fines_info"
+sessions_info_subcollection_name = "sessions_info"
+
+# Fine_info doc
+created_datetime_key = "created_datetime"
+due_datetime_key = "due_datetime"
+fine_amount_key = "fine_amount"
+fine_description_key = "fine_description"
+fine_type_key = "fine_type"
+is_accepted_key = "is_accepted"
+is_reviewed_key = "is_reviewed"
+is_disputed_key = "is_disputed"
+is_paid_key = "is_paid"
+session_id_key = "session_id"
+vehicle_key = "vehicle"
+footage_key = "footage"
+staff_comment_key = "staff_comment"
 
 # Parking_info doc
 bounding_box_key = "bounding_box"

@@ -8,10 +8,19 @@ import sys
 
 def sendSmsToLicense(license_plate, tariff_amount):
 
-    vehicle_registered_phone_number = DU.GetValueOfFieldOnMatch(collection="government-registered-drivers",
+    print("remove return in SMS file to send sms")
+    return
+
+    print("remove license plate duct tape from sendSmsToLicense Function")
+    if license_plate == None:
+        license_plate = "J71612"
+
+    vehicle_registered_phone_number = DU.GetValueOfFieldOnArrayValueMatch(collection="government-registered-drivers",
                                                                 match_key=Constants.gov_license_key,
                                                                 match_value=license_plate,
                                                                 get_value_key=Constants.gov_phone_number_key)
+
+
 
     if vehicle_registered_phone_number is None:
         print("[SMS] License plate is not registered to government database. This may be due to an incorrect plate number.", file=sys.stderr)

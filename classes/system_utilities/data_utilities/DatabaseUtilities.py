@@ -1,20 +1,34 @@
 import firebase_admin
-from firebase_admin import credentials
-from firebase_admin import firestore
+from firebase_admin import credentials, firestore, storage
 
 # Remember that the db hierarchy is Collection > Document > Data
 
 db = 0
 def OnLoad():
     global db
+    global bucket
+
     # Initialize Google Cloud Platform using service account credentials
     cred = credentials.Certificate('config\\firebase\\ServiceAccount.json')
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'innopark-1fe10.appspot.com'
+    })
+
+    bucket = storage.bucket()
 
     db = firestore.client()
 
 
 OnLoad()
+
+def uploadBlob(file_name):
+    blob = bucket.blob(file_name)
+    blob.upload_from_filename(file_name)
+
+    # Opt : if you want to make public access from the URL
+    blob.make_public()
+
+    print("your file url", blob.public_url)
 
 def to_dict(document):
 
@@ -44,10 +58,34 @@ def AddData(collection, document=None, data=None):
     return document_ref
 
 def UpdateData(collection, document, field_to_edit, new_data):
+
     document_ref = db.collection(collection).document(document)
 
     document_ref.update({
         field_to_edit: new_data
+    })
+
+    print("Successfully updated "+collection)
+
+def UpdateDataTwoFields(collection, document, field_to_edit1, new_data1, field_to_edit2, new_data2):
+
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_to_edit1: new_data1,
+        field_to_edit2: new_data2
+    })
+
+    print("Successfully updated "+collection)
+
+def UpdateDataThreeFields(collection, document, field_to_edit1, new_data1, field_to_edit2, new_data2, field_to_edit3, new_data3):
+
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_to_edit1: new_data1,
+        field_to_edit2: new_data2,
+        field_to_edit3: new_data3
     })
 
     print("Successfully updated "+collection)
@@ -144,13 +182,22 @@ def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
 
     return doc[get_value_key]
 
+def GetValueOfFieldOnArrayValueMatch(collection, match_key, match_value, get_value_key):
+
+    doc = db.collection(collection).where(match_key, "array_contains", match_value).get()
+
+    if not doc:
+        return None
+
+    return doc[0].to_dict()[get_value_key]
+
 def GetAllDocsEqualToRequestedField(collection, key, value):
-    # get the first doc whose key field equals the value you're looking for
+    # get all docs whose key field equals the value you're looking for
     docs = db.collection(collection).where(key, "==", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -163,12 +210,12 @@ def GetAllDocsEqualToRequestedField(collection, key, value):
     return docs_id_extracted, docs_extracted
 
 def GetAllDocsGreaterThanOrEqualRequestedFieldInMap(collection, field_key, map_key, value):
-    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    # get all docs whose key field value is greater than or equal to the value you're looking for
     docs = db.collection(collection).where(field_key+"."+map_key, ">=", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -180,12 +227,29 @@ def GetAllDocsGreaterThanOrEqualRequestedFieldInMap(collection, field_key, map_k
     return docs_id_extracted, docs_extracted
 
 def GetAllDocsGreaterThanOrEqualRequestedField(collection, field_key, value):
-    # get the first doc whose key field value is greater than or equal to the value you're looking for
+    # get all docs whose key field value is greater than or equal to the value you're looking for
     docs = db.collection(collection).where(field_key, ">=", value).get()
 
     if not docs:
         print("Error: requested field is not found in any document")
-        return None
+        return None, None
+
+    docs_extracted = []
+    docs_id_extracted = []
+
+    for i in range(len(docs)):
+        docs_extracted.append(docs[i].to_dict())
+        docs_id_extracted.append(docs[i].id)
+
+    return docs_id_extracted, docs_extracted
+
+def GetAllDocsGreaterThanRequestedField(collection, field_key, value):
+    # get all docs whose key field value is greater than or equal to the value you're looking for
+    docs = db.collection(collection).where(field_key, ">", value).get()
+
+    if not docs:
+        print("Error: requested field is not found in any document")
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -219,13 +283,13 @@ def GetValueOfFieldOnMatch(collection, match_key, match_value, get_value_key):
 #
 #     return docs_id_extracted, docs_extracted
 
-def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, second_value=None):
+def GetAllDocsEqualToTwoFields(collection, first_key, first_value, second_key, second_value=None):
     # get the first doc whose key field equals the value you're looking for
     docs = db.collection(collection).where(first_key, "==", first_value).where(second_key, "==", second_value).get()
 
     if not docs:
         print("Error: requested field is not found")
-        return None
+        return None, None
 
     docs_extracted = []
     docs_id_extracted = []
@@ -235,17 +299,6 @@ def GetAllDocsBasedOnTwoFields(collection, first_key, first_value, second_key, s
         docs_id_extracted.append(docs[i].id)
 
     return docs_id_extracted, docs_extracted
-
-# def QueryData(collection):
-#     user_doc_ref = db.collection('users')
-#     vehicle_doc_ref = db.collection('vehicles')
-#
-#     owner="0551234567"
-#     query = user_doc_ref.where('phone_number', '==', owner).get()
-#
-#     for data in query:
-#         print(data.to_dict())
-#     return 1
 
 def GetDocuments(collection):
     collection_ref = db.collection(collection)
@@ -283,3 +336,5 @@ def DeleteDocument(collection, document):
 
     document_ref.delete()
     print(u'Successfully deleted document!')
+
+# uploadBlob("D:\\GradProject\\innopark\\data\\reference footage\\test journey\\Entrance_Bottom.mp4")

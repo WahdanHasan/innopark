@@ -27,7 +27,7 @@ background-color:#FFFFFF;
 #leftSlideMenu{
 background-color:#b5b5b5;
 }
-#dashboardButton, #setupButton, #debugButton{
+#dashboardButton, #setupButton, #debugButton, #violationReviewButton{
 background-color:transparent;
 border-top-left-radius:15px;
 font-size:16px;
@@ -226,7 +226,7 @@ text-align:left;
                    <string notr="true"/>
                   </property>
                   <property name="text">
-                   <string>Dashboard</string>
+                   <string> Dashboard</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../resource/icons.qrc">
@@ -240,11 +240,36 @@ text-align:left;
                    <string notr="true"/>
                   </property>
                   <property name="text">
-                   <string>Setup</string>
+                   <string> Setup</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../resource/icons.qrc">
                     <normaloff>:/black/icons/sliders.svg</normaloff>:/black/icons/sliders.svg</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="violationReviewButton">
+                  <property name="font">
+                   <font>
+                    <pointsize>-1</pointsize>
+                   </font>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LeftToRight</enum>
+                  </property>
+                  <property name="autoFillBackground">
+                   <bool>false</bool>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="text">
+                   <string> Violation Review</string>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resource/icons.qrc">
+                    <normaloff>:/black/icons/rotate-cw.svg</normaloff>:/black/icons/rotate-cw.svg</iconset>
                   </property>
                  </widget>
                 </item>
@@ -254,7 +279,7 @@ text-align:left;
                    <string notr="true"/>
                   </property>
                   <property name="text">
-                   <string>Debug</string>
+                   <string> Debug</string>
                   </property>
                   <property name="icon">
                    <iconset resource="../resource/icons.qrc">
@@ -378,6 +403,13 @@ border:0px
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="palette">
+          <palette>
+           <active/>
+           <inactive/>
+           <disabled/>
+          </palette>
          </property>
          <property name="font">
           <font>
@@ -536,6 +568,158 @@ border:0px
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="violationReviewPage">
+          <widget class="QFrame" name="reviewFineForm">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>1081</width>
+             <height>671</height>
+            </rect>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <widget class="QTableWidget" name="tableWidget">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>60</y>
+              <width>1041</width>
+              <height>541</height>
+             </rect>
+            </property>
+            <column>
+             <property name="text">
+              <string>Fine Type</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Vehicle</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Created Date</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Due Date</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Click to Review</string>
+             </property>
+            </column>
+           </widget>
+           <widget class="QWidget" name="layoutWidget">
+            <property name="geometry">
+             <rect>
+              <x>19</x>
+              <y>10</y>
+              <width>1061</width>
+              <height>43</height>
+             </rect>
+            </property>
+            <layout class="QHBoxLayout" name="title_bar">
+             <item>
+              <widget class="QLabel" name="title_label">
+               <property name="font">
+                <font>
+                 <family>Candara</family>
+                 <pointsize>13</pointsize>
+                 <weight>75</weight>
+                 <italic>false</italic>
+                 <bold>true</bold>
+                 <underline>false</underline>
+                 <strikeout>false</strikeout>
+                 <stylestrategy>PreferAntialias</stylestrategy>
+                </font>
+               </property>
+               <property name="text">
+                <string>Review the following footages and confirm the violation</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="layoutWidget_2">
+            <property name="geometry">
+             <rect>
+              <x>20</x>
+              <y>620</y>
+              <width>1041</width>
+              <height>43</height>
+             </rect>
+            </property>
+            <layout class="QHBoxLayout" name="title_bar_3">
+             <item>
+              <spacer name="horizontalSpacer_7">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="violationRefreshButton">
+               <property name="font">
+                <font>
+                 <pointsize>9</pointsize>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Refresh</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_6">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </widget>
         </widget>
        </item>
       </layout>
@@ -547,6 +731,7 @@ border:0px
  <resources>
   <include location="../resource/icons.qrc"/>
   <include location="../resource/logos.qrc"/>
+  <include location="../resource/icons.qrc"/>
  </resources>
  <connections/>
 </ui>

@@ -167,6 +167,20 @@ def FloatBBToIntBB(bb):
 def IntBBToFloatBB(bb):
     return [[float(bb[0][0]), float(bb[0][1])], [float(bb[1][0]), float(bb[1][1])]]
 
+def GetTLIncreasedBB(bbox, increase_factor=0.1):
+    # Takes a bounding box and increases its TL while making sure the bounding box is not out of bounds of its image.
+
+    # Create new bbox
+    increased_bbox = [[bbox[0][0], bbox[0][1]], [bbox[1][0], bbox[1][1]]]
+
+    # Increase the top left point while making sure it does not go out of bounds, if it does, set it to max bound
+    for j in range(2):
+        increased_bbox[0][j] = int(increased_bbox[0][j] - (increased_bbox[0][j] * increase_factor))
+        if increased_bbox[0][j] < 0:
+            increased_bbox[0][j] = 0
+
+    return increased_bbox
+
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)
@@ -203,6 +217,32 @@ def GetBBInRespectTo(bbox, bbox_of_new_parent):
     local_bb = [[TL[0], TL[1]], [BR[0], BR[1]]]
 
     return local_bb
+
+def GetChildBBInRespectToNewParent(child_bbox, child_parent_bbox_irt_new_parent):
+    # Takes the child bbox of the original parent
+    # and the parent bbox that's in respect of new parent, which is the bigger bbox
+    # Return new dimension of child in respect to new parent, rather than original parent
+
+    child_irt_new_parent_TL = [child_bbox[0][0] + child_parent_bbox_irt_new_parent[0][0],
+                              child_bbox[0][1] + child_parent_bbox_irt_new_parent[0][1]]
+
+    child_irt_new_parent_BR = [child_bbox[1][0] + child_parent_bbox_irt_new_parent[0][0],
+                              child_bbox[1][1] + child_parent_bbox_irt_new_parent[0][1]]
+
+    child_irt_new_parent = [child_irt_new_parent_TL, child_irt_new_parent_BR]
+
+    return child_irt_new_parent
+
+def GetPointInRespectTo(point, bbox_of_new_parent):
+    # Takes a point and updates its local coordinates in respect to the top left bb coordinate of new parent
+    # This is to be used when getting a point's local coordinates in respect to a larger bb.
+    # The point in this case would be a subset of the larger bb
+    # Returns the point's local coordinate values
+
+    TL = [point[0][0] - bbox_of_new_parent[0][0], point[0][1] - bbox_of_new_parent[0][1]]
+
+    local_point = [TL[0], [TL[1]]]
+    return local_point
 
 def GetFullBoundingBox(bounding_box):
     # Takes a bounding box in the format of [TL, BR]
@@ -262,6 +302,14 @@ def GetDimensionsFromBoundingBox(bounding_box):
     width = bounding_box[1][0] + bounding_box[0][0]
 
     return (height, width)
+
+def GetBoundingBoxFromDimensions(height, width):
+    # Takes dimensions
+    # Returns the bounding box [[TL], [BR]]
+
+    frame_bb = [[0, height], [width, height]]
+
+    return frame_bb
 
 def CreateInvertedMask(img, bbox):
     # Takes a full image and the bounding box of the object of interest within it.
@@ -461,6 +509,22 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
         cv2.line(temp_image, bounding_boxes[i][2], bounding_boxes[i][3], temp_color, thickness)
 
     return temp_image
+
+def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=3):
+    # Takes an image and places the parking space bounding boxes on it from the detections
+    # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
+    # Returns the image with parking side lines drawn and their appropriate colors drawn on it.
+
+    if bounding_box is None:
+        return image
+
+    temp_image = image.copy()
+
+    cv2.line(temp_image, (int(bounding_box[2][0]), int(bounding_box[2][1])), (int(bounding_box[0][0]), int(bounding_box[0][1])), color, thickness)
+    cv2.line(temp_image, (int(bounding_box[1][0]), int(bounding_box[1][1])), (int(bounding_box[3][0]), int(bounding_box[3][1])), color, thickness)
+
+    return temp_image
+
 
 def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.

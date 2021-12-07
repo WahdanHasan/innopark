@@ -1,31 +1,40 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
+from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ODProcessInstruction
+# from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
+from classes.system_utilities.helper_utilities.Enums import ImageResolution
+import classes.system_utilities.data_utilities.DatabaseUtilities as DU
+from datetime import datetime, timezone
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday
 
-from multiprocessing import Process, shared_memory, Pipe
+from classes.super_classes.PtmListener import PtmListener
+from multiprocessing import Process, shared_memory
 import numpy as np
 import cv2
 import sys
-import time
+import json
+import time, logging
 import math
-
+import threading
 
 
 class ParkingViolationManager(TrackedObjectListener):
 
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event, license_detector_request_queue):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event, ptm_initialized_event):
 
-        super().__init__(amount_of_trackers, new_object_in_pool_event)
+        TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
+
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.pvm_initialized_event = pvm_initialized_event
+        self.ptm_initialized_event = ptm_initialized_event
         self.violation_manager_process = 0
-        self.receive_pipe = 0
-        self.send_pipe = 0
         self.should_keep_managing = True
-        self.license_detector_request_queue = license_detector_request_queue
         self.base_blank = np.zeros(
                                     shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
                                     dtype=np.uint8
@@ -47,6 +56,9 @@ class ParkingViolationManager(TrackedObjectListener):
 
         self.camera_id_key = "camera_id_"
         self.parking_status_key = "parking_status"
+        self.license_detected_key = "license_detected_status"
+        self.license_detected = True
+        self.license_notDetected = False
 
         self.minimum_length_of_vehicle_trail = 0
 
@@ -55,7 +67,16 @@ class ParkingViolationManager(TrackedObjectListener):
         self.camera_offset = len(Constants.ENTRANCE_CAMERA_DETAILS)
 
         self.latest_tracked_vehicle_bbs = {}
+
         self.should_build_vehicle_bb_history = True
+
+        # Variables for Violation Type "Exceeding Due Date"
+        self.time_interval_to_check_violation = 60 # in seconds
+        self.today_start_date = None
+        self.today_end_date = None
+
+        self.sessions_due_today_ids = []
+        self.sessions_due_today_data = []
 
         # for i in range(len(Constants.CAMERA_DETAILS)):
         #     self.latest_tracked_vehicle_frames.append([None]*self.maximum_tracked_vehicle_frame_history)
@@ -66,6 +87,9 @@ class ParkingViolationManager(TrackedObjectListener):
 
         self.temp_counter = 0
         self.threshold_percentage = 0.75
+
+        self.thread_check_due_dates = 0
+        self.segmentation_model = 0
 
     def createSharedMemoryStuff(self, amount_of_trackers):
         for i in range(amount_of_trackers):
@@ -83,56 +107,188 @@ class ParkingViolationManager(TrackedObjectListener):
         self.violation_manager_process.start()
 
     def stopProcess(self):
+        self.thread_check_due_dates.join()
         self.tariff_manager_process.terminate()
 
+    def checkForViolationTypeExceedingDueDateEvery(self, seconds_to_delay):
+        while True:
+            time.sleep(seconds_to_delay)
+            try:
+                if len(self.sessions_due_today_ids) <=0:
+                    logging.critical(" - Will stop checking for violation type 'Exceeded Due Dates'.")
+                    return
+
+                self.checkDueDateComparedToNow()
+            except Exception:
+                logging.exception("Couldn't execute the thread task")
+
+    def checkDueDateComparedToNow(self):
+        now_datetime = datetime.now(timezone.utc)
+        # print("now time to be compared to due date: ", now, file=sys.stderr)
+        # print(self.sessions_due_today_data, file=sys.stderr)
+
+
+        for i in range(len(self.sessions_due_today_ids)):
+
+            # print("due date being compared: ", self.sessions_due_today_data[i][Constants.due_datetime_key])
+
+            # check if now exceeds due datetime
+            # if it does, record a fine in the db
+            if self.sessions_due_today_data[i][Constants.due_datetime_key] > now_datetime:
+                break
+
+            AddFine(avenue=Constants.avenue_id,
+                      avenue_name=self.sessions_due_today_data[i]["avenue_name"],
+                      session_id=self.sessions_due_today_ids[i],
+                      vehicle=self.sessions_due_today_data[i]["vehicle"],
+                      fine_type=Constants.fine_type_exceeded_due_date)
+
+
+            # pop the sessions that are fined
+            self.sessions_due_today_ids.pop(i)
+            self.sessions_due_today_data.pop(i)
+
     def startManaging(self):
-        super().initialize()
+        TrackedObjectListener.initialize(self)
+
+        self.ptm_initialized_event.wait()
+        ptm_listener = PtmListener()
+        ptm_listener.initialize()
+
+        # initialize thread that checks sessions' due datetime compared to now datetime.
+        # if now datetime is past due date, then add a record of the fine with type "Exceeded Due Date"
+        # if it doesn't yet exist in db
+        # self.thread_check_due_dates = threading.Thread(
+        #     target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
+
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
-        self.receive_pipe, self.send_pipe = Pipe()
+        # from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
+        #
+        # LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
+
+        # load mask rcnn
+        # self.loadMaskRCNNModel()
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
 
+        # # set the start and end datetimes of today in UTC
+        # self.setTodayStartEndDate()
+        #
+        # self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
+        #                                               collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
+        #                                               today_start_datetime=self.today_start_date,
+        #                                               today_end_datetime=self.today_end_date)
+
+        # if there exists sessions due today, start the thread.
+        # if self.sessions_due_today_ids is not None:
+        #     print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
+        #     self.thread_check_due_dates.start()
+
         while self.should_keep_managing:
 
-            ids, bbs = self.getAllActiveTrackedProcessItems()
 
-            self.checkAndUpdateViolationStatuses(ids=ids,
-                                                 bbs=bbs)
+            vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
+
+            # if occupied_parking_ids or occupied_parking_ids is not None:
+            #     print("parking_ids: ", occupied_parking_ids)
+            #     print("paring_occupants: ", parking_occupants)
+            # else:
+            #     print("no parking ids occupied")
+            #     continue
+
+            # don't proceed there are no parkings occupied
+            # if not parking_ids or parking_ids is None:
+            #     return
+
+            # self.checkAndUpdateViolationStatuses(occupied_parking_ids=occupied_parking_ids,
+            #                                      parking_occupants=parking_occupants,
+            #                                      vehicle_ids=vehicle_ids,
+            #                                      vehicle_bbs=vehicle_bbs)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, ids, bbs):
+    def checkAndUpdateViolationStatuses(self, occupied_parking_ids, parking_occupants, vehicle_ids, vehicle_bbs):
+        for i in range(len(occupied_parking_ids)):
+            print(occupied_parking_ids[i])
+            print("occupants: ", parking_occupants[i])
+
+        print("checking and updating violation statuses", file=sys.stderr)
+
+
+    def loadMaskRCNNModel(self):
+        from pixellib.semantic import semantic_segmentation
+        self.segmentation_model = semantic_segmentation()
+
+        self.segmentation_model.load_pascalvoc_model(
+            "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
+
+        # result = self.segmentation_model.segmentAsPascalvoc(
+        #     "./data/reference footage/images/car_parked3_new_cropped.jpg")
+
+        self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
+            Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+            dtype=np.uint8))
+
+        # result = self.segmentation_model.segmentFrameAsPascalvoc(frame=)
+        # mask = result[1]
+
+    def setTodayStartEndDate(self):
+        # set the start of today in UTC time 08:00 PM previous day
+        today = datetime.now().astimezone() # get uae time now
+
+        today_start = datetime(today.year, today.month, today.day, tzinfo=today.tzinfo) # set to uae time 12:00:00 AM of today
+
+        today_start = today_start.astimezone(timezone.utc) # convert uae time 12:00:00 AM to UTC time 8:00:00 PM previous day
+
+        today_end = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=today.tzinfo)  # set to uae time 11:59:59 PM of today
+
+        today_end = today_end.astimezone(timezone.utc)  # convert uae time 11:59:59 AM to UTC time 8:59:59 AM previous day
+
+        self.today_start_date = today_start
+        self.today_end_date = today_end
+
+
+
+
+
+
+    def FcheckAndUpdateViolationStatuses(self, parking_ids, vehicle_ids, vehicle_bbs, license_detector):
+        # don't check for violation if there are not parkings occupied
+        if not parking_ids or parking_ids is None:
+            return
+
         # An object tracker cannot be on the id 0
-        if not ids or ids is None:
+        if not vehicle_ids or vehicle_ids is None:
             return
 
-        if not bbs or bbs is None:
+        if not vehicle_bbs or vehicle_bbs is None:
             return
 
-        for i in range(len(bbs)):
+        for i in range(len(vehicle_bbs)):
             self.temp_counter +=1
-            vehicle_plate = ids[2][i]
-            camera_id = ids[1][i]
+            license_plate = vehicle_ids[2][i]
+            camera_id = vehicle_ids[1][i]
 
-            # Initialize vehicle_plate dict for new vehicle
-            if vehicle_plate not in self.latest_tracked_vehicle_bbs:
+            # Initialize license_plate dict for new vehicle
+            if license_plate not in self.latest_tracked_vehicle_bbs:
                 # initialize the parking status
-                self.latest_tracked_vehicle_bbs[vehicle_plate] = {
-                    self.parking_status_key:ParkingStatus.NOT_OCCUPIED
+                self.latest_tracked_vehicle_bbs[license_plate] = {
+                    self.parking_status_key: ParkingStatus.NOT_OCCUPIED,
+                    self.license_detected_key: self.license_notDetected
                 }
 
                 # initialize a list for each camera
                 for camera_details in Constants.CAMERA_DETAILS:
-                    self.latest_tracked_vehicle_bbs[vehicle_plate][self.camera_id_key+str(camera_details[0])] = []
+                    self.latest_tracked_vehicle_bbs[license_plate][self.camera_id_key+str(camera_details[0])] = []
 
             # Build the history of vehicle bbs if vehicle is not parked
-            if self.latest_tracked_vehicle_bbs[vehicle_plate][self.parking_status_key] == ParkingStatus.NOT_OCCUPIED:
-                self.buildVehicleBbHistory(bbs=bbs, camera_id=camera_id, vehicle_plate=vehicle_plate)
+            if self.latest_tracked_vehicle_bbs[license_plate][self.parking_status_key] == ParkingStatus.NOT_OCCUPIED:
+                self.buildVehicleBbHistory(bbs=vehicle_bbs, camera_id=camera_id, vehicle_plate=license_plate)
 
             for j in range(len(self.parking_spaces)):
                 # if camera_id != self.parking_spaces[j].camera_id:
@@ -140,49 +296,118 @@ class ParkingViolationManager(TrackedObjectListener):
                     continue
 
                 # if self.parking_spaces.status == ParkingStatus.OCCUPIED:
-                if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter == 200:
+                if self.parking_spaces[j][3] == ParkingStatus.OCCUPIED or self.temp_counter >= 420:
                     print("PARKING OCCUPIED AAAAAAAAAAAAAAAAAAAA")
-                    self.latest_tracked_vehicle_bbs[vehicle_plate][self.parking_status_key] = ParkingStatus.OCCUPIED
+                    self.latest_tracked_vehicle_bbs[license_plate][self.parking_status_key] = ParkingStatus.OCCUPIED
 
-                    # bbs_center_pts = self.calculateCenterOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    # bbs_center_pts = self.getBROfBbs(vehicle_plate=vehicle_plate, camera_id=camera_id)
-                    vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
-                    # self.drawVehicleTrail(pts)
-                    self.drawVehicleTrailUsingVector(bottom_midpts, vector_pts)
+                    # retry to detect vehicle license plate
+                    if(self.latest_tracked_vehicle_bbs[license_plate][self.license_detected_key]==self.license_notDetected):
 
-                    frame = self.getFrameByCameraId(camera_id)
-                    parking_spot_img = IU.CropImage(frame, (self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]))
-                    self.getLicensePlateBboxUsingModel(parking_spot_img=parking_spot_img)
+                        # bbs_center_pts = self.calculateCenterOfBbs(license_plate=license_plate, camera_id=camera_id)
+                        bottom_midpts = self.calculateBottomOfBbs(vehicle_plate=license_plate, camera_id=camera_id)
+                        # bbs_center_pts = self.getBROfBbs(license_plate=license_plate, camera_id=camera_id)
+                        # vector_pts = self.getBbVectorToFrameEdge(bottom_midpts[-1], (Constants.default_camera_shape[0], Constants.default_camera_shape[1]))
+                        # self.drawVehicleTrail(pts)
+
+
+                        frame = self.getFrameByCameraId(camera_id)
+
+                        license_bb = self.getLicensePlateBboxUsingModel(parking_space_bb=(self.parking_spaces[j][2][0], self.parking_spaces[j][2][3]),
+                                                                        frame=frame,
+                                                                        license_detector=license_detector)
+
+                        if (license_bb):
+                            # indicate that license plate of the specified vehicle is detected
+                            self.latest_tracked_vehicle_bbs[license_plate][self.license_detected_key] = self.license_detected
+
+                            vector_to_license_plate_pts = self.getBbVectorToLicenseCenterToFrame(last_bb_pt=bottom_midpts[-1],
+                                                                                          license_bb=license_bb)
+
+                            license_center_pt = IU.GetBoundingBoxCenter(license_bb)
+
+                            vector_to_frame_edge = self.getBbVectorToFrameEdge(last_bb_pt=license_center_pt,
+                                                                               frame_dimensions=(Constants.default_camera_shape[0],
+                                                                                                 Constants.default_camera_shape[1]))
+
+                            self.drawVehicleTrailUsingVector(bottom_midpts, vector_to_frame_edge)
+
+                            # self.getWindShieldContours(vehicle_bb=bbs[i], frame=frame)
 
                     break
 
-    def getLicensePlateBboxUsingModel(self, parking_spot_img):
-        #make sure that model is loaded before detection
-        self.license_detector_request_queue.put((ODProcessInstruction.IMAGE_PROVIDED, parking_spot_img, self.send_pipe))
-        status, classes, bounding_boxes, scores = self.receive_pipe.recv()
+    def getWindShieldContours(self, vehicle_bb, frame):
+        print("vehicle_bb", vehicle_bb, file=sys.stderr)
 
-        print("status: ", status)
-        print("bounding_box", bounding_boxes)
+        # TODO: remove hard-coded vehicle_bb below
+        vehicle_bb = [[435,136], [820, 430]]
 
-        bounding_boxes = bounding_boxes[0]
+        vehicle_img = IU.CropImage(img=frame, bounding_set=vehicle_bb)
 
-        height, width = parking_spot_img[:2]
+        # convert to gray
+        gray = cv2.cvtColor(vehicle_img, cv2.COLOR_BGR2GRAY)
 
-        box_pts = [[0, height], [width, height]]
-        new_bb_pts = IU.GetBBInRespectTo(bounding_boxes, box_pts)
+        # remove noise while maintaining edges
+        gray = cv2.bilateralFilter(gray, 11, 17, 17)
 
+        # detect edges
+        canny = cv2.Canny(gray, 170, 200)
 
-        img = IU.DrawBoundingBoxes(box_pts, new_bb_pts)
+        # find the contours in canny image
+        contours, hierarchy = cv2.findContours(canny.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-        #img not showing for some reason
-        # cv2.imshow("bb", img)
-        # cv2.waitKey(0)
+        # print("HIERARCHY: ", hierarchy, file=sys.stderr)
+        # print("CONTOURS", contours, file=sys.stderr)
 
-        # get the center of new_bb_pts or for short can just get center of bounding boxes and convert that one point in respect to larger parent
+        # Create copy of original image to draw all contours
+        img1 = vehicle_img.copy()
+        cv2.drawContours(img1, contours, -1, (0, 255, 0), 3)
 
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:30]
+
+        img2 = vehicle_img.copy()
+        cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
+        IU.SaveImage(img2, "Top 30 Contours")
+
+    def getLicensePlateBboxUsingModel(self, parking_space_bb, frame, license_detector):
+        # returns the license plate bb in respect to the frame
+        # parking space bb is in the format [[TL], [BR]]
+
+        # crop parking from frame before detecting license
+        parking_space_img = IU.CropImage(frame, (parking_space_bb[0], parking_space_bb[1]))
+        IU.SaveImage(parking_space_img, "parking img cropped")
+
+        # TODO: change from parking spot parameter to vehicle bounding box tracked
+        status, classes, license_bb, scores = license_detector.DetectObjectsInImage(parking_space_img)
+
+        if status == 0:
+            print("ERROR: No license plate was detected.", file=sys.stderr)
+            return
+
+        license_bb = license_bb[0]
+
+        # get license plate in respect of original frame, not cropped img that was used for license detection
+        rescaled_license_bb = IU.GetChildBBInRespectToNewParent(child_bbox=license_bb,
+                                                                 child_parent_bbox_irt_new_parent=parking_space_bb)
+
+        frame = IU.DrawBoundingBoxes(frame, [rescaled_license_bb], color=(0, 255, 0))
+        IU.SaveImage(frame, "location of license plate in actual")
+
+        return rescaled_license_bb
+
+    def getBbVectorToLicenseCenterToFrame(self, last_bb_pt, license_bb):
+        # get the center of new_bb_pts or for short can just get center of bounding boxes
+        center_pt = IU.GetBoundingBoxCenter(license_bb)
 
         # get Bb vector of last tracked point to the center of license plate
+        x1 = last_bb_pt[0]
+        y1 = last_bb_pt[1]
+
+        y2 = center_pt[1]
+
+        scaling_factor = y2 / y1
+        x2 = x1 * scaling_factor
+
+        return [x2, y2]
 
     def getLicensePlateBboxUsingContours(self, parking_spot_img):
         # convert to gray
@@ -206,13 +431,14 @@ class ParkingViolationManager(TrackedObjectListener):
 
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:30]
 
-        plate_contour = None
-        rectangle_sides = 4
 
         img2 = parking_spot_img.copy()
         cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
         cv2.imshow("5- Top 30 Contours", img2)
         cv2.waitKey(0)
+
+        plate_contour = None
+        rectangle_sides = 4
 
         # loop through the sorted contours and find the rectangle shape
         for c in contours:
@@ -232,12 +458,11 @@ class ParkingViolationManager(TrackedObjectListener):
         cv2.drawContours(parking_spot_img, [plate_contour], -1, (0, 255, 0), 3)
         IU.SaveImage(parking_spot_img, "final_img_with_contour")
 
-    def getBbVectorToFrameEdge(self, last_bb_pt, frame_edge):
+    def getBbVectorToFrameEdge(self, last_bb_pt, frame_dimensions):
         x1 = last_bb_pt[0]
         y1 = last_bb_pt[1]
 
-        x2 = 0
-        y2 = frame_edge[1]
+        y2 = frame_dimensions[1]
 
         scaling_factor = y2 / y1
         x2 = x1 * scaling_factor
@@ -245,42 +470,42 @@ class ParkingViolationManager(TrackedObjectListener):
         # if x2 > frame_edge[0]:
         #     x2 = frame_edge[0]
 
-
-
         return [x2, y2]
 
-    def drawVehicleTrailUsingVector(self, bbs_pts, vector_pt):
+    def drawVehicleTrailUsingVector(self, vehicle_trail_pts, vector_pt):
         blank_img = self.calculateMinimumVehicleTrail()
         # blank_img = self.base_blank.copy()
 
-        last_bb_pt = bbs_pts[-1]
+        last_vehicle_trail_pt = vehicle_trail_pts[-1]
 
-        for i in range(len(bbs_pts)):
+        # draw lines between each consecutive points
+        for i in range(len(vehicle_trail_pts)):
             if i % 2 == 0:
                 continue
-            pt1 = bbs_pts[i]
-            pt2 = bbs_pts[i - 1]
-            # print("center pt: (", pt1, pt2, ")")
-            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])) ,
+            pt1 = vehicle_trail_pts[i]
+            pt2 = vehicle_trail_pts[i - 1]
+
+            # draw vehicle trail
+            print("AAAAAAAAAAAAAAAA VECTOR DRAWN YES", file=sys.stderr)
+            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])),
                         point_b=(int(pt2[0]), int(pt2[1])), color=(0, 255, 0))
 
-        blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_bb_pt[0]), int(last_bb_pt[1])),
+        # draw trail to center
+        blank_img = IU.DrawLine(image=blank_img, point_a=(int(last_vehicle_trail_pt[0]), int(last_vehicle_trail_pt[1])),
                                 point_b=(int(vector_pt[0]), int(vector_pt[1])), color=(0, 255, 255))
 
-        IU.SaveImage(blank_img, "vector_6")
+        IU.SaveImage(blank_img, "vector_to_license_center")
 
     def drawVehicleTrail(self, pts):
         blank_img = self.calculateMinimumVehicleTrail()
         # blank_img = self.base_blank.copy()
 
-        # format of bbs_center_pt is [center_x, center_y]
         for i in range(len(pts)):
             if i % 2 == 0:
                 continue
             pt1 = pts[i]
             pt2 = pts[i - 1]
-            print("center pt: (", pt1, pt2, ")")
-            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])) ,
+            blank_img = IU.DrawLine(image=blank_img, point_a=(int(pt1[0]), int(pt1[1])),
                         point_b=(int(pt2[0]), int(pt2[1])), color=(0, 255, 0))
 
         # perpendicular_pts = self.getPerpendicularPointOnLine(bbs_center_pts)
@@ -367,8 +592,6 @@ class ParkingViolationManager(TrackedObjectListener):
 
             # Apply midpoint formula to get midpoint of top bb
             midpoint = [math.ceil((BL[0]+bb[1][0])/2), math.ceil((BL[1]+bb[1][1])/2)]
-            # print("bb: ", bb)
-            # print("center: ", midpoint)
             bbs_top_midpoints.append(midpoint)
 
         return bbs_top_midpoints
