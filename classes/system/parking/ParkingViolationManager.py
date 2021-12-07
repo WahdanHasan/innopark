@@ -163,9 +163,7 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         # LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
 
         # load mask rcnn
-        from pixellib.semantic import semantic_segmentation
-        segment_image = semantic_segmentation()
-        segment_image.load_pascalvoc_model("./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
+        self.loadMaskRCNNModel()
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
@@ -194,11 +192,11 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
             #     print("paring_occupants: ", parking_occupants, file=sys.stderr)
 
             # don't proceed there are no parkings occupied
-            if not parking_ids or parking_ids is None:
-                return
+            # if not parking_ids or parking_ids is None:
+            #     return
 
-            # self.checkAndUpdateViolationStatuses(parking_ids=parking_ids,
-            #                                      parking_occupants=parking_occupants)
+            self.checkAndUpdateViolationStatuses(parking_ids=parking_ids,
+                                                 parking_occupants=parking_occupants)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
@@ -206,9 +204,34 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
             time.sleep(0.033)
 
     def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants):
+        result = self.segmentation_model.segmentAsPascalvoc("./data/reference footage/images/car_parked3_new_cropped.jpg")
+        mask = result[1]
+
+        cv2.imshow("mask", mask)
+        cv2.waitKey(0)
+
+        result = self.segmentation_model.segmentAsPascalvoc(
+            "./data/reference footage/images/car_parked3_new_cropped.jpg")
+        mask = result[1]
+        cv2.imshow("mask2", mask)
+        cv2.waitKey(0)
 
         print("checking and updating violation statuses", file=sys.stderr)
 
+
+    def loadMaskRCNNModel(self):
+        from pixellib.semantic import semantic_segmentation
+        self.segmentation_model = semantic_segmentation()
+
+        self.segmentation_model.load_pascalvoc_model(
+            "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
+
+        result = self.segmentation_model.segmentAsPascalvoc(
+            "./data/reference footage/images/car_parked3_new_cropped.jpg")
+
+        # self.segmentation_model.segmentFrameAsPascalvoc(np.zeros(shape=(
+        #     Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+        #     dtype=np.uint8))
 
 
     def setTodayStartEndDate(self):
