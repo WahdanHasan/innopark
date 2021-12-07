@@ -62,8 +62,6 @@ class ParkingViolationManager(TrackedObjectListener):
 
         self.minimum_length_of_vehicle_trail = 0
 
-        # self.maximum_tracked_vehicle_bbs = 100
-
         self.camera_offset = len(Constants.ENTRANCE_CAMERA_DETAILS)
 
         self.latest_tracked_vehicle_bbs = {}
