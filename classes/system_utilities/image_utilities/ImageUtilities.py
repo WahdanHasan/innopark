@@ -489,6 +489,22 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
 
     return temp_image
 
+def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=3):
+    # Takes an image and places the parking space bounding boxes on it from the detections
+    # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
+    # Returns the image with parking side lines drawn and their appropriate colors drawn on it.
+
+    if bounding_box is None:
+        return image
+
+    temp_image = image.copy()
+
+    cv2.line(temp_image, (int(bounding_box[2][0]), int(bounding_box[2][1])), (int(bounding_box[0][0]), int(bounding_box[0][1])), color, thickness)
+    cv2.line(temp_image, (int(bounding_box[1][0]), int(bounding_box[1][1])), (int(bounding_box[3][0]), int(bounding_box[3][1])), color, thickness)
+
+    return temp_image
+
+
 def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
     # It should be noted that the bounding boxes must be in the [TL, BR] format

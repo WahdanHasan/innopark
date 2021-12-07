@@ -7,6 +7,8 @@ from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 import classes.system_utilities.data_utilities.DatabaseUtilities as DU
 from datetime import datetime, timezone
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday
 
@@ -23,7 +25,7 @@ import threading
 
 class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event, ptm_initialized_event):
 
         TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
         PtmListener.__init__(self)
@@ -31,6 +33,7 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.pvm_initialized_event = pvm_initialized_event
+        self.ptm_initialized_event = ptm_initialized_event
         self.violation_manager_process = 0
         self.should_keep_managing = True
         self.base_blank = np.zeros(
@@ -148,6 +151,8 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
     def startManaging(self):
         TrackedObjectListener.initialize(self)
+
+        self.ptm_initialized_event.wait()
         PtmListener.initialize(self)
 
         # initialize thread that checks sessions' due datetime compared to now datetime.
@@ -183,38 +188,40 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         while self.should_keep_managing:
 
-            parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
+            # occupied_parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
+            # print("parking_ids: ", occupied_parking_ids)
 
-            # vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
+            # print(self.getAllParkingSpaces())
 
-            # if parking_ids or parking_ids is not None:
-            #     print("parking_ids: ", parking_ids, file=sys.stderr)
-            #     print("paring_occupants: ", parking_occupants, file=sys.stderr)
+
+
+            vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
+
+            # if occupied_parking_ids or occupied_parking_ids is not None:
+            #     print("parking_ids: ", occupied_parking_ids)
+            #     print("paring_occupants: ", parking_occupants)
+            # else:
+            #     print("no parking ids occupied")
+            #     continue
 
             # don't proceed there are no parkings occupied
             # if not parking_ids or parking_ids is None:
             #     return
 
-            self.checkAndUpdateViolationStatuses(parking_ids=parking_ids,
-                                                 parking_occupants=parking_occupants)
+            # self.checkAndUpdateViolationStatuses(occupied_parking_ids=occupied_parking_ids,
+            #                                      parking_occupants=parking_occupants,
+            #                                      vehicle_ids=vehicle_ids,
+            #                                      vehicle_bbs=vehicle_bbs)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants):
-        result = self.segmentation_model.segmentAsPascalvoc("./data/reference footage/images/car_parked3_new_cropped.jpg")
-        mask = result[1]
-
-        cv2.imshow("mask", mask)
-        cv2.waitKey(0)
-
-        result = self.segmentation_model.segmentAsPascalvoc(
-            "./data/reference footage/images/car_parked3_new_cropped.jpg")
-        mask = result[1]
-        cv2.imshow("mask2", mask)
-        cv2.waitKey(0)
+    def checkAndUpdateViolationStatuses(self, occupied_parking_ids, parking_occupants, vehicle_ids, vehicle_bbs):
+        for i in range(len(occupied_parking_ids)):
+            print(occupied_parking_ids[i])
+            print("occupants: ", parking_occupants[i])
 
         print("checking and updating violation statuses", file=sys.stderr)
 
@@ -226,13 +233,15 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.segmentation_model.load_pascalvoc_model(
             "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
 
-        result = self.segmentation_model.segmentAsPascalvoc(
-            "./data/reference footage/images/car_parked3_new_cropped.jpg")
+        # result = self.segmentation_model.segmentAsPascalvoc(
+        #     "./data/reference footage/images/car_parked3_new_cropped.jpg")
 
-        # self.segmentation_model.segmentFrameAsPascalvoc(np.zeros(shape=(
-        #     Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
-        #     dtype=np.uint8))
+        self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
+            Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+            dtype=np.uint8))
 
+        # result = self.segmentation_model.segmentFrameAsPascalvoc(frame=)
+        # mask = result[1]
 
     def setTodayStartEndDate(self):
         # set the start of today in UTC time 08:00 PM previous day
@@ -248,14 +257,6 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         self.today_start_date = today_start
         self.today_end_date = today_end
-
-
-
-
-
-
-
-
 
 
 

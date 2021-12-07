@@ -59,14 +59,14 @@ def LoadComponents(shutdown_event, start_system_event):
                                  shutdown_event=shutdown_event,
                                  start_system_event=start_system_event,
                                  pvm_initialized_event=pvm_initialized_event,
-                                 license_detector_request_queue=license_detector_request_queue)
+                                 ptm_initialized_event=ptm_initialized_event)
 
     print("[SystemLoader] Waiting for all components to finish loading..", file=sys.stderr)
     entrance_cameras_initialized_event.wait()
     pool_initialized_event.wait()
     wait_license_processing_event.wait()
     object_detector_initialized_event.wait()
-    # pvm_initialized_event.wait()
+    pvm_initialized_event.wait()
     ptm_initialized_event.wait()
     print("[SystemLoader] Done Loading. Awaiting system start.", file=sys.stderr)
 
@@ -86,7 +86,7 @@ def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_sy
 
     return ptm
 
-def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event, pvm_initialized_event, license_detector_request_queue):
+def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event, pvm_initialized_event, ptm_initialized_event):
     from classes.system.parking.ParkingViolationManager import ParkingViolationManager
 
     pvm = ParkingViolationManager(amount_of_trackers=len(camera_ids_and_links),
@@ -94,7 +94,7 @@ def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start
                                   shutdown_event=shutdown_event,
                                   start_system_event=start_system_event,
                                   pvm_initialized_event=pvm_initialized_event,
-                                  license_detector_request_queue=license_detector_request_queue)
+                                  ptm_initialized_event=ptm_initialized_event)
 
     pvm.startProcess()
 

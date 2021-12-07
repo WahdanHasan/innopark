@@ -258,9 +258,9 @@ class Tracker(ShutDownEventListener):
             for i in range(len(tracked_object_pipes)):
                 tracked_object_pipes[i].recv()
 
-            temp_frame = IU.DrawBoundingBoxes(image=frame, bounding_boxes=tracked_object_bbs_shared_memory)
+            # temp_frame = IU.DrawBoundingBoxes(image=frame, bounding_boxes=tracked_object_bbs_shared_memory)
 
-            cv2.imshow(str(self.camera_id), temp_frame)
+            # cv2.imshow(str(self.camera_id), temp_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()

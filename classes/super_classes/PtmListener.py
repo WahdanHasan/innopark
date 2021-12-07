@@ -76,6 +76,18 @@ class PtmListener:
         else:
             return temp_occupied_id_list
 
+    def getAllParkingSpaces(self):
+        parkings = []
+
+        for i in range(len(self.shared_memory_items)):
+            parkings.append(''.join('' if i == 0 else chr(i) for i in self.shared_memory_items[i][2:]))
+
+        # If list is empty, return none, else return the list
+        if not parkings:
+            return None
+        else:
+            return parkings
+
     def checkIfOccupantIsParked(self, occupant_id):
         ids = self.getOccupiedParkingSpaceOccupantIds()
 
