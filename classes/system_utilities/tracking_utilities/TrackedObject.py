@@ -145,7 +145,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         temp_bb_shared_memory_manager_name = Constants.bb_shared_memory_manager_prefix + str(process_number)
         bb_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                  name=temp_bb_shared_memory_manager_name,
-                                                                 size=np.asarray(Constants.bb_example, dtype=np.int32).nbytes)
+                                                                 size=np.asarray(Constants.bb_example, dtype=np.float32).nbytes)
 
         # Create a pair of ids in shared memory space
         temp_ids_shared_memory_manager_name = Constants.tracked_process_ids_shared_memory_prefix + str(process_number)
@@ -245,8 +245,8 @@ class TrackedObjectProcess:
 
         # Create a reference to the bb in shared memory and its buffer
         self.bb_in_shared_memory_manager = bb_in_shared_memory_manager
-        self.bb_in_shared_memory = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.int32).shape,
-                                              dtype=np.int32,
+        self.bb_in_shared_memory = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.float32).shape,
+                                              dtype=np.float32,
                                               buffer=bb_in_shared_memory_manager.buf)
 
         self.ids_in_shared_memory_manager = ids_in_shared_memory_manager
@@ -392,7 +392,7 @@ class TrackedObjectProcess:
         self.old_points_cropped = copy.deepcopy(new_pts)
 
         # Write the new bounding box to shared memory
-        self.bb_in_shared_memory[:] = np.asarray(IU.FloatBBToIntBB(self.bb), dtype=np.int32)
+        self.bb_in_shared_memory[:] = np.asarray(self.bb, dtype=np.float32)
 
     def cleanUp(self):
         self.tracking_instruction_pipe.close()

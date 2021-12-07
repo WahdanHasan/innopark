@@ -1,7 +1,9 @@
-from threading import Thread
-from multiprocessing import shared_memory
 from classes.system_utilities.helper_utilities import Constants
 from classes.super_classes.ObjectTrackerListener import ObjectTrackerListener
+from classes.system_utilities.image_utilities import ImageUtilities as IU
+
+from threading import Thread
+from multiprocessing import shared_memory
 import numpy as np
 
 class TrackedObjectListener(ObjectTrackerListener):
@@ -37,8 +39,8 @@ class TrackedObjectListener(ObjectTrackerListener):
             # Get shared memory bounding boxes
             temp_shm_bb = shared_memory.SharedMemory(name=(Constants.bb_shared_memory_manager_prefix + str(i)))
 
-            temp_bb = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.int32).shape,
-                                 dtype=np.int32,
+            temp_bb = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.float32).shape,
+                                 dtype=np.float32,
                                  buffer=temp_shm_bb.buf)
 
             self.shared_memory_bbs.append(temp_bb)
@@ -115,7 +117,7 @@ class TrackedObjectListener(ObjectTrackerListener):
 
         for i in range(len(self.shared_memory_bbs)):
             # If box is set to default, continue
-            if self.shared_memory_bbs[i][0][0].item() == Constants.bb_example[0][0]:
+            if self.shared_memory_bbs[i][0][0].item() == float(Constants.bb_example[0][0]):
                 continue
 
             temp_active_bb_list.append(self.shared_memory_bbs[i].tolist())

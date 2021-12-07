@@ -164,6 +164,9 @@ def FloatBBToIntBB(bb):
 
     return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
 
+def IntBBToFloatBB(bb):
+    return [[float(bb[0][0]), float(bb[0][1])], [float(bb[1][0]), float(bb[1][1])]]
+
 def GetIncreasedBB(img_dimensions, bbox, increase_factor=0.1):
     # Takes a bounding box and increases its size while making sure the bounding box is not out of bounds of its image.
     # It should be noted that the img_dimensions that are supplied should be in the tuple format of (height, width)
@@ -232,6 +235,12 @@ def GetBoundingBoxCenter(bounding_box):
     center_x = int((bounding_box[1][0] + bounding_box[0][0])/2)
     center_y = int((bounding_box[1][1] + bounding_box[0][1])/2)
 
+
+    return [center_x, center_y]
+
+def GetBoundingBoxCenterFloat(bounding_box):
+    center_x = float((bounding_box[1][0] + bounding_box[0][0])/2)
+    center_y = float((bounding_box[1][1] + bounding_box[0][1])/2)
 
     return [center_x, center_y]
 
@@ -410,6 +419,9 @@ def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=2):
 
     if len(bounding_boxes) == 0:
         return image
+
+    for i in range(len(bounding_boxes)):
+        bounding_boxes[i] = FloatBBToIntBB(bounding_boxes[i])
 
     temp_image = image.copy()
 

@@ -142,11 +142,12 @@ class Tracker(ShutDownEventListener):
             fastest_object_dist = 0.00
             fastest_object_idx = -1
             for i in range(len(tracked_object_old_bbs)):
-                temp_old_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_old_bbs[i])
-                temp_new_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_bbs_shared_memory[i])
+                temp_old_bb_centroid = IU.GetBoundingBoxCenterFloat(tracked_object_old_bbs[i])
+                temp_new_bb_centroid = IU.GetBoundingBoxCenterFloat(tracked_object_bbs_shared_memory[i])
 
                 old_new_dist = math.dist(temp_old_bb_centroid, temp_new_bb_centroid)
-
+                if self.camera_id == 3:
+                    print(old_new_dist)
                 if old_new_dist > fastest_object_dist:
                     fastest_object_dist = old_new_dist
                     fastest_object_idx = i
@@ -190,7 +191,7 @@ class Tracker(ShutDownEventListener):
                 if object_doesnt_have_id:
 
                     temp_bb_a = tracked_object_bbs_shared_memory[i].tolist()
-                    if temp_bb_a == Constants.bb_example:
+                    if temp_bb_a == IU.IntBBToFloatBB(Constants.bb_example):
                         tracked_object_pipes[i].send(primary_instruction_to_send)
 
                     temp_entrant_side = self.GetEntrantSide(old_bb=tracked_objects_without_ids_bbs[temp_idx],
@@ -220,7 +221,7 @@ class Tracker(ShutDownEventListener):
                 temp_img_bb = [[0, 0], [int(width), int(height)]]
                 temp_bb_b = tracked_object_bbs_shared_memory[temp_loop_counter].tolist()[:]
 
-                if temp_bb_b == Constants.bb_example:
+                if temp_bb_b == IU.IntBBToFloatBB(Constants.bb_example):
                     continue
 
                 a_contains_b = IU.CheckIfPolygonFullyContainsPolygonTF(big_box=temp_img_bb, small_box=temp_bb_b)
@@ -412,8 +413,8 @@ class Tracker(ShutDownEventListener):
                 (temp_pipe, temp_shared_memory_bb_manager, temp_process_pool_idx) = self.receive_pipe.recv()
 
                 # Create an array reference to the tracked object's shared memory bounding box
-                temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape,
-                                                      dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
+                temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.float32).shape,
+                                                      dtype=np.float32, buffer=temp_shared_memory_bb_manager.buf)
 
                 # Send the tracked object instructions on the object it is supposed to represent
                 temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], self.shared_memory_manager_frame,
