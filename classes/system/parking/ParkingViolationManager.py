@@ -23,12 +23,11 @@ import math
 import threading
 
 
-class ParkingViolationManager(TrackedObjectListener, PtmListener):
+class ParkingViolationManager(TrackedObjectListener):
 
     def __init__(self, amount_of_trackers, new_object_in_pool_event, shutdown_event, start_system_event, pvm_initialized_event, ptm_initialized_event):
 
         TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
-        PtmListener.__init__(self)
 
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
@@ -153,7 +152,8 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         TrackedObjectListener.initialize(self)
 
         self.ptm_initialized_event.wait()
-        PtmListener.initialize(self)
+        ptm_listener = PtmListener()
+        ptm_listener.initialize()
 
         # initialize thread that checks sessions' due datetime compared to now datetime.
         # if now datetime is past due date, then add a record of the fine with type "Exceeded Due Date"
@@ -187,11 +187,6 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         #     self.thread_check_due_dates.start()
 
         while self.should_keep_managing:
-
-            occupied_parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
-            print("parking_ids: ", occupied_parking_ids)
-
-            print(self.getAllParkingSpaces())
 
 
             vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
