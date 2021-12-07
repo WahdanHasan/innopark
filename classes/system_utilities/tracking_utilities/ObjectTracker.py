@@ -167,15 +167,10 @@ class Tracker(ShutDownEventListener):
                                                    bounding_box_b=IU.GetFullBoundingBox(IU.FloatBBToIntBB(tracked_object_bbs_shared_memory[i]))):
                         tracked_object_movement_status[i] = TrackedObjectStatus.STATIONARY
 
-
-            # if self.camera_id == 2:
-            #     print(fastest_object_dist)
-
             # Store new bb positions
             tracked_object_old_bbs = copy.deepcopy(tracked_object_bbs_shared_memory)
 
             # Send signal to tracked object processes to read frame and mask along with an instruction
-            # TODO: Validate for noise on the last and new bounding box if object doesnt have an id. The object can be going the wrong direction as a result.
             for i in range(len(tracked_object_pipes)):
                 primary_instruction_to_send = 0
                 if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
@@ -242,7 +237,7 @@ class Tracker(ShutDownEventListener):
                     except:
                         white_points_percentage = 100.0
 
-                    if white_points_percentage < 30.0:
+                    if white_points_percentage < 50.0:
                         temp_exit_side = self.GetExitSide(temp_bb_b, height, width)
                         self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[temp_loop_counter], temp_exit_side))
                         print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] Object exited from " + temp_exit_side.value, file=sys.stderr)
@@ -272,11 +267,11 @@ class Tracker(ShutDownEventListener):
                 break
 
             # Print fps rate of tracker
-            # counter += 1
-            # if (time.time() - start_time) > seconds_before_display:
-            #     print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
-            #     counter = 0
-            #     start_time = time.time()
+            counter += 1
+            if (time.time() - start_time) > seconds_before_display:
+                print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
+                counter = 0
+                start_time = time.time()
 
     def StopTracking(self):
         self.should_keep_tracking = False
