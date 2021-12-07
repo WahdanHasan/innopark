@@ -20,11 +20,7 @@ def main():
     new_object_in_pool_event, detector_request_queue, tracked_object_pool_request_queue, broker_request_queue = SystemLoader.LoadComponents(shutdown_event=shutdown_event,
                                                                                                                                             start_system_event=start_system_event)
 
-    # os.environ['QT_MULTIMEDIA_PREFERRED_PLUGINS'] = 'windowsmediafoundation'
     app = QApplication(sys.argv)
-    # web = QWebEngineView()
-    # web.load(QUrl(url))
-    # web.show()
 
     main_screen = MainScreen.UI(new_object_in_pool_event=new_object_in_pool_event,
                                 start_system_event=start_system_event)

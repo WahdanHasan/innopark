@@ -87,6 +87,7 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         self.threshold_percentage = 0.75
 
         self.thread_check_due_dates = 0
+        self.segmentation_model = 0
 
     def createSharedMemoryStuff(self, amount_of_trackers):
         for i in range(amount_of_trackers):
