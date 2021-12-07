@@ -1,4 +1,5 @@
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
+from classes.system_utilities.helper_utilities import Constants
 
 conn = db.GetDbConnection()
 
@@ -7,6 +8,7 @@ documents = conn.collection(collection).get()
 
 def AddVehicle(license_number, date, owner=None, drivers_array=None, manufacturer=None,
                model=None, year=None, city_of_registration=None):
+
     db.AddData(collection, license_number, {
         #"license_number": license_number,
         "manufacturer": manufacturer,
@@ -21,11 +23,21 @@ def AddVehicle(license_number, date, owner=None, drivers_array=None, manufacture
 def GetVehicleInfo(license_number):
     doc = conn.document(collection+"/"+license_number).get()
 
-    if not doc:
+    doc_data = doc.to_dict()
+
+    if doc_data is None or not doc_data:
         print("Vehicle does not exist")
         return
 
-    return doc.to_dict()
+    return doc_data
+
+def VehicleExists(license_number):
+    doc = conn.document(collection+"/"+license_number).get()
+
+    if doc.to_dict() is None or not doc.to_dict():
+        return False
+
+    return True
 
 def GetPartialVehicleInfo(license_number, requested_data):
     doc = conn.document(collection + "/" + license_number).get()

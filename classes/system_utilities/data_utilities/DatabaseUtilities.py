@@ -288,17 +288,6 @@ def GetAllDocsEqualToTwoFields(collection, first_key, first_value, second_key, s
 
     return docs_id_extracted, docs_extracted
 
-# def QueryData(collection):
-#     user_doc_ref = db.collection('users')
-#     vehicle_doc_ref = db.collection('vehicles')
-#
-#     owner="0551234567"
-#     query = user_doc_ref.where('phone_number', '==', owner).get()
-#
-#     for data in query:
-#         print(data.to_dict())
-#     return 1
-
 def GetDocuments(collection):
     collection_ref = db.collection(collection)
 

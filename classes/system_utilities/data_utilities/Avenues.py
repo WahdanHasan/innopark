@@ -4,6 +4,7 @@ import classes.system_utilities.data_utilities.DatabaseUtilities as db
 from datetime import datetime, timedelta, timezone
 from classes.system_utilities.helper_utilities import Constants
 from dateutil.relativedelta import relativedelta
+from classes.system_utilities.data_utilities.Vehicles import VehicleExists, AddVehicle
 
 # now = datetime.now(timezone.utc).astimezone()
 
@@ -67,7 +68,14 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
     # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
     print("remove the return to add session")
-    return
+    # return
+
+    vehicle_exists = VehicleExists(license_number=vehicle)
+    print("vehicle exists: ", vehicle_exists)
+
+    if not vehicle_exists:
+        print("vehicle doesn't exist in db, add new one")
+        AddVehicle(license_number=vehicle, date=start_datetime)
 
     avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
 
@@ -82,7 +90,8 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
                             "is_paid": is_paid,
                             "parking_id": parking_id,
                             "rate_per_hour": rate_per_hour,
-                            "avenue_name": avenue_name})
+                            "avenue_name": avenue_name,
+                            "payment_link":""})
 
     return document_ref[1].path.split("/")[3]
 
@@ -102,49 +111,6 @@ def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
                   field_to_edit="tariff_amount", new_data=tariff_amount)
 
-
-# def UpdateSessionTariffAmount(avenue, session_id):
-#     session_data = db.GetAllDataUsingPath(collection=collection+"/"+avenue+"/sessions_info", document=session_id)
-#
-#     start_datetime = session_data["start_datetime"]
-#     end_datetime = session_data["end_datetime"]
-#     rate_per_hour = session_data["rate_per_hour"]
-#
-#     tariff_amount = CalculateSessionTariffAmount(start_datetime, end_datetime, rate_per_hour)
-#
-#     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
-#                   field_to_edit="tariff_amount", new_data=tariff_amount)
-
-# def UpdateSessionParkingId(avenue, vehicle, parking_id):
-#     # call this method when vehicle parks
-#
-#     docs_id_extracted, docs_extracted = db.GetAllDocsEqualToTwoFields(collection+"/" + avenue + "/sessions_info",
-#                                                                       "vehicle", vehicle, "parking_id")
-#
-#     session = docs_id_extracted[0]
-#
-#     db.UpdateData(collection=collection+"/" + avenue + "/sessions_info", document=session,
-#                   field_to_edit="parking_id", new_data=parking_id)
-#
-#     UpdateSessionTariffAmount(avenue, session)
-#
-#
-# def UpdateSessionEndDateTime(avenue, vehicle, end_datetime=now):
-#     # call this method when vehicle exits innopark parking
-#     # UpdateSessionEndDateTime(avenue_id, "J71612")
-#
-#     docs_id_extracted, docs_extracted = db.GetAllDocsEqualToTwoFields(collection+"/" + avenue + "/sessions_info",
-#                                                                       "vehicle", vehicle, "end_datetime")
-#
-#     session_id = docs_id_extracted[0]
-#
-#     db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
-#                   field_to_edit="end_datetime", new_data=end_datetime)
-#
-#     UpdateSessionTariffAmount(avenue=avenue, session_id=session_id)
-#
-#     UpdateSessionDueDateTime(avenue=avenue, session_id=session_id, end_datetime=end_datetime)
-
 def GetAllParkings(avenue):
     docs_id, docs = db.GetAllDocuments(collection+"/"+avenue+"/parkings_info")
 
@@ -160,7 +126,7 @@ def GetAllParkings(avenue):
     return docs_id, docs
 
 def GetParking(avenue, parking_id):
-    parking_info = db.GetAllDataUsingPath(collection=collection+"/"+avenue+"/"+"parkings_info", document=parking_id)
+    parking_info = db.GetAllDataUsingPath(collection=collection+"/"+avenue+"/"+"parkings_info", document=str(parking_id))
     return parking_info
 
 def GetRatePerHourFromAvenueInfo(avenue, parking_type):
