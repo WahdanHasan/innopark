@@ -270,7 +270,6 @@ class UI(QMainWindow):
 
         while self.should_keep_updating_debug:
             try:
-                print(self.ptm_listener.getOccupiedParkingSpaceIds())
                 if self.is_debug_screen_active:
                     ids, bbs = self.tracked_object_listener.getAllActiveTrackedProcessItems()
                     for i in range(self.amount_of_frames_in_shared_memory):

@@ -158,8 +158,8 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         # initialize thread that checks sessions' due datetime compared to now datetime.
         # if now datetime is past due date, then add a record of the fine with type "Exceeded Due Date"
         # if it doesn't yet exist in db
-        self.thread_check_due_dates = threading.Thread(
-            target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
+        # self.thread_check_due_dates = threading.Thread(
+        #     target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
 
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
@@ -168,30 +168,30 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
         # LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
 
         # load mask rcnn
-        self.loadMaskRCNNModel()
+        # self.loadMaskRCNNModel()
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
 
-        # set the start and end datetimes of today in UTC
-        self.setTodayStartEndDate()
-
-        self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
-                                                      collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
-                                                      today_start_datetime=self.today_start_date,
-                                                      today_end_datetime=self.today_end_date)
+        # # set the start and end datetimes of today in UTC
+        # self.setTodayStartEndDate()
+        #
+        # self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
+        #                                               collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
+        #                                               today_start_datetime=self.today_start_date,
+        #                                               today_end_datetime=self.today_end_date)
 
         # if there exists sessions due today, start the thread.
-        if self.sessions_due_today_ids is not None:
-            print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
-            self.thread_check_due_dates.start()
+        # if self.sessions_due_today_ids is not None:
+        #     print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
+        #     self.thread_check_due_dates.start()
 
         while self.should_keep_managing:
 
-            # occupied_parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
-            # print("parking_ids: ", occupied_parking_ids)
+            occupied_parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
+            print("parking_ids: ", occupied_parking_ids)
 
-            # print(self.getAllParkingSpaces())
+            print(self.getAllParkingSpaces())
 
 
             vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
