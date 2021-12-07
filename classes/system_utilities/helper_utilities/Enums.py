@@ -11,6 +11,7 @@ class ImageResolution(Enum):
 class TrackedObjectStatus(Enum):
     MOVING = 0
     STATIONARY = 1
+    BB_UPDATED = 2
 
 class EntrantSide(Enum):
     TOP = "top"
@@ -23,6 +24,7 @@ class TrackerToTrackedObjectInstruction(Enum):
     OBJECT_MOVING = 1
     OBJECT_STATIONARY = 2
     STORE_NEW_ID = 3
+    STORE_NEW_BB = 4
 
 class ParkingStatus(Enum):
     OCCUPIED = True

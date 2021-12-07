@@ -18,7 +18,7 @@ def GetAllAvenues():
 
     return doc
 
-def AddParking(avenue, camera_id, parking_id, bounding_box, parking_type, is_occupied=False):
+def AddParking(avenue, camera_id, parking_id, bounding_box, occupancy_box, parking_type, is_occupied=False):
     # avenues.AddParking(avenue="O8483qKcEoQc6SPTDp5e", camera_id=2,
     #                    bounding_box=[200, 100, 300, 150, 250, 100, 100, 150], parking_type="a")
 
@@ -31,6 +31,7 @@ def AddParking(avenue, camera_id, parking_id, bounding_box, parking_type, is_occ
     db.AddData(collection=collection+"/"+avenue+"/parkings_info",
                document=str(parking_id),
                data={"bounding_box": bounding_box,
+                     "occupancy_box" : occupancy_box,
                      "camera_id": camera_id,
                      "is_occupied": is_occupied,
                      "parking_type": parking_type,
@@ -122,6 +123,14 @@ def GetAllParkings(avenue):
         bbox_converted.append([bbox[4], bbox[5]])
         bbox_converted.append([bbox[6], bbox[7]])
         doc["bounding_box"] = bbox_converted
+        occ_bb_converted = []
+        occ_bb = doc["occupancy_box"]
+        occ_bb_converted.append([occ_bb[0], occ_bb[1]])
+        occ_bb_converted.append([occ_bb[2], occ_bb[3]])
+        occ_bb_converted.append([occ_bb[4], occ_bb[5]])
+        occ_bb_converted.append([occ_bb[6], occ_bb[7]])
+        doc["occupancy_box"] = occ_bb_converted
+
 
     return docs_id, docs
 

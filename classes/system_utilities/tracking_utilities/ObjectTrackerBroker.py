@@ -1,9 +1,9 @@
-from classes.system_utilities.helper_utilities.Enums import EntrantSide
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
+from classes.system_utilities.helper_utilities.Enums import EntrantSide, TrackedObjectToBrokerInstruction, ShutDownEvent
+from classes.system_utilities.helper_utilities import Constants
 
 import sys
 from threading import Thread
+import random
 
 from multiprocessing import Process
 
@@ -14,13 +14,21 @@ class ObjectTrackerBroker:
     def __init__(self, broker_request_queue):
 
         # Adjacency matrix of cameras with their id in the correct spot
+        # self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
+        #                          [-1, -1, 2, -1],
+        #                          [-1, -1, 1, 3],
+        #                          [-1, -1, 2, -1]
+        #                         ]
+
         self.adjacency_matrix = [ # UP DOWN LEFT RIGHT
-                                 [-1, -1, 2, -1],
+                                 [-1, -1, -1, 2],
                                  [-1, -1, 1, 3],
-                                 [-1, -1, 2, -1]
+                                 [-1, -1, 2, 4],
+                                 [-1, -1, 3, -5]
                                 ]
 
         self.voyager_holding_list = []
+        self.generated_random_ids = []
 
         self.listen_for_requests_thread = 0
         self.listen_for_requests_thread_stopped = 0
@@ -74,10 +82,22 @@ class ObjectTrackerBroker:
         for i in range(len(self.voyager_holding_list)):
             if self.voyager_holding_list[i][0] == sender_camera_id and self.voyager_holding_list[i][1] == recipient_camera_id:
                 pipe.send(self.voyager_holding_list[i][2])
+                self.voyager_holding_list.pop(i)
                 return
 
-        # If entrant is not found, send none through pipe
-        pipe.send("None")
+        # If entrant is not found, send random id through pipe
+
+        found_unique = False
+        random_id = ""
+
+        while not found_unique:
+            random_id = Constants.unknown_id_prefix + str(random.randint(0, 50)) + Constants.unknown_id_prefix
+            if random_id not in self.generated_random_ids:
+                self.generated_random_ids.append(random_id)
+                found_unique = True
+
+        pipe.send(random_id)
+
         return
 
     def PutVoyagerRequest(self, instructions):

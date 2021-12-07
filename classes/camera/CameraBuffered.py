@@ -39,7 +39,6 @@ class Camera:
         polling_thread.daemon = True
         polling_thread.start()
 
-
         return self
 
     def PollFeedThread(self):
@@ -49,12 +48,12 @@ class Camera:
 
             _, frame = self.feed.read()
 
-            # Comment this out if not using video files
-            # if not _:
-            #     self.UpdateFeed(self.rtsp_link)
-            #     continue
-
-            self.frame_queue.put(frame)
+            try:
+                self.frame_queue.put(IU.RescaleImageToResolution(img=frame,
+                                                                 new_dimensions=self.default_resolution))
+            except:
+                self.frame_queue.put(self.base_blank)
+                self.feed_stopped = True
 
     def UpdateFeed(self, rtsp_link): # This function is not thread safe atm. This should be rectified.
         # Changes the rtsp link for the camera feed
@@ -89,13 +88,9 @@ class Camera:
 
     def GetScaledNextFrame(self):
         # Returns the next frame from the feed queue post scaling based on the default scale factor
-
-        frame = self.frame_queue.get()
-
-        try:
-            frame = IU.RescaleImageToResolution(img=frame,
-                                                new_dimensions=self.default_resolution)
-        except cv2.error as cv2_error:
-            # if cv2_error == '!ssize.empty()':
+        if self.feed_stopped:
             frame = self.base_blank
+        else:
+            frame = self.frame_queue.get()
+
         return frame

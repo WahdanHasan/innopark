@@ -76,5 +76,13 @@ class PtmListener:
         else:
             return temp_occupied_id_list
 
+    def checkIfOccupantIsParked(self, occupant_id):
+        ids = self.getOccupiedParkingSpaceOccupantIds()
+
+        if occupant_id in ids:
+            return True
+        else:
+            return False
+
     def getFrameByCameraId(self, camera_id):
         return self.shared_memory_frames[camera_id]

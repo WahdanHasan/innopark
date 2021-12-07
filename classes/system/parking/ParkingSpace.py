@@ -11,11 +11,12 @@ import sys
 import time
 
 class ParkingSpace:
-    def __init__(self, internal_id, camera_id, parking_id, bounding_box, is_occupied, parking_type, rate_per_hour, seconds_before_considered_parked=2, seconds_before_considered_left=2):
+    def __init__(self, internal_id, camera_id, parking_id, bounding_box, occupancy_box, is_occupied, parking_type, rate_per_hour, seconds_before_considered_parked=2, seconds_before_considered_left=2):
         # DB initialized variables
         self.camera_id = camera_id
         self.parking_id = parking_id
         self.bb = bounding_box
+        self.ob = occupancy_box
         self.is_occupied = is_occupied
         self.parking_type = parking_type
         self.rate_per_hour = rate_per_hour
@@ -44,6 +45,7 @@ class ParkingSpace:
         yield 'parking_type', self.parking_type
         yield 'rate_per_hour', self.rate_per_hour
         yield 'bounding_box', self.bb
+        yield 'occupancy_box', self.ob
 
     def createSharedMemoryItems(self):
         self.shared_memory_manager = shared_memory.SharedMemory(create=True,
@@ -89,9 +91,11 @@ class ParkingSpace:
         self.status = status
 
     def checkAndUpdateIfConsideredParked(self):
+
+        if self.parking_id == "636":
+            print((time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked)
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
-            if self.parking_id == 189:
-                return
+
             self.status = ParkingStatus.OCCUPIED
             self.shared_memory_items[1] = int(self.status.value)
             self.occupant_park_time_start = time.time()
@@ -111,6 +115,7 @@ class ParkingSpace:
         if (time.time() - self.occupant_left_parking_time_start) >= self.seconds_before_considered_left:
             t1 = Thread(target=self.chargeOccupant())
             t1.start()
+            return
 
     def chargeOccupant(self):
         self.end_datetime = datetime.now()
@@ -127,14 +132,14 @@ class ParkingSpace:
 
         tariff_amount = int(np.ceil(time_elapsed.seconds/Constants.seconds_in_hour) * self.rate_per_hour)
 
-        Avenues.UpdateSession(avenue=Constants.avenue_id,
-                              session_id=session_id,
-                              end_datetime=end_datetime,
-                              tariff_amount=tariff_amount)
-
-        if Constants.sms_enabled:
-            SMS.sendSmsToLicense(license_plate=occupant_id,
-                                 tariff_amount=tariff_amount)
+        # Avenues.UpdateSession(avenue=Constants.avenue_id,
+        #                       session_id=session_id,
+        #                       end_datetime=end_datetime,
+        #                       tariff_amount=tariff_amount)
+        #
+        # if Constants.sms_enabled:
+        #     SMS.sendSmsToLicense(license_plate=occupant_id,
+        #                          tariff_amount=tariff_amount)
 
     def calculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):
 

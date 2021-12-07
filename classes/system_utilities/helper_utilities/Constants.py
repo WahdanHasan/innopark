@@ -1,8 +1,16 @@
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 from datetime import datetime
 
-base_pool_size = 3
+base_pool_size = 10
 seconds_in_hour = 3600
+ot_bb_area_difference_percentage_threshold = 10
+ot_seconds_before_scan = 0.3
+ot_seconds_before_scan_growth = 0.0
+subtraction_model_learning_rate = 0.0001
+
+INT_MAX = 999999
+
+unknown_id_prefix = "?"
 
 # Don't delete me. Trackers will stop working :(
 bb_shared_memory_manager_prefix = "tracked_object_bb_shared_memory_manager_"
@@ -23,17 +31,20 @@ ptm_debug_items_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 # [id, link]
 ENTRANCE_CAMERA_DETAILS = [
-                            [0, "C:\\Users\\ramaf\\Downloads\\journeys\\set_1\\et.mp4"],
-                            [1, "C:\\Users\\ramaf\\Downloads\\journeys\\set_1\\eb.mp4"]
+                            [0, "data\\journeys\\set_2l\\et.mp4"],
+                            [1, "data\\journeys\\set_2l\\eb.mp4"]
                           ]
 
 CAMERA_DETAILS = [
-                    [2, "C:\\Users\\ramaf\\Downloads\\journeys\\set_1\\l1.mp4"],
-                    [3, "C:\\Users\\ramaf\\Downloads\\journeys\\set_1\\l2.mp4"]
+                    [2, "data\\journeys\\set_2l\\l1.mp4"],
+                    [3, "data\\journeys\\set_2l\\l2.mp4"],
+                    [4, "data\\journeys\\set_2l\\l3.mp4"]
                  ]
 
 
-default_camera_shape = (ImageResolution.SD.value[0], ImageResolution.SD.value[1], 3)
+default_camera_shape = (ImageResolution.NTSC.value[0], ImageResolution.NTSC.value[1], 3)
+
+# bb_movement_threshold =
 
 
 # Parking space file
@@ -87,6 +98,7 @@ staff_comment_key = "staff_comment"
 
 # Parking_info doc
 bounding_box_key = "bounding_box"
+occupancy_box_key = "occupancy_box"
 camera_id_key = "camera_id"
 is_occupied_key = "is_occupied"
 parking_type_key = "parking_type"

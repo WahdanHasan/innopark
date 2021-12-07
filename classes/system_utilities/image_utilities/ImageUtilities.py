@@ -347,7 +347,7 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.06): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.80): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
@@ -355,7 +355,7 @@ def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_thr
 
     iou = AreBoxesOverlapping(parking_bounding_box, car_bounding_box)
 
-    if (iou > acceptable_threshold):
+    if (iou >= acceptable_threshold):
         return True
     else:
         return False
@@ -377,6 +377,68 @@ def AreBoxesOverlapping(parking_bounding_box, car_bounding_box): # TODO: Change 
     iou = polygon_intersection / polygon_union
 
     return iou
+
+def CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b):
+
+    bounding_box_a = [bounding_box_a[0], bounding_box_a[1], bounding_box_a[3], bounding_box_a[2]]
+    bounding_box_b = [bounding_box_b[0], bounding_box_b[1], bounding_box_b[3], bounding_box_b[2]]
+
+    polygon_a = Polygon(bounding_box_a)
+    polygon_b = Polygon(bounding_box_b)
+
+    intersection = polygon_a.intersection(polygon_b)
+
+    if polygon_a.area == 0.0:
+        return 0.00
+    else:
+        return (intersection.area/polygon_a.area) * 100
+
+def CheckIfPolygonsAreIntersectingTF(bounding_box_a, bounding_box_b, acceptable_threshold=0.55):
+    intersection_p = CheckIfPolygonsAreIntersecting(bounding_box_a, bounding_box_b)
+
+    if (intersection_p > acceptable_threshold):
+        return True
+    else:
+        return False
+
+def CheckIfPolygonIntersects(bounding_box_a, bounding_box_b):
+    bounding_box_a = [bounding_box_a[0], bounding_box_a[1], bounding_box_a[3], bounding_box_a[2]]
+    bounding_box_b = [bounding_box_b[0], bounding_box_b[1], bounding_box_b[3], bounding_box_b[2]]
+
+    polygon_a = Polygon(bounding_box_a)
+    polygon_b = Polygon(bounding_box_b)
+
+    return polygon_a.intersects(polygon_b)
+
+def CheckIfPolygonFullyContainsPolygonTF(big_box, small_box):
+
+
+    if big_box[0][0] > small_box[0][0]:
+        return False
+
+    if big_box[0][1] > small_box[0][1]:
+        return False
+
+    if big_box[1][0] < small_box[1][0]:
+        return False
+
+    if big_box[1][1] < small_box[1][1]:
+        return False
+
+    return True
+
+def CheckIfBBAreSame(bb_a, bb_b):
+
+    if len(bb_a) != len(bb_b):
+        return False
+
+    for i in range(len(bb_a)):
+        for j in range(len(bb_a[i])):
+            if bb_a[i][j] != bb_b[i][j]:
+                return False
+
+
+    return True
 
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 

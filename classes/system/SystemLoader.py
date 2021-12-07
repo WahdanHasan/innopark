@@ -1,13 +1,10 @@
 from classes.system_utilities.helper_utilities import Constants
-
+from classes.system_utilities.helper_utilities.Enums import YoloModel
 import sys
 from multiprocessing import Event, Queue
 
 
 camera_ids_and_links = Constants.CAMERA_DETAILS
-
-
-
 
 def LoadComponents(shutdown_event, start_system_event):
 
@@ -15,16 +12,19 @@ def LoadComponents(shutdown_event, start_system_event):
 
     new_tracked_object_event = Event()
     pool_initialized_event = Event()
-    detector_initialized_event = Event()
+    object_detector_initialized_event = Event()
+    license_detector_initialized_event = Event()
     ptm_initialized_event = Event()
     pvm_initialized_event = Event()
     entrance_cameras_initialized_event = Event()
-    detector_request_queue = Queue()
+    object_detector_request_queue = Queue()
+    license_detector_request_queue = Queue()
 
     broker_request_queue = StartBroker()
 
     wait_license_processing_event = StartEntranceCameras(broker_request_queue=broker_request_queue,
-                                                         detector_request_queue=detector_request_queue,
+                                                         detector_request_queue=object_detector_request_queue,
+                                                         license_detector_request_queue=license_detector_request_queue,
                                                          entrance_cameras_initialized_event=entrance_cameras_initialized_event,
                                                          shutdown_event=shutdown_event,
                                                          start_system_event=start_system_event)
@@ -35,17 +35,20 @@ def LoadComponents(shutdown_event, start_system_event):
 
     _, tracker_initialized_events = StartTrackers(broker_request_queue=broker_request_queue,
                                                   tracked_object_pool_request_queue=tracked_object_pool_request_queue,
-                                                  detector_request_queue=detector_request_queue,
-                                                  detector_initialized_event=detector_initialized_event,
+                                                  detector_request_queue=object_detector_request_queue,
+                                                  detector_initialized_event=object_detector_initialized_event,
                                                   shutdown_event=shutdown_event,
-                                                  start_system_event=start_system_event)
+                                                  start_system_event=start_system_event,
+                                                  ptm_initialized_event=ptm_initialized_event)
 
     for i in range(len(tracker_initialized_events)):
         tracker_initialized_events[i].wait()
 
+    StartDetectorProcess(detector_request_queue=object_detector_request_queue,
+                         detector_initialized_event=object_detector_initialized_event)
 
-    StartDetectorProcess(detector_request_queue=detector_request_queue,
-                         detector_initialized_event=detector_initialized_event)
+    StartDetectorProcess(detector_request_queue=license_detector_request_queue,
+                         detector_initialized_event=license_detector_initialized_event)
 
     StartParkingTariffManager(new_tracked_object_event=new_tracked_object_event,
                               shutdown_event=shutdown_event,
@@ -55,18 +58,19 @@ def LoadComponents(shutdown_event, start_system_event):
     StartParkingViolationManager(new_tracked_object_event=new_tracked_object_event,
                                  shutdown_event=shutdown_event,
                                  start_system_event=start_system_event,
-                                 pvm_initialized_event=pvm_initialized_event)
+                                 pvm_initialized_event=pvm_initialized_event,
+                                 license_detector_request_queue=license_detector_request_queue)
 
     print("[SystemLoader] Waiting for all components to finish loading..", file=sys.stderr)
     entrance_cameras_initialized_event.wait()
     pool_initialized_event.wait()
     wait_license_processing_event.wait()
-    detector_initialized_event.wait()
+    object_detector_initialized_event.wait()
     # pvm_initialized_event.wait()
     ptm_initialized_event.wait()
     print("[SystemLoader] Done Loading. Awaiting system start.", file=sys.stderr)
 
-    return new_tracked_object_event, detector_request_queue, tracked_object_pool_request_queue, broker_request_queue
+    return new_tracked_object_event, object_detector_request_queue, tracked_object_pool_request_queue, broker_request_queue, license_detector_request_queue
 
 def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event, ptm_initialized_event):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
@@ -82,14 +86,15 @@ def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_sy
 
     return ptm
 
-def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event, pvm_initialized_event):
+def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event, pvm_initialized_event, license_detector_request_queue):
     from classes.system.parking.ParkingViolationManager import ParkingViolationManager
 
     pvm = ParkingViolationManager(amount_of_trackers=len(camera_ids_and_links),
                                   new_object_in_pool_event=new_tracked_object_event,
                                   shutdown_event=shutdown_event,
                                   start_system_event=start_system_event,
-                                  pvm_initialized_event=pvm_initialized_event)
+                                  pvm_initialized_event=pvm_initialized_event,
+                                  license_detector_request_queue=license_detector_request_queue)
 
     pvm.startProcess()
 
@@ -119,12 +124,14 @@ def StartTrackedObjectPool(new_tracked_object_event, initialized_event, shutdown
 
     return tracked_object_pool_request_queue
 
-def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detector_request_queue, detector_initialized_event, shutdown_event, start_system_event):
+def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detector_request_queue, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event):
     from classes.system_utilities.tracking_utilities import ObjectTracker as OT
 
 
     temp_trackers = []
     temp_tracker_events = []
+
+    seconds_before_detection = Constants.ot_seconds_before_scan
 
     for i in range(len(camera_ids_and_links)):
         temp_tracker_events.append(Event())
@@ -134,9 +141,13 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
                                   detector_initialized_event=detector_initialized_event,
                                   tracker_initialized_event=temp_tracker_events[i],
                                   shutdown_event=shutdown_event,
-                                  start_system_event=start_system_event)
+                                  start_system_event=start_system_event,
+                                  ptm_initialized_event=ptm_initialized_event,
+                                  seconds_between_detections=seconds_before_detection)
 
         temp_trackers.append(temp_tracker)
+
+        seconds_before_detection += Constants.ot_seconds_before_scan_growth
 
 
     for i in range(len(temp_trackers)):
@@ -146,15 +157,16 @@ def StartTrackers(broker_request_queue, tracked_object_pool_request_queue, detec
 
     return temp_trackers, temp_tracker_events
 
-def StartDetectorProcess(detector_request_queue, detector_initialized_event):
+def StartDetectorProcess(detector_request_queue, detector_initialized_event, model=YoloModel.YOLOV3):
     from classes.system_utilities.image_utilities.ObjectDetectionProcess import DetectorProcess
 
     detector = DetectorProcess(amount_of_trackers=len(camera_ids_and_links),
                                detector_request_queue=detector_request_queue,
-                               detector_initialized_event=detector_initialized_event)
+                               detector_initialized_event=detector_initialized_event,
+                               model=model)
     detector.StartProcess()
 
-def StartEntranceCameras(broker_request_queue, detector_request_queue, entrance_cameras_initialized_event, shutdown_event, start_system_event):
+def StartEntranceCameras(broker_request_queue, detector_request_queue, license_detector_request_queue, entrance_cameras_initialized_event, shutdown_event, start_system_event):
     from classes.system_utilities.tracking_utilities.EntranceLicenseDetector import EntranceLicenseDetector
 
     wait_license_processing_event = Event()
@@ -164,6 +176,7 @@ def StartEntranceCameras(broker_request_queue, detector_request_queue, entrance_
     license_detector = EntranceLicenseDetector(license_frames_request_queue=license_frames_request_queue,
                                                broker_request_queue=broker_request_queue,
                                                detector_request_queue=detector_request_queue,
+                                               license_detector_request_queue=license_detector_request_queue,
                                                top_camera=Constants.ENTRANCE_CAMERA_DETAILS[0],
                                                bottom_camera=Constants.ENTRANCE_CAMERA_DETAILS[1],
                                                entrance_cameras_initialized_event=entrance_cameras_initialized_event,

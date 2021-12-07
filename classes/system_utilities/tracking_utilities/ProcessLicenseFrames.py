@@ -1,24 +1,26 @@
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide, ShutDownEvent, YoloModel
+from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide, ShutDownEvent, ODProcessInstruction
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.image_utilities import OCR
 
 import numpy
 import sys
-from multiprocessing import Process
+from multiprocessing import Process, Pipe
 
 class ProcessLicenseFrames:
-    def __init__(self, broker_request_queue, license_frames_request_queue, camera_id, wait_license_processing_event):
+    def __init__(self, broker_request_queue, license_frames_request_queue, license_detector_request_queue, camera_id, wait_license_processing_event):
         self.license_frames_request_queue = license_frames_request_queue
         self.wait_license_processing_event = wait_license_processing_event
         self.license_processing_process = 0
         self.broker_request_queue = broker_request_queue
+        self.license_detector_request_queue = license_detector_request_queue
         self.camera_id = camera_id
         self.should_keep_running = True
+        self.receive_pipe = 0
+        self.send_pipe = 0
+        self.counter = 0
 
     def Start(self):
-        from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
-        LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
-
+        self.receive_pipe, self.send_pipe = Pipe()
         self.wait_license_processing_event.set()
         while self.should_keep_running:
             # listen for voyager request
@@ -32,23 +34,14 @@ class ProcessLicenseFrames:
 
             print("[ProcessLicenseFrames] Received Request to process images for license.", file=sys.stderr)
             # detect license plates from frames
-            license_plates = self.DetectLicensePlates(latest_license_frames=latest_license_frames,
-                                                      license_detector=LicenseDetector)
+            license_plates = self.DetectLicensePlates(latest_license_frames=latest_license_frames)
 
             # extract info from license plates
             license_plates_info = self.ExtractLicensePlatesInfo(license_plates=license_plates)
 
-            print(license_plates_info)
-            # determine the license plate of the vehicle
-            # if license_plates_info:
-            #     detected_license = self.GetProminentLicensePlate(license_plates_info)
-            #
-            #     # send the license to broker
-            #     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, detected_license, EntrantSide.LEFT))
-            # else:
-            #     print("[License Detector] No license was detected.", file=sys.stderr)
-
-            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'J71612', EntrantSide.LEFT))
+            if self.counter == 0:
+                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'J71612', EntrantSide.RIGHT))
+                self.counter += 1
 
     def StartProcess(self):
         print("[ProcessLicenseFrames] Starting license OCR processor.", file=sys.stderr)
@@ -61,7 +54,7 @@ class ProcessLicenseFrames:
     def StopProcess(self):
         self.license_detector_process.terminate()
 
-    def DetectLicensePlates(self, latest_license_frames, license_detector):
+    def DetectLicensePlates(self, latest_license_frames):
         # extracts license plates from frames
         # gets a list of frames that potentially contain license plates
         # returns a list license plates detected
@@ -70,7 +63,8 @@ class ProcessLicenseFrames:
 
         for i in range(len(latest_license_frames)):
             # detect the license plate in frame and get its bbox coordinates
-            license_return_status, license_classes, license_bounding_boxes, _ = license_detector.DetectObjectsInImage(latest_license_frames[i])
+            self.license_detector_request_queue.put((ODProcessInstruction.IMAGE_PROVIDED, latest_license_frames[i], self.send_pipe))
+            license_return_status, license_classes, license_bounding_boxes, _ = self.receive_pipe.recv()
 
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
