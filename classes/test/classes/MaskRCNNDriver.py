@@ -2,7 +2,7 @@ import cv2
 import time
 import numpy as np
 
-net = cv2.dnn.readNetFromTensorflow("modules\\maskrcnn\\frozen_inference_graph_coco.pb", "modules\\maskrcnn\\mask_rcnn_inception_v2_coco_2018_01_28.pbtxt")
+net = cv2.dnn.readNetFromTensorflow("config\\maskrcnn\\frozen_inference_graph_coco.pb", "config\\maskrcnn\\mask_rcnn_inception_v2_coco_2018_01_28.pbtxt")
 
 parked_car = cv2.imread("data\\reference footage\\images\\Parked_Car.png")
 

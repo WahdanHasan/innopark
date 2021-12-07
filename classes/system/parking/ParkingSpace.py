@@ -50,10 +50,10 @@ class ParkingSpace:
     def createSharedMemoryItems(self):
         self.shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                 name=Constants.parking_space_shared_memory_prefix + str(self.internal_id),
-                                                                size=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint8).nbytes)
+                                                                size=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint16).nbytes)
 
-        self.shared_memory_items = np.ndarray(shape=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint8).shape,
-                                              dtype=np.uint8,
+        self.shared_memory_items = np.ndarray(shape=np.asarray(Constants.ptm_debug_items_example, dtype=np.uint16).shape,
+                                              dtype=np.uint16,
                                               buffer=self.shared_memory_manager.buf)
 
         # Only supports int parking ids currently
