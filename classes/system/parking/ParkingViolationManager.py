@@ -1,9 +1,9 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace import ParkingSpace
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
+# from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
-from classes.system_utilities.data_utilities.Avenues import GetAllParkings
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 import classes.system_utilities.data_utilities.DatabaseUtilities as DU
 from datetime import datetime, timezone
@@ -157,13 +157,17 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
-        from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
+        # from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
+        #
+        # LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
 
-        LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
+        # load mask rcnn
+        from pixellib.semantic import semantic_segmentation
+        segment_image = semantic_segmentation()
+        segment_image.load_pascalvoc_model("./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
-
 
         # set the start and end datetimes of today in UTC
         self.setTodayStartEndDate()
@@ -180,7 +184,7 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
 
         while self.should_keep_managing:
 
-            # parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
+            parking_ids, parking_occupants = self.getOccupiedParkingSpaceItems()
 
             # vehicle_ids, vehicle_bbs = self.getAllActiveTrackedProcessItems()
 
@@ -188,30 +192,23 @@ class ParkingViolationManager(TrackedObjectListener, PtmListener):
             #     print("parking_ids: ", parking_ids, file=sys.stderr)
             #     print("paring_occupants: ", parking_occupants, file=sys.stderr)
 
+            # don't proceed there are no parkings occupied
+            if not parking_ids or parking_ids is None:
+                return
+
             # self.checkAndUpdateViolationStatuses(parking_ids=parking_ids,
-            #                                      parking_occupants=parking_occupants,
-            #                                      vehicle_ids=vehicle_ids,
-            #                                      vehicle_bbs=vehicle_bbs,
-            #                                      license_detector=LicenseDetector)
+            #                                      parking_occupants=parking_occupants)
 
             # if self.is_debug_mode:
             #     self.writeDebugItems()
 
             time.sleep(0.033)
 
-    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants, vehicle_ids, vehicle_bbs, license_detector):
-        # don't check for violation if there are not parkings occupied
-        if not parking_ids or parking_ids is None:
-            return
-
-        # An object tracker cannot be on the id 0
-        if not vehicle_ids or vehicle_ids is None:
-            return
-
-        if not vehicle_bbs or vehicle_bbs is None:
-            return
+    def checkAndUpdateViolationStatuses(self, parking_ids, parking_occupants):
 
         print("checking and updating violation statuses", file=sys.stderr)
+
+
 
     def setTodayStartEndDate(self):
         # set the start of today in UTC time 08:00 PM previous day

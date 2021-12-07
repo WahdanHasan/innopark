@@ -225,11 +225,11 @@ class Tracker(ShutDownEventListener):
                 counter = 0
                 start_time = time.time()
 
-            cv2.imshow(str(self.camera_id), mask)
+            # cv2.imshow(str(self.camera_id), mask)
             # Quit if user presses 'q', otherwise loop after 1ms
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     cv2.destroyAllWindows()
+            #     break
 
     def StopTracking(self):
         self.should_keep_tracking = False

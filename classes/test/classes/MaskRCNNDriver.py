@@ -49,8 +49,8 @@ for cnt in contours:
 # cv2.imshow("image", parked_car)
 # cv2.imshow("Mask", mask)
 # cv2.imshow("maskrcnn Detection", rcnn_output)
-# cv2.imshow("maskrcnn Segmentation", masked_image)
-# cv2.waitKey(0)
+cv2.imshow("maskrcnn Segmentation", masked_image)
+cv2.waitKey(0)
 
 counter += 1
 if (time.time() - start_time) > seconds_before_display:

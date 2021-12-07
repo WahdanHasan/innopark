@@ -9,7 +9,8 @@ from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.data_utilities.Avenues import GetFinesFromDb
 
 from PyQt5.QtWidgets import QMainWindow, QCheckBox, QPushButton, QWidget, QStackedWidget, QLabel, QHBoxLayout, QDialog, \
-    QLineEdit, QStyle, QSlider, QVBoxLayout, QSizePolicy, QFileDialog, QGraphicsScene, QGraphicsView
+    QLineEdit, QStyle, QSlider, QVBoxLayout, QSizePolicy, QFileDialog, QGraphicsScene, QGraphicsView, QTextEdit, \
+    QFormLayout
 from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, Qt, QUrl, QSizeF
 from PyQt5.QtGui import QPixmap, QImage, QColor
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
@@ -18,7 +19,7 @@ from PyQt5.QtMultimediaWidgets import QVideoWidget, QGraphicsVideoItem
 from PyQt5.QtWebEngineWidgets import *
 import webbrowser
 
-from classes.system_utilities.data_utilities.DatabaseUtilities import UpdateDataTwoFields, UpdateData
+from classes.system_utilities.data_utilities.DatabaseUtilities import UpdateDataTwoFields, UpdateData, UpdateDataThreeFields
 
 import urllib
 
@@ -55,7 +56,6 @@ class UI(QMainWindow):
         self.menu_label = self.findChild(QLabel, "screenPageLabel")
         self.review_fines_table_widget = self.findChild(QTableWidget, "tableWidget")
         self.violation_refresh_button = self.findChild(QPushButton, "violationRefreshButton")
-        self.violation_review_fine_button = QPushButton("Review")
 
         self.start_system_button.clicked.connect(self.startSystemButtonOnClick)
         self.menu_button.clicked.connect(self.menuButtonOnClick)
@@ -199,6 +199,7 @@ class UI(QMainWindow):
         if self.fines_id is None or not self.fines_id:
             # set the number of rows to one
             self.review_fines_table_widget.setRowCount(1)
+            # self.review_fines_table_widget.setColumnCount(1)
 
             # set row and column (0,0) to the below
             self.review_fines_table_widget.setItem(0, 0, QTableWidgetItem("No fines available to review"))
@@ -237,8 +238,9 @@ class UI(QMainWindow):
             resize_column = False
 
             # add a review button
-            self.review_fines_table_widget.setCellWidget(row, column_length, self.violation_review_fine_button)
-            self.violation_review_fine_button.clicked.connect(lambda: self.reviewButtonOnClick(row))
+            violation_review_fine_button = QPushButton("Review")
+            self.review_fines_table_widget.setCellWidget(row, column_length, violation_review_fine_button)
+            violation_review_fine_button.clicked.connect(lambda: self.reviewButtonOnClick(row))
 
         # self.review_fines_table_widget.horizontalHeader().setStretchLastSection(True)
         # self.review_fines_table_widget.horizontalHeader().setSectionResizeMode(
@@ -325,6 +327,16 @@ class ReviewFineUI(QDialog):
         self.fine_id = fine_id
         self.url = footage_url
 
+        # get form layout and add comment text box
+        self.form_layout = self.findChild(QFormLayout, "formLayout")
+        self.comment_textbox = QTextEdit(self,
+                                    lineWrapMode=QTextEdit.FixedColumnWidth,
+                                    lineWrapColumnOrWidth=20,
+                                    placeholderText= "Enter a comment",
+                                    readOnly=False)
+
+        self.form_layout.addRow("Comment", self.comment_textbox)
+
         # display the fine details
         self.vehicle_line_edit = self.findChild(QLineEdit, "vehicleLineEdit").setText(vehicle)
         self.fine_type_line_edit = self.findChild(QLineEdit, "fineTypeLineEdit").setText(fine_type)
@@ -342,16 +354,20 @@ class ReviewFineUI(QDialog):
         self.error_label = self.findChild(QLabel, "errorLabel")
 
     def updateFine(self, fine_is_accepted, fine_is_reviewed):
+        comment_text = self.comment_textbox.toPlainText()
+
         if fine_is_accepted:
             print("fine is accepted")
-            UpdateDataTwoFields(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
+            UpdateDataThreeFields(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
                                 document=self.fine_id, field_to_edit1=Constants.is_accepted_key, new_data1=fine_is_accepted,
-                                field_to_edit2=Constants.is_reviewed_key, new_data2=fine_is_reviewed)
+                                field_to_edit2=Constants.is_reviewed_key, new_data2=fine_is_reviewed,
+                                  field_to_edit3=Constants.staff_comment_key, new_data3=comment_text)
         else:
             print("fine is declined")
             # only update the is_reviewed field because is_accepted is originally false
-            UpdateData(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
-                       document=self.fine_id, field_to_edit=Constants.is_reviewed_key, new_data=fine_is_reviewed)
+            UpdateDataTwoFields(collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.fines_info_subcollection_name,
+                                document=self.fine_id, field_to_edit=Constants.is_reviewed_key, new_data=fine_is_reviewed,
+                                field_to_edit2=Constants.staff_comment_key, new_data2=comment_text)
 
         print("closing dialog")
         self.close_dialog()

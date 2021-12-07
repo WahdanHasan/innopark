@@ -83,6 +83,7 @@ is_paid_key = "is_paid"
 session_id_key = "session_id"
 vehicle_key = "vehicle"
 footage_key = "footage"
+staff_comment_key = "staff_comment"
 
 # Parking_info doc
 bounding_box_key = "bounding_box"

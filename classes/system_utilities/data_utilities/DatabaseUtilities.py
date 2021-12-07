@@ -78,6 +78,18 @@ def UpdateDataTwoFields(collection, document, field_to_edit1, new_data1, field_t
 
     print("Successfully updated "+collection)
 
+def UpdateDataThreeFields(collection, document, field_to_edit1, new_data1, field_to_edit2, new_data2, field_to_edit3, new_data3):
+
+    document_ref = db.collection(collection).document(document)
+
+    document_ref.update({
+        field_to_edit1: new_data1,
+        field_to_edit2: new_data2,
+        field_to_edit3: new_data3
+    })
+
+    print("Successfully updated "+collection)
+
 def UpdateDataInMap(collection, document, field_key, map_key, new_value):
     document_ref = db.collection(collection).document(document)
 

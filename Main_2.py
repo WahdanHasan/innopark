@@ -1,7 +1,7 @@
 import cv2
 # import pixellib
 # from pixellib.instance import instance_segmentation
-from pixellib.semantic import semantic_segmentation
+
 # from classes.camera.CameraBuffered import Camera
 # from classes.system_utilities.image_utilities import ObjectDetection as OD
 from classes.system_utilities.image_utilities import ImageUtilities as IU
@@ -33,16 +33,8 @@ def main():
 
     segment_image = semantic_segmentation()
     segment_image.load_pascalvoc_model("./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
-    segment_image.segmentAsPascalvoc("./data/reference footage/images/car_parked3_new_cropped.jpg", output_image_name="image_new.jpg")
-
-    # print("done")
-
-    # cv2.waitKey(0)
-
-    counter += 1
-    if (time.time() - start_time) > seconds_before_display:
-        print(" FPS: ", counter / (time.time() - start_time))
-        print ("time", time.time() - start_time)
+    result = segment_image.segmentAsPascalvoc("./data/reference footage/images/car_parked3_new_cropped.jpg")
+    mask = result[1]
 
 if __name__ == "__main__":
     main()
