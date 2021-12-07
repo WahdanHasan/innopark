@@ -146,23 +146,23 @@ class Tracker(ShutDownEventListener):
                 temp_new_bb_centroid = IU.GetBoundingBoxCenterFloat(tracked_object_bbs_shared_memory[i])
 
                 old_new_dist = math.dist(temp_old_bb_centroid, temp_new_bb_centroid)
-                if self.camera_id == 3:
-                    print(old_new_dist)
+
                 if old_new_dist > fastest_object_dist:
                     fastest_object_dist = old_new_dist
                     fastest_object_idx = i
+
+            # Filter out noise
+            if fastest_object_dist < 0.02:
+                fastest_object_idx = -1
 
             if fastest_object_idx != -1:
                 for i in range(len(tracked_object_old_bbs)):
                     if i == fastest_object_idx:
                         continue
-                    if IU.CheckIfPolygonIntersects(bounding_box_a=IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[fastest_object_idx]),
-                                                   bounding_box_b=IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i])):
-                        # print("INTERSECTING")
+                    if IU.CheckIfPolygonIntersects(bounding_box_a=IU.GetFullBoundingBox(IU.FloatBBToIntBB(tracked_object_bbs_shared_memory[fastest_object_idx])),
+                                                   bounding_box_b=IU.GetFullBoundingBox(IU.FloatBBToIntBB(tracked_object_bbs_shared_memory[i]))):
                         tracked_object_movement_status[i] = TrackedObjectStatus.STATIONARY
-                    # else:
-                        # print("NOT INTERSECTING")
-                        # print(type(tracked_object_movement_status[i]))
+
 
             # if self.camera_id == 2:
             #     print(fastest_object_dist)
@@ -219,7 +219,8 @@ class Tracker(ShutDownEventListener):
                     continue
 
                 temp_img_bb = [[0, 0], [int(width), int(height)]]
-                temp_bb_b = tracked_object_bbs_shared_memory[temp_loop_counter].tolist()[:]
+                temp_bb_b = IU.IncreaseBBSizeByNumber(bb=tracked_object_bbs_shared_memory[temp_loop_counter].tolist()[:],
+                                                      number=1)
 
                 if temp_bb_b == IU.IntBBToFloatBB(Constants.bb_example):
                     continue
@@ -258,10 +259,6 @@ class Tracker(ShutDownEventListener):
             # Wait for all tracked objects to finish updating their boxes
             for i in range(len(tracked_object_pipes)):
                 tracked_object_pipes[i].recv()
-
-            temp_frame = IU.DrawBoundingBoxes(image=frame, bounding_boxes=tracked_object_bbs_shared_memory)
-
-            cv2.imshow(str(self.camera_id), temp_frame)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
@@ -348,37 +345,50 @@ class Tracker(ShutDownEventListener):
         return_status, _, detected_bbs, _ = receive_pipe.recv()
 
         if return_status:
-            # Compare old boxes with new. Idea is that if new and old are overlapping by like 95%, its the same box and the object is parked, so just remove it
-            temp_percentage_lower = 0
-            for i in range(len(tracked_object_bbs_shared_memory)):
-                temp_tracked_bb_area = (tracked_object_bbs_shared_memory[i][1][0] - tracked_object_bbs_shared_memory[i][0][0]) * (tracked_object_bbs_shared_memory[i][1][1] - tracked_object_bbs_shared_memory[i][0][1])
-                for j in range(len(detected_bbs)):
-                    if not IU.CheckIfPolygonsAreIntersectingTF(IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i]), IU.GetFullBoundingBox(detected_bbs[j])):
-                        continue
-
-                    temp_new_bb_area = (detected_bbs[j][1][0] - detected_bbs[j][0][0]) * (detected_bbs[j][1][1] - detected_bbs[j][0][1])
-
-                    if temp_tracked_bb_area > temp_new_bb_area:
-                        temp_percentage_lower = temp_new_bb_area/temp_tracked_bb_area
-                    else:
-                        temp_percentage_lower = temp_tracked_bb_area/temp_new_bb_area
-
-                    if float(100 - temp_percentage_lower) <= Constants.ot_bb_area_difference_percentage_threshold:
-                        detected_bbs.pop(j)
-                        break
-
-            if len(detected_bbs) == 0:
-                return
-
+            # If old and new boxes have an area that is within margin of error, ignore the new box
+            # tracked_indexes_to_pop = []
+            # for i in range(len(tracked_object_bbs_shared_memory)):
+            #     temp_tracked_bb_area = (tracked_object_bbs_shared_memory[i][1][0] - tracked_object_bbs_shared_memory[i][0][0]) * (tracked_object_bbs_shared_memory[i][1][1] - tracked_object_bbs_shared_memory[i][0][1])
+            #     for j in range(len(detected_bbs)):
+            #         if not IU.CheckIfPolygonsAreIntersectingTF(IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i]), IU.GetFullBoundingBox(detected_bbs[j])):
+            #             continue
+            #         reject = False
+            #         if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
+            #             reject = True
+            #
+            #         temp_new_bb_area = (detected_bbs[j][1][0] - detected_bbs[j][0][0]) * (detected_bbs[j][1][1] - detected_bbs[j][0][1])
+            #
+            #         if temp_tracked_bb_area > temp_new_bb_area:
+            #             temp_percentage_lower = float(temp_new_bb_area/temp_tracked_bb_area)
+            #         else:
+            #             temp_percentage_lower = float(temp_tracked_bb_area/temp_new_bb_area)
+            #
+            #         if float(100.00 * temp_percentage_lower) >= float(Constants.ot_bb_area_similarity_threshold):
+            #             tracked_indexes_to_pop.append(i)
+            #             detected_bbs.pop(j)
+            #             break
+            #
+            # if self.camera_id == 2:
+            #     print(tracked_indexes_to_pop)
+            # if len(detected_bbs) == 0:
+            #     return
             # Figure out the closest new bb to the old bbs to update their pos. Left over bbs are new objects
+            tracked_object_bbs_temp = copy.deepcopy(tracked_object_bbs_shared_memory)
+
+            # for idx in sorted(tracked_indexes_to_pop, reverse=True):
+            #     tracked_object_bbs_temp.pop(idx)
+
+            for i in range(len(tracked_object_bbs_temp)):
+                tracked_object_bbs_temp[i] = tracked_object_bbs_temp[i].tolist()
+                tracked_object_bbs_temp[i].append(i)
+
             bbs_to_be_updated = []
-            for i in range(len(tracked_object_bbs_shared_memory)):
-                reject_detected_bb = False
-
+            for i in range(len(tracked_object_bbs_temp)):
+                reject_new_bb = False
                 if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
-                    reject_detected_bb = True
+                    reject_new_bb = True
 
-                temp_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_bbs_shared_memory[i])
+                temp_bb_centroid = IU.GetBoundingBoxCenter((tracked_object_bbs_temp[i][0], tracked_object_bbs_temp[i][1]))
                 temp_closest_bb_dist = Constants.INT_MAX
                 temp_closest_bb_idx = -1
 
@@ -391,12 +401,11 @@ class Tracker(ShutDownEventListener):
                     if temp_dist < temp_closest_bb_dist:
                         temp_closest_bb_idx = j
                         temp_closest_bb_dist = temp_dist
-
-                        if not reject_detected_bb:
+                        if not reject_new_bb:
                             temp_closest_bb = detected_bbs[j][:]
-                            bbs_to_be_updated.append([tracked_object_pipes[i], temp_closest_bb])
+                            bbs_to_be_updated.append([tracked_object_pipes[tracked_object_bbs_temp[i][2]], temp_closest_bb])
 
-                if temp_closest_bb_idx != -1 or reject_detected_bb:
+                if temp_closest_bb_idx != -1:
                     detected_bbs.pop(temp_closest_bb_idx)
 
             for i in range(len(bbs_to_be_updated)):
@@ -405,6 +414,7 @@ class Tracker(ShutDownEventListener):
             if len(detected_bbs) == 0:
                 return
 
+            # Consider remaining detected objects as new entrants
             for i in range(len(detected_bbs)):
                 # Request for a tracked object to represent the new entrant from the tracked object pool
                 self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, self.send_pipe))

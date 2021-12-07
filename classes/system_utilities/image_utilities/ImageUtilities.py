@@ -401,6 +401,18 @@ def CheckIfBBAreSame(bb_a, bb_b):
 
     return True
 
+def IncreaseBBSizeByNumber(bb, number):
+    return [[bb[0][0] - number, bb[0][1] - number], [bb[1][0] + number, bb[1][1] + number]]
+
+# def IsBBaAboveBBb(bb_a, bb_b):
+#
+#     bb_a = GetFullBoundingBox(bb_a)
+#     bb_b = GetFullBoundingBox(bb_b)
+#
+#     if bb_a
+#
+#     return True
+
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
     temp_image = image.copy()
@@ -420,15 +432,12 @@ def DrawBoundingBoxes(image, bounding_boxes, color=(255, 0, 255), thickness=2):
     if len(bounding_boxes) == 0:
         return image
 
-    for i in range(len(bounding_boxes)):
-        bounding_boxes[i] = FloatBBToIntBB(bounding_boxes[i])
-
     temp_image = image.copy()
 
     for i in range(len(bounding_boxes)):
         temp_image = cv2.rectangle(img=temp_image,
-                                   pt1=bounding_boxes[i][0],
-                                   pt2=bounding_boxes[i][1],
+                                   pt1=int(bounding_boxes[i][0]),
+                                   pt2=int(bounding_boxes[i][1]),
                                    color=color,
                                    thickness=thickness)
 

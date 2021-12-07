@@ -2,7 +2,7 @@ from classes.system_utilities.helper_utilities.Enums import ImageResolution
 
 base_pool_size = 10
 seconds_in_hour = 3600
-ot_bb_area_difference_percentage_threshold = 10
+ot_bb_area_similarity_threshold = 90
 ot_seconds_before_scan = 0.3
 ot_seconds_before_scan_growth = 0.0
 subtraction_model_learning_rate = 0.0001

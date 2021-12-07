@@ -275,7 +275,6 @@ class TrackedObjectProcess:
 
         self.initializeOpticalFlow(bb=self.bb)
 
-
     def initializeOpticalFlow(self, bb):
         # Optical flow LK params
 

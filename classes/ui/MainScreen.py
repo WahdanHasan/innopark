@@ -181,7 +181,7 @@ class UI(QMainWindow):
                                     temp_active_bbs = []
                                     for j in range(len(bbs)):
                                         if ids[1][j] == i:
-                                            temp_active_bbs.append(bbs[j])
+                                            temp_active_bbs.append(IU.FloatBBToIntBB(bbs[j]))
                                             temp_active_ids.append(ids[2][j])
 
                                     temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
