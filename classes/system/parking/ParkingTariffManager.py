@@ -162,7 +162,8 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
 
             temp_frame = IU.DrawParkingBoxes(image=temp_frame,
                                              bounding_boxes=temp_parking_space_bbs,
-                                             are_occupied=temp_parking_is_occupied_list)
+                                             are_occupied=temp_parking_is_occupied_list,
+                                             thickness=2)
 
             self.frames[i][:] = temp_frame[:]
 

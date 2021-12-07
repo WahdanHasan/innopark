@@ -171,6 +171,10 @@ class UI(QMainWindow):
                         temp_frame = self.frames_listener.getFrameByCameraId(camera_id=i).copy()
 
                         if i >= (self.amount_of_frames_in_shared_memory - self.amount_of_trackers):
+
+                            if self.debug_ptm_cb.checkState():
+                                temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
+
                             if self.debug_ot_cb.checkState():
                                 if ids is not None and bbs is not None:
                                     temp_active_ids = []
@@ -182,9 +186,9 @@ class UI(QMainWindow):
 
                                     temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
                                                                               class_names=temp_active_ids,
-                                                                              bounding_boxes=temp_active_bbs)
-                            if self.debug_ptm_cb.checkState():
-                                temp_frame = cv2.add(temp_frame, self.ptm_listener.getFrameByCameraId(i - self.frame_offset_length))
+                                                                              bounding_boxes=temp_active_bbs,
+                                                                              thickness=1)
+
 
                             # if self.debug_pvm_cb.checkState():
                             #     temp_frame = cv2.add(temp_frame, self.pvm_listener.getFrameByCameraId(i - self.frame_offset_length))

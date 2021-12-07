@@ -299,7 +299,7 @@ def CreateInvertedMask(img, bbox):
     cv2.imshow("EEE", increased_bbox_img)
     return output_mask
 
-def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.95): # TODO: Change this to be non-reliant on input
+def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_threshold=0.80): # TODO: Change this to be non-reliant on input
     # Takes 2 bounding boxes, one for the car, one for the parking spot
     # It should be noted that the parking bounding box must be in the format [TL, TR, BL, BR] while the car box should
     # be in the format of [TL, BR]
@@ -307,7 +307,7 @@ def AreBoxesOverlappingTF(parking_bounding_box, car_bounding_box, acceptable_thr
 
     iou = AreBoxesOverlapping(parking_bounding_box, car_bounding_box)
 
-    if (iou > acceptable_threshold):
+    if (iou >= acceptable_threshold):
         return True
     else:
         return False

@@ -9,6 +9,8 @@ subtraction_model_learning_rate = 0.0001
 
 INT_MAX = 999999
 
+unknown_id_prefix = "?"
+
 # Don't delete me. Trackers will stop working :(
 bb_shared_memory_manager_prefix = "tracked_object_bb_shared_memory_manager_"
 tracked_process_ids_shared_memory_prefix = "tracked_object_ids_in_shared_memory_manager_"

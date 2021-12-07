@@ -91,7 +91,11 @@ class ParkingSpace:
         self.status = status
 
     def checkAndUpdateIfConsideredParked(self):
+
+        if self.parking_id == "636":
+            print((time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked)
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
+
             self.status = ParkingStatus.OCCUPIED
             self.shared_memory_items[1] = int(self.status.value)
             self.occupant_park_time_start = time.time()

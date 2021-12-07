@@ -163,6 +163,9 @@ class Tracker(ShutDownEventListener):
                         # print("NOT INTERSECTING")
                         # print(type(tracked_object_movement_status[i]))
 
+            # if self.camera_id == 2:
+            #     print(fastest_object_dist)
+
             # Store new bb positions
             tracked_object_old_bbs = copy.deepcopy(tracked_object_bbs_shared_memory)
 
@@ -255,7 +258,6 @@ class Tracker(ShutDownEventListener):
             for i in range(len(tracked_object_pipes)):
                 tracked_object_pipes[i].recv()
 
-            # if self.camera_id == 2:
             temp_frame = IU.DrawBoundingBoxes(image=frame, bounding_boxes=tracked_object_bbs_shared_memory)
 
             cv2.imshow(str(self.camera_id), temp_frame)
@@ -267,7 +269,7 @@ class Tracker(ShutDownEventListener):
             # Print fps rate of tracker
             counter += 1
             if (time.time() - start_time) > seconds_before_display:
-                print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
+                # print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
                 counter = 0
                 start_time = time.time()
 

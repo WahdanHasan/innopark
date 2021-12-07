@@ -1,9 +1,9 @@
-from classes.system_utilities.helper_utilities.Enums import EntrantSide
-from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction
-from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
+from classes.system_utilities.helper_utilities.Enums import EntrantSide, TrackedObjectToBrokerInstruction, ShutDownEvent
+from classes.system_utilities.helper_utilities import Constants
 
 import sys
 from threading import Thread
+import random
 
 from multiprocessing import Process
 
@@ -28,6 +28,7 @@ class ObjectTrackerBroker:
                                 ]
 
         self.voyager_holding_list = []
+        self.generated_random_ids = []
 
         self.listen_for_requests_thread = 0
         self.listen_for_requests_thread_stopped = 0
@@ -84,8 +85,19 @@ class ObjectTrackerBroker:
                 self.voyager_holding_list.pop(i)
                 return
 
-        # If entrant is not found, send none through pipe
-        pipe.send("None")
+        # If entrant is not found, send random id through pipe
+
+        found_unique = False
+        random_id = ""
+
+        while not found_unique:
+            random_id = Constants.unknown_id_prefix + str(random.randint(0, 50)) + Constants.unknown_id_prefix
+            if random_id not in self.generated_random_ids:
+                self.generated_random_ids.append(random_id)
+                found_unique = True
+
+        pipe.send(random_id)
+
         return
 
     def PutVoyagerRequest(self, instructions):
