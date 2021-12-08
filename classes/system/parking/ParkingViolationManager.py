@@ -11,7 +11,8 @@ import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday
+from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday, GetAvenueName, GetVehicleSession
+from classes.system_utilities.data_utilities.DatabaseUtilities import uploadBlob
 
 from classes.super_classes.PtmListener import PtmListener
 from multiprocessing import Process, shared_memory
@@ -165,8 +166,8 @@ class ParkingViolationManager():
         # initialize thread that checks sessions' due datetime compared to now datetime.
         # if now datetime is past due date, then add a record of the fine with type "Exceeded Due Date"
         # if it doesn't yet exist in db
-        # self.thread_check_due_dates = threading.Thread(
-        #     target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
+        self.thread_check_due_dates = threading.Thread(
+            target=lambda: self.checkForViolationTypeExceedingDueDateEvery(self.time_interval_to_check_violation))
 
         self.createSharedMemoryStuff()
         self.getParkingSpacesInfo()
@@ -185,18 +186,18 @@ class ParkingViolationManager():
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
 
-        # # set the start and end datetimes of today in UTC
-        # self.setTodayStartEndDate()
-        #
-        # self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
-        #                                               collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
-        #                                               today_start_datetime=self.today_start_date,
-        #                                               today_end_datetime=self.today_end_date)
+        # set the start and end datetimes of today in UTC
+        self.setTodayStartEndDate()
+
+        self.sessions_due_today_ids, self.sessions_due_today_data = GetSessionsDueToday(
+                                                      collection=Constants.avenues_collection_name+"/"+Constants.avenue_id+"/"+Constants.sessions_info_subcollection_name,
+                                                      today_start_datetime=self.today_start_date,
+                                                      today_end_datetime=self.today_end_date)
 
         # if there exists sessions due today, start the thread.
-        # if self.sessions_due_today_ids is not None:
-        #     print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
-        #     self.thread_check_due_dates.start()
+        if self.sessions_due_today_ids is not None:
+            print("session ids today: ", self.sessions_due_today_ids, file=sys.stderr)
+            self.thread_check_due_dates.start()
 
         while self.should_keep_managing:
 
@@ -248,12 +249,35 @@ class ParkingViolationManager():
                         if self.parking_spaces_info[j+1].camera_id == current_parking_info.camera_id:
                             adjacent_parkings.append(self.parking_spaces_info[j+1])
 
-            frame = self.tracked_object_listener.getFrameByCameraId(camera_id=current_parking_info.camera_id)
+            # frame = self.tracked_object_listener.getFrameByCameraId(camera_id=current_parking_info.camera_id)
 
             for j in range(len(adjacent_parkings)):
                 # check double parking based on parking occupancy areas
-                # if adjacent_parkings[j].parking_id in occupied_parking_ids:
-                #     print("possibility of double parking between ", occupied_parking_ids[i], " and ", adjacent_parkings[j].parking_id)
+                if adjacent_parkings[j].parking_id in occupied_parking_ids:
+                    print("possibility of double parking between ", occupied_parking_ids[i], " and ", adjacent_parkings[j].parking_id)
+                    avenue_name = GetAvenueName(Constants.avenue_id)
+
+                    session_id = GetVehicleSession(avenue=Constants.avenue_id, vehicle=occupied_parking_ids[i])
+
+                    AddFine(avenue=Constants.avenue_id,
+                            avenue_name=avenue_name,
+                            session_id=session_id,
+                            vehicle=occupied_parking_ids[i],
+                            fine_type=Constants.fine_type_double_parking)
+
+                    # # get the footage of violation
+                    # fourcc = cv2.VideoWriter_fourcc('D', 'I', 'V', 'X')
+                    # out = cv2.VideoWriter("video_"+session_id+".mp4", fourcc, 30, (Constants.default_camera_shape[1], Constants.default_camera_shape[0]))
+                    #
+                    # for i in range(Constants.fine_footage_duration):
+                    #     out.write(self.tracked_object_listener.getFrameByCameraId(camera_id=current_parking_info.camera_id))
+                    #
+                    # out.release()
+                    #
+                    # uploadBlob(file_name="video_"+session_id+".jpg")
+                    #
+                    # print("successfully added double parking fine based on adjacent parking occupancies")
+                    break
 
                 #check double parking based on mask rcnn
                 # frame = IU.DrawParkingSideLines(image=frame, bounding_box=adjacent_parkings[j].bounding_box)

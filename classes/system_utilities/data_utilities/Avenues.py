@@ -158,6 +158,11 @@ def CheckFineExists(avenue, session_id, fine_type):
 
     return True
 
+def GetAvenueName(avenue):
+    avenue_name = db.GetPartialDataUsingPath(collection=collection, document=avenue, requested_data="name")
+
+    return avenue_name
+
 def AddFine(avenue, avenue_name, session_id, vehicle, fine_type, created_datetime=datetime.now().astimezone()):
 # add a fine to the database based on session info
 
@@ -236,6 +241,12 @@ def GetSessionsDueToday(collection, today_start_datetime, today_end_datetime):
         sessions_id_extracted.append(docs[i].id)
 
     return sessions_id_extracted, sessions_extracted
+
+def GetVehicleSession(avenue, vehicle):
+    session_id = db.GetFirstDocContainingRequestedField(collection=collection+"/"+avenue+"/"+Constants.sessions_info_subcollection_name,
+                                           key=Constants.vehicle_key, value=vehicle)
+
+    return session_id
 
 def GetFinesFromDb(avenue):
     fines_id_extracted, fines_extracted = db.GetAllDocsEqualToTwoFields(collection=collection+"/"+avenue+"/"+Constants.fines_info_subcollection_name,
