@@ -60,6 +60,7 @@ avenue_id = "O8483qKcEoQc6SPTDp5e"
 parking_due_in_hours = 48
 fine_due_in_months = 1
 max_parking_duration_in_hours = 4
+fine_footage_duration = 24 # in frames
 
 # Fine Types
 fine_type_double_parking = "Double Parking"
@@ -80,6 +81,7 @@ local_timezone = datetime.now().astimezone().tzinfo
 avenues_collection_name = "avenues"
 fines_info_subcollection_name = "fines_info"
 sessions_info_subcollection_name = "sessions_info"
+parking_info_subcollection_name = "parkings_info"
 
 # Fine_info doc
 created_datetime_key = "created_datetime"

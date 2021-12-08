@@ -109,6 +109,8 @@ class ParkingSpace:
                     tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID ,self.occupant_id, old_id))
 
                 self.writeObjectIdToSharedMemory(self.occupant_id)
+
+            Avenues.UpdateOccupancyStatus(avenue=Constants.avenue_id, parking_id=self.parking_id, parking_occupancy_status=True)
             self.session_id = Avenues.AddSession(avenue=Constants.avenue_id,
                                                  vehicle=self.occupant_id,
                                                  parking_id=self.parking_id,
@@ -139,14 +141,13 @@ class ParkingSpace:
 
         tariff_amount = int(np.ceil(time_elapsed.seconds/Constants.seconds_in_hour) * self.rate_per_hour)
 
-        # Avenues.UpdateSession(avenue=Constants.avenue_id,
-        #                       session_id=session_id,
-        #                       end_datetime=end_datetime,
-        #                       tariff_amount=tariff_amount)
-        #
-        # if Constants.sms_enabled:
-        #     SMS.sendSmsToLicense(license_plate=occupant_id,
-        #                          tariff_amount=tariff_amount)
+        Avenues.UpdateSession(avenue=Constants.avenue_id,
+                              session_id=session_id,
+                              end_datetime=end_datetime,
+                              tariff_amount=tariff_amount)
+
+        Avenues.UpdateOccupancyStatus(avenue=Constants.avenue_id, parking_id=self.parking_id,
+                                      parking_occupancy_status=False)
 
     def calculateSessionTariffAmount(self, start_datetime, end_datetime, rate_per_hour):
 

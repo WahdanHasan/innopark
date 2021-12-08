@@ -77,17 +77,16 @@ class PtmListener:
             return temp_occupied_id_list
 
     def getAllParkingSpaces(self):
-        print("shared_memory: ", self.shared_memory_items)
-        parkings = []
+        temp_parkings_id_list = []
 
         for i in range(len(self.shared_memory_items)):
-            parkings.append(''.join('' if i == 0 else chr(i) for i in self.shared_memory_items[i][2:]))
+                temp_parkings_id_list.append(self.shared_memory_items[i][0])
 
         # If list is empty, return none, else return the list
-        # if not parkings:
-        #     return None
-        # else:
-        #     return parkings
+        if not temp_parkings_id_list:
+            return None
+        else:
+            return temp_parkings_id_list
 
     def checkIfOccupantIsParked(self, occupant_id):
         ids = self.getOccupiedParkingSpaceOccupantIds()
@@ -99,3 +98,5 @@ class PtmListener:
 
     def getFrameByCameraId(self, camera_id):
         return self.shared_memory_frames[camera_id]
+
+

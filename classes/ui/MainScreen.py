@@ -197,9 +197,11 @@ class UI(QMainWindow):
         self.fines_id, self.fines_data = GetFinesFromDb(Constants.avenue_id)
 
         if self.fines_id is None or not self.fines_id:
+            # clear the table
+            self.review_fines_table_widget.setRowCount(0)
+
             # set the number of rows to one
             self.review_fines_table_widget.setRowCount(1)
-            # self.review_fines_table_widget.setColumnCount(1)
 
             # set row and column (0,0) to the below
             self.review_fines_table_widget.setItem(0, 0, QTableWidgetItem("No fines available to review"))
@@ -346,7 +348,7 @@ class ReviewFineUI(QDialog):
         self.form_layout = self.findChild(QFormLayout, "formLayout")
         self.comment_textbox = QTextEdit(self,
                                     lineWrapMode=QTextEdit.FixedColumnWidth,
-                                    lineWrapColumnOrWidth=20,
+                                    lineWrapColumnOrWidth=30,
                                     placeholderText= "Enter a comment",
                                     readOnly=False)
 

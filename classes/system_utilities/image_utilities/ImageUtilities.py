@@ -510,7 +510,7 @@ def DrawParkingBoxes(image, bounding_boxes, are_occupied, thickness=3):
 
     return temp_image
 
-def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=3):
+def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=1):
     # Takes an image and places the parking space bounding boxes on it from the detections
     # It should be noted that the bounding boxes must be in the [TL, TR, BL, BR] format
     # Returns the image with parking side lines drawn and their appropriate colors drawn on it.

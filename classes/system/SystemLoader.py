@@ -99,7 +99,7 @@ def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_sy
 def StartParkingViolationManager(new_tracked_object_event, shutdown_event, start_system_event, pvm_initialized_event, ptm_initialized_event):
     from classes.system.parking.ParkingViolationManager import ParkingViolationManager
 
-    pvm = ParkingViolationManager(amount_of_trackers=len(camera_ids_and_links),
+    pvm = ParkingViolationManager(
                                   new_object_in_pool_event=new_tracked_object_event,
                                   shutdown_event=shutdown_event,
                                   start_system_event=start_system_event,
