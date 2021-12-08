@@ -100,7 +100,7 @@ class ParkingSpace:
             self.start_datetime = datetime.now()
             if self.occupant_id[0] == '?':
                 send_pipe, receive_pipe = Pipe()
-                recovery_input_queue.put([self.camera_id, self.ob, send_pipe])
+                recovery_input_queue.put([self.camera_id, self.ob, self.parking_id, send_pipe])
 
                 receive_items = receive_pipe.recv()
 

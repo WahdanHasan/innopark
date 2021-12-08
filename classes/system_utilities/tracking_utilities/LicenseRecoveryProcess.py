@@ -42,7 +42,7 @@ class LicenseRecoveryProcess:
                     print("[LicenseRecoveryProcess] Received invalid request.", file=sys.stderr)
                     continue
 
-            camera_id, bb, return_pipe = instruction
+            camera_id, bb, parking_id, return_pipe = instruction
 
             bb = IU.GetPartialBoundingBox(bb)
 
@@ -59,7 +59,7 @@ class LicenseRecoveryProcess:
             if return_status:
                 temp_frame = IU.CropImage(img=temp_frame,
                                           bounding_set=bounding_boxes[0])
-                
+
                 license_str = OCR.GetLicenseFromImage(temp_frame)
 
                 return_pipe.send((ReturnStatus.SUCCESS, license_str))
