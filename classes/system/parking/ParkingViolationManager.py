@@ -173,15 +173,7 @@ class ParkingViolationManager():
         self.getParkingSpacesInfo()
 
         # load mask rcnn
-        from pixellib.semantic import semantic_segmentation
-        self.segmentation_model = semantic_segmentation()
-
-        self.segmentation_model.load_pascalvoc_model(
-            "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
-
-        self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
-            Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
-            dtype=np.uint8))
+        # self.loadMaskRCNNModel()
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
@@ -275,50 +267,52 @@ class ParkingViolationManager():
                     # out.release()
                     #
                     # uploadBlob(file_name="video_"+session_id+".jpg")
-                    #
-                    # print("successfully added double parking fine based on adjacent parking occupancies")
+
+                    print("successfully added double parking fine based on adjacent parking occupancies")
                     break
 
                 #check double parking based on mask rcnn
                 # frame = IU.DrawParkingSideLines(image=frame, bounding_box=adjacent_parkings[j].bounding_box)
 
-                # get the bounding box of occupant to use for cropping
-                # run mask rcnn on the cropped vehicle img
-                print("parking ", occupied_parking_ids[i])
-                print("which is occupied by: ", parking_occupants[i])
-                for z in range(len(vehicle_ids)):
-                    vehicle_plate = vehicle_ids[2][z]
-                    print("current_in loop active vehicle id is: ", vehicle_plate)
-                    if parking_occupants[i] == vehicle_plate:
-                        print("found the bbox of the occupant")
-                        # cropped_vehicle_img = IU.CropImage(img=frame, bounding_set=current_parking_info.bounding_box)
-                        # segmentation_result = self.segmentation_model.segmentFrameAsPascalvoc(frame=cropped_vehicle_img)
-                        # segmented_vehicle_frame = segmentation_result[1]
-                        #
-                        #
-                        # cv2.imshow("frame", segmented_vehicle_frame)
-                        # cv2.waitKey(0)
+                # # get the bounding box of occupant to use for cropping
+                # # run mask rcnn on the cropped vehicle img
+                # print("parking ", occupied_parking_ids[i])
+                # print("which is occupied by: ", parking_occupants[i])
+                # print("vehicles_id: ", vehicle_ids)
+                # for z in range(len(vehicle_ids)):
+                #     vehicle_plate = vehicle_ids[2][z]
+                #     print("current_in loop active vehicle id is: ", vehicle_plate)
+                #     if parking_occupants[i] == vehicle_plate:
+                #         print("found the bbox of the occupant")
+                #         # cropped_vehicle_img = IU.CropImage(img=frame, bounding_set=current_parking_info.bounding_box)
+                #         # segmentation_result = self.segmentation_model.segmentFrameAsPascalvoc(frame=cropped_vehicle_img)
+                #         # segmented_vehicle_frame = segmentation_result[1]
+                #         #
+                #         #
+                #         # cv2.imshow("frame", segmented_vehicle_frame)
+                #         # cv2.waitKey(0)
 
             # print("occupants: ", parking_occupants[i])
 
         print("checking and updating violation statuses", file=sys.stderr)
 
     def loadMaskRCNNModel(self):
-        from pixellib.semantic import semantic_segmentation
-        self.segmentation_model = semantic_segmentation()
-
-        self.segmentation_model.load_pascalvoc_model(
-            "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
-
-        self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
-            Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
-            dtype=np.uint8))
+        # from pixellib.semantic import semantic_segmentation
+        # self.segmentation_model = semantic_segmentation()
+        #
+        # self.segmentation_model.load_pascalvoc_model(
+        #     "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
+        #
+        # self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
+        #     Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+        #     dtype=np.uint8))
         # result = self.segmentation_model.segmentAsPascalvoc(
         #     "./data/reference footage/images/car_parked3_new_cropped.jpg")
 
 
         # result = self.segmentation_model.segmentFrameAsPascalvoc(frame=)
         # mask = result[1]
+        x= 0
 
     def setTodayStartEndDate(self):
         # set the start of today in UTC time 08:00 PM previous day
