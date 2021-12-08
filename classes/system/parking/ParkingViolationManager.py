@@ -171,12 +171,16 @@ class ParkingViolationManager():
         self.createSharedMemoryStuff()
         self.getParkingSpacesInfo()
 
-        # from classes.system_utilities.image_utilities import ObjectDetection as LicenseDetector
-        #
-        # LicenseDetector.OnLoad(model=YoloModel.LICENSE_DETECTOR)
-
         # load mask rcnn
-        # self.loadMaskRCNNModel()
+        from pixellib.semantic import semantic_segmentation
+        self.segmentation_model = semantic_segmentation()
+
+        self.segmentation_model.load_pascalvoc_model(
+            "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
+
+        self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
+            Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
+            dtype=np.uint8))
 
         self.pvm_initialized_event.set()
         self.start_system_event.wait()
@@ -223,7 +227,8 @@ class ParkingViolationManager():
     def checkAndUpdateViolationStatuses(self, ptm_listener, occupied_parking_ids, parking_occupants, vehicle_ids, vehicle_bbs):
 
         for i in range(len(occupied_parking_ids)):
-            print("occupied parking: ", occupied_parking_ids[i])
+
+            # print("occupied parking: ", occupied_parking_ids[i])
 
             # find the adjacent parkings of each occupied parking
             # [left parking, right parking] if found in same camera id
@@ -246,16 +251,29 @@ class ParkingViolationManager():
             frame = self.tracked_object_listener.getFrameByCameraId(camera_id=current_parking_info.camera_id)
 
             for j in range(len(adjacent_parkings)):
-                print("checking for double parking violation")
                 # check double parking based on parking occupancy areas
-                if adjacent_parkings[j].parking_id in occupied_parking_ids:
-                    print("possibility of double parking between ", occupied_parking_ids[i], " and ", adjacent_parkings[j].parking_id)
+                # if adjacent_parkings[j].parking_id in occupied_parking_ids:
+                #     print("possibility of double parking between ", occupied_parking_ids[i], " and ", adjacent_parkings[j].parking_id)
 
                 #check double parking based on mask rcnn
-                frame = IU.DrawParkingSideLines(image=frame, bounding_box=adjacent_parkings[j].bounding_box)
+                # frame = IU.DrawParkingSideLines(image=frame, bounding_box=adjacent_parkings[j].bounding_box)
 
-                cv2.imshow("frame", frame)
-                cv2.waitKey(0)
+                # get the bounding box of occupant to use for cropping
+                # run mask rcnn on the cropped vehicle img
+                print("parking ", occupied_parking_ids[i])
+                print("which is occupied by: ", parking_occupants[i])
+                for z in range(len(vehicle_ids)):
+                    vehicle_plate = vehicle_ids[2][z]
+                    print("current_in loop active vehicle id is: ", vehicle_plate)
+                    if parking_occupants[i] == vehicle_plate:
+                        print("found the bbox of the occupant")
+                        cropped_vehicle_img = IU.CropImage(img=frame, bounding_set=current_parking_info.bounding_box)
+                        segmentation_result = self.segmentation_model.segmentFrameAsPascalvoc(frame=cropped_vehicle_img)
+                        segmented_vehicle_frame = segmentation_result[1]
+
+
+                        cv2.imshow("frame", segmented_vehicle_frame)
+                        cv2.waitKey(0)
 
             # print("occupants: ", parking_occupants[i])
 
@@ -268,12 +286,12 @@ class ParkingViolationManager():
         self.segmentation_model.load_pascalvoc_model(
             "./config/maskrcnn/deeplabv3_xception_tf_dim_ordering_tf_kernels.h5")
 
-        # result = self.segmentation_model.segmentAsPascalvoc(
-        #     "./data/reference footage/images/car_parked3_new_cropped.jpg")
-
         self.segmentation_model.segmentFrameAsPascalvoc(frame=np.zeros(shape=(
             Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]),
             dtype=np.uint8))
+        # result = self.segmentation_model.segmentAsPascalvoc(
+        #     "./data/reference footage/images/car_parked3_new_cropped.jpg")
+
 
         # result = self.segmentation_model.segmentFrameAsPascalvoc(frame=)
         # mask = result[1]
