@@ -1,4 +1,4 @@
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ReturnStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ReturnStatus, ObjectToPoolManagerInstruction
 from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.data_utilities import Avenues
@@ -90,7 +90,7 @@ class ParkingSpace:
     def updateStatus(self, status):
         self.status = status
 
-    def checkAndUpdateIfConsideredParked(self, recovery_input_queue):
+    def checkAndUpdateIfConsideredParked(self, recovery_input_queue, tracked_object_pool_request_queue):
 
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
 
@@ -103,9 +103,10 @@ class ParkingSpace:
                 recovery_input_queue.put([self.camera_id, self.ob, self.parking_id, send_pipe])
 
                 receive_items = receive_pipe.recv()
-
+                old_id = self.occupant_id
                 if receive_items[0] == ReturnStatus.SUCCESS:
                     self.occupant_id = receive_items[1]
+                    tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID ,self.occupant_id, old_id))
 
                 self.writeObjectIdToSharedMemory(self.occupant_id)
             self.session_id = Avenues.AddSession(avenue=Constants.avenue_id,

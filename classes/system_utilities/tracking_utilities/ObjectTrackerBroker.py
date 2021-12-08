@@ -91,7 +91,7 @@ class ObjectTrackerBroker:
         random_id = ""
 
         while not found_unique:
-            random_id = Constants.unknown_id_prefix + str(random.randint(0, 50)) + Constants.unknown_id_prefix
+            random_id = Constants.unknown_id_prefix + str(random.randint(0, 100)) + Constants.unknown_id_prefix
             if random_id not in self.generated_random_ids:
                 self.generated_random_ids.append(random_id)
                 found_unique = True

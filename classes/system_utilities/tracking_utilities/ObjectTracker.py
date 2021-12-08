@@ -95,8 +95,7 @@ class Tracker(ShutDownEventListener):
                                                                      name=Constants.object_tracker_mask_shared_memory_prefix + str(self.camera_id),
                                                                      size=mask.nbytes)
 
-        # if self.camera_id == 2:
-        #     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 2, 'J71612', EntrantSide.RIGHT))
+
 
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
         mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)
@@ -114,8 +113,6 @@ class Tracker(ShutDownEventListener):
 
         self.detector_initialized_event.wait()
         self.start_system_event.wait()
-
-
 
         # Debug variables
         start_time = time.time()
@@ -239,16 +236,14 @@ class Tracker(ShutDownEventListener):
 
                     if white_points_percentage < 50.0:
                         temp_exit_side = self.GetExitSide(temp_bb_b, height, width)
-                        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[temp_loop_counter], temp_exit_side))
                         print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] Object exited from " + temp_exit_side.value, file=sys.stderr)
-                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[temp_loop_counter]))
                         tracked_object_ids.pop(temp_loop_counter)
                         tracked_object_bbs_shared_memory.pop(temp_loop_counter)
                         tracked_object_bbs_shared_memory_managers.pop(temp_loop_counter)
                         tracked_object_movement_status.pop(temp_loop_counter)
-                        tracked_object_pipes[temp_loop_counter].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
                         tracked_object_pipes.pop(temp_loop_counter)
                         tracked_object_old_bbs.pop(temp_loop_counter)
+                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[temp_loop_counter], self.camera_id, temp_exit_side))
                         tracked_object_pool_indexes.pop(temp_loop_counter)
 
                 temp_loop_counter += 1

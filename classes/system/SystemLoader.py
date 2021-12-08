@@ -32,7 +32,8 @@ def LoadComponents(shutdown_event, start_system_event):
 
     tracked_object_pool_request_queue = StartTrackedObjectPool(new_tracked_object_event=new_tracked_object_event,
                                                                initialized_event=pool_initialized_event,
-                                                               shutdown_event=shutdown_event)
+                                                               shutdown_event=shutdown_event,
+                                                               broker_request_queue=broker_request_queue)
 
     _, tracker_initialized_events = StartTrackers(broker_request_queue=broker_request_queue,
                                                   tracked_object_pool_request_queue=tracked_object_pool_request_queue,
@@ -59,7 +60,8 @@ def LoadComponents(shutdown_event, start_system_event):
                               shutdown_event=shutdown_event,
                               start_system_event=start_system_event,
                               ptm_initialized_event=ptm_initialized_event,
-                              recovery_input_queue=recovery_input_queue)
+                              recovery_input_queue=recovery_input_queue,
+                              tracked_object_pool_request_queue=tracked_object_pool_request_queue)
 
     StartParkingViolationManager(new_tracked_object_event=new_tracked_object_event,
                                  shutdown_event=shutdown_event,
@@ -78,7 +80,7 @@ def LoadComponents(shutdown_event, start_system_event):
 
     return new_tracked_object_event, object_detector_request_queue, tracked_object_pool_request_queue, broker_request_queue, license_detector_request_queue, recovery_input_queue
 
-def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event, ptm_initialized_event, recovery_input_queue):
+def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_system_event, ptm_initialized_event, recovery_input_queue, tracked_object_pool_request_queue):
     from classes.system.parking.ParkingTariffManager import ParkingTariffManager
 
     ptm = ParkingTariffManager(amount_of_trackers=len(camera_ids_and_links),
@@ -87,7 +89,8 @@ def StartParkingTariffManager(new_tracked_object_event, shutdown_event, start_sy
                                shutdown_event=shutdown_event,
                                start_system_event=start_system_event,
                                ptm_initialized_event=ptm_initialized_event,
-                               recovery_input_queue=recovery_input_queue)
+                               recovery_input_queue=recovery_input_queue,
+                               tracked_object_pool_request_queue=tracked_object_pool_request_queue)
 
     ptm.startProcess()
 
@@ -118,7 +121,7 @@ def StartBroker():
 
     return broker_request_queue
 
-def StartTrackedObjectPool(new_tracked_object_event, initialized_event, shutdown_event):
+def StartTrackedObjectPool(new_tracked_object_event, initialized_event, shutdown_event, broker_request_queue):
     from classes.system_utilities.tracking_utilities import TrackedObject
 
     tracked_object_pool_request_queue = Queue()
@@ -126,7 +129,8 @@ def StartTrackedObjectPool(new_tracked_object_event, initialized_event, shutdown
     tracked_object_pool = TrackedObject.TrackedObjectPoolManager(tracked_object_pool_request_queue=tracked_object_pool_request_queue,
                                                                  new_tracked_object_process_event=new_tracked_object_event,
                                                                  initialized_event=initialized_event,
-                                                                 shutdown_event=shutdown_event)
+                                                                 shutdown_event=shutdown_event,
+                                                                 broker_request_queue=broker_request_queue)
     tracked_object_pool.startProcess()
 
     return tracked_object_pool_request_queue

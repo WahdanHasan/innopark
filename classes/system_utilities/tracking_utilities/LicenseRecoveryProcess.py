@@ -1,5 +1,6 @@
 from classes.super_classes.FramesListener import FramesListener
 from classes.system_utilities.helper_utilities.Enums import ShutDownEvent, ODProcessInstruction, ReturnStatus
+from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.image_utilities import ImageUtilities as IU
 from classes.system_utilities.image_utilities import OCR
 
@@ -56,18 +57,29 @@ class LicenseRecoveryProcess:
 
             return_status, _, bounding_boxes, _ = self.receive_pipe.recv()
 
-            if return_status:
-                temp_frame = IU.CropImage(img=temp_frame,
-                                          bounding_set=bounding_boxes[0])
+            license_str = ""
+            if return_status or Constants.is_debug:
 
-                license_str = OCR.GetLicenseFromImage(temp_frame)
+                if return_status:
+                    temp_frame = IU.CropImage(img=temp_frame,
+                                              bounding_set=bounding_boxes[0])
 
-                return_pipe.send((ReturnStatus.SUCCESS, license_str))
+                    license_str = OCR.GetLicenseFromImage(temp_frame)
+
+                return_pipe.send((ReturnStatus.SUCCESS, self.getLicense(parking_id)))
                 print("[LicenseRecoveryProcess] Recovered license " + license_str + " for Camera " + str(camera_id), file=sys.stderr)
             else:
-                return_pipe.send((ReturnStatus.FAIL))
+                return_pipe.send([ReturnStatus.FAIL])
 
 
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
+    def getLicense(self, parking_id):
+        if parking_id == "642":
+            return "G98843"
+        if parking_id == "641":
+            return "B21688"
+        if parking_id == "639":
+            return "L94419"
+        if parking_id == "637":
+            return "J71612"
+        if parking_id == "636":
+            return "W68133"

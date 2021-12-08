@@ -35,6 +35,7 @@ class ObjectToPoolManagerInstruction(Enum):
     GET_LATEST_PROCESS = 2
     GET_PROCESS = 3
     RETURN_PROCESS = 4
+    SET_PROCESS_NEW_ID = 5
 
 class TrackedObjectToBrokerInstruction(Enum):
     GET_VOYAGER = 1
