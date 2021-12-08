@@ -1,9 +1,9 @@
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ReturnStatus, ObjectToPoolManagerInstruction
 from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.data_utilities import Avenues
 from threading import Thread
-from multiprocessing import shared_memory
+from multiprocessing import shared_memory, Pipe
 
 import numpy as np
 from datetime import timedelta, datetime
@@ -35,11 +35,11 @@ class ParkingSpace:
         self.shared_memory_manager = 0
         self.shared_memory_items = 0
 
-        self.createSharedMemoryItems()
-
         self.resetOccupant()
 
     def __iter__(self):
+        yield 'internal_id', self.internal_id
+        yield 'is_occupied', self.is_occupied
         yield 'camera_id', self.camera_id
         yield 'parking_id', self.parking_id
         yield 'parking_type', self.parking_type
@@ -90,17 +90,24 @@ class ParkingSpace:
     def updateStatus(self, status):
         self.status = status
 
-    def checkAndUpdateIfConsideredParked(self):
+    def checkAndUpdateIfConsideredParked(self, recovery_input_queue, tracked_object_pool_request_queue):
 
-        if self.parking_id == "636":
-            print((time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked)
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
 
             self.status = ParkingStatus.OCCUPIED
             self.shared_memory_items[1] = int(self.status.value)
             self.occupant_park_time_start = time.time()
             self.start_datetime = datetime.now()
-            if self.occupant_id is not None:
+            if self.occupant_id[0] == '?':
+                send_pipe, receive_pipe = Pipe()
+                recovery_input_queue.put([self.camera_id, self.ob, self.parking_id, send_pipe])
+
+                receive_items = receive_pipe.recv()
+                old_id = self.occupant_id
+                if receive_items[0] == ReturnStatus.SUCCESS:
+                    self.occupant_id = receive_items[1]
+                    tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID ,self.occupant_id, old_id))
+
                 self.writeObjectIdToSharedMemory(self.occupant_id)
             self.session_id = Avenues.AddSession(avenue=Constants.avenue_id,
                                                  vehicle=self.occupant_id,

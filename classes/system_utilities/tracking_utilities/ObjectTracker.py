@@ -14,7 +14,7 @@ import copy
 import numpy as np
 from multiprocessing import Process, Pipe, shared_memory
 
-
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 class Tracker(ShutDownEventListener):
 
     def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event, seconds_between_detections):
@@ -95,6 +95,8 @@ class Tracker(ShutDownEventListener):
                                                                      name=Constants.object_tracker_mask_shared_memory_prefix + str(self.camera_id),
                                                                      size=mask.nbytes)
 
+
+
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
         mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)
 
@@ -112,14 +114,13 @@ class Tracker(ShutDownEventListener):
         self.detector_initialized_event.wait()
         self.start_system_event.wait()
 
-
-
         # Debug variables
         start_time = time.time()
         seconds_before_display = 1
         counter = 0
 
         temp_loop_counter = 0
+
         # Main loop
         while self.should_keep_tracking:
             if not self.shutdown_should_keep_listening:
@@ -142,8 +143,8 @@ class Tracker(ShutDownEventListener):
             fastest_object_dist = 0.00
             fastest_object_idx = -1
             for i in range(len(tracked_object_old_bbs)):
-                temp_old_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_old_bbs[i])
-                temp_new_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_bbs_shared_memory[i])
+                temp_old_bb_centroid = IU.GetBoundingBoxCenterFloat(tracked_object_old_bbs[i])
+                temp_new_bb_centroid = IU.GetBoundingBoxCenterFloat(tracked_object_bbs_shared_memory[i])
 
                 old_new_dist = math.dist(temp_old_bb_centroid, temp_new_bb_centroid)
 
@@ -151,26 +152,22 @@ class Tracker(ShutDownEventListener):
                     fastest_object_dist = old_new_dist
                     fastest_object_idx = i
 
+            # Filter out noise
+            if fastest_object_dist < 0.02:
+                fastest_object_idx = -1
+
             if fastest_object_idx != -1:
                 for i in range(len(tracked_object_old_bbs)):
                     if i == fastest_object_idx:
                         continue
-                    if IU.CheckIfPolygonIntersects(bounding_box_a=IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[fastest_object_idx]),
-                                                   bounding_box_b=IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i])):
-                        # print("INTERSECTING")
+                    if IU.CheckIfPolygonIntersects(bounding_box_a=IU.GetFullBoundingBox(IU.FloatBBToIntBB(tracked_object_bbs_shared_memory[fastest_object_idx])),
+                                                   bounding_box_b=IU.GetFullBoundingBox(IU.FloatBBToIntBB(tracked_object_bbs_shared_memory[i]))):
                         tracked_object_movement_status[i] = TrackedObjectStatus.STATIONARY
-                    # else:
-                        # print("NOT INTERSECTING")
-                        # print(type(tracked_object_movement_status[i]))
-
-            # if self.camera_id == 2:
-            #     print(fastest_object_dist)
 
             # Store new bb positions
             tracked_object_old_bbs = copy.deepcopy(tracked_object_bbs_shared_memory)
 
             # Send signal to tracked object processes to read frame and mask along with an instruction
-            # TODO: Validate for noise on the last and new bounding box if object doesnt have an id. The object can be going the wrong direction as a result.
             for i in range(len(tracked_object_pipes)):
                 primary_instruction_to_send = 0
                 if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
@@ -190,7 +187,7 @@ class Tracker(ShutDownEventListener):
                 if object_doesnt_have_id:
 
                     temp_bb_a = tracked_object_bbs_shared_memory[i].tolist()
-                    if temp_bb_a == Constants.bb_example:
+                    if temp_bb_a == IU.IntBBToFloatBB(Constants.bb_example):
                         tracked_object_pipes[i].send(primary_instruction_to_send)
 
                     temp_entrant_side = self.GetEntrantSide(old_bb=tracked_objects_without_ids_bbs[temp_idx],
@@ -209,6 +206,9 @@ class Tracker(ShutDownEventListener):
             for i in range(len(tracked_object_pipes)):
                 tracked_object_movement_status[i] = TrackedObjectStatus.MOVING
 
+                if self.camera_id == 3:
+                    tracked_object_movement_status[0] = TrackedObjectStatus.STATIONARY
+
             # Check if tracked objects are still within the image
             while temp_should_keep_looping:
 
@@ -218,9 +218,10 @@ class Tracker(ShutDownEventListener):
                     continue
 
                 temp_img_bb = [[0, 0], [int(width), int(height)]]
-                temp_bb_b = tracked_object_bbs_shared_memory[temp_loop_counter].tolist()[:]
+                temp_bb_b = IU.IncreaseBBSizeByNumber(bb=tracked_object_bbs_shared_memory[temp_loop_counter].tolist()[:],
+                                                      number=1)
 
-                if temp_bb_b == Constants.bb_example:
+                if temp_bb_b == IU.IntBBToFloatBB(Constants.bb_example):
                     continue
 
                 a_contains_b = IU.CheckIfPolygonFullyContainsPolygonTF(big_box=temp_img_bb, small_box=temp_bb_b)
@@ -233,18 +234,16 @@ class Tracker(ShutDownEventListener):
                     except:
                         white_points_percentage = 100.0
 
-                    if white_points_percentage < 30.0:
+                    if white_points_percentage < 50.0:
                         temp_exit_side = self.GetExitSide(temp_bb_b, height, width)
-                        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[temp_loop_counter], temp_exit_side))
                         print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] Object exited from " + temp_exit_side.value, file=sys.stderr)
-                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[temp_loop_counter]))
                         tracked_object_ids.pop(temp_loop_counter)
                         tracked_object_bbs_shared_memory.pop(temp_loop_counter)
                         tracked_object_bbs_shared_memory_managers.pop(temp_loop_counter)
                         tracked_object_movement_status.pop(temp_loop_counter)
-                        tracked_object_pipes[temp_loop_counter].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
                         tracked_object_pipes.pop(temp_loop_counter)
                         tracked_object_old_bbs.pop(temp_loop_counter)
+                        self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.RETURN_PROCESS, tracked_object_pool_indexes[temp_loop_counter], self.camera_id, temp_exit_side))
                         tracked_object_pool_indexes.pop(temp_loop_counter)
 
                 temp_loop_counter += 1
@@ -258,10 +257,6 @@ class Tracker(ShutDownEventListener):
             for i in range(len(tracked_object_pipes)):
                 tracked_object_pipes[i].recv()
 
-            # temp_frame = IU.DrawBoundingBoxes(image=frame, bounding_boxes=tracked_object_bbs_shared_memory)
-
-            # cv2.imshow(str(self.camera_id), temp_frame)
-
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 cv2.destroyAllWindows()
                 break
@@ -269,15 +264,9 @@ class Tracker(ShutDownEventListener):
             # Print fps rate of tracker
             counter += 1
             if (time.time() - start_time) > seconds_before_display:
-                # print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
+                print("[ObjectTracker]:[Camera " + str(self.camera_id) + "] FPS: ", int(counter / (time.time() - start_time)))
                 counter = 0
                 start_time = time.time()
-
-            # cv2.imshow(str(self.camera_id), mask)
-            # Quit if user presses 'q', otherwise loop after 1ms
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     cv2.destroyAllWindows()
-            #     break
 
     def StopTracking(self):
         self.should_keep_tracking = False
@@ -353,37 +342,50 @@ class Tracker(ShutDownEventListener):
         return_status, _, detected_bbs, _ = receive_pipe.recv()
 
         if return_status:
-            # Compare old boxes with new. Idea is that if new and old are overlapping by like 95%, its the same box and the object is parked, so just remove it
-            temp_percentage_lower = 0
-            for i in range(len(tracked_object_bbs_shared_memory)):
-                temp_tracked_bb_area = (tracked_object_bbs_shared_memory[i][1][0] - tracked_object_bbs_shared_memory[i][0][0]) * (tracked_object_bbs_shared_memory[i][1][1] - tracked_object_bbs_shared_memory[i][0][1])
-                for j in range(len(detected_bbs)):
-                    if not IU.CheckIfPolygonsAreIntersectingTF(IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i]), IU.GetFullBoundingBox(detected_bbs[j])):
-                        continue
-
-                    temp_new_bb_area = (detected_bbs[j][1][0] - detected_bbs[j][0][0]) * (detected_bbs[j][1][1] - detected_bbs[j][0][1])
-
-                    if temp_tracked_bb_area > temp_new_bb_area:
-                        temp_percentage_lower = temp_new_bb_area/temp_tracked_bb_area
-                    else:
-                        temp_percentage_lower = temp_tracked_bb_area/temp_new_bb_area
-
-                    if float(100 - temp_percentage_lower) <= Constants.ot_bb_area_difference_percentage_threshold:
-                        detected_bbs.pop(j)
-                        break
-
-            if len(detected_bbs) == 0:
-                return
-
+            # If old and new boxes have an area that is within margin of error, ignore the new box
+            # tracked_indexes_to_pop = []
+            # for i in range(len(tracked_object_bbs_shared_memory)):
+            #     temp_tracked_bb_area = (tracked_object_bbs_shared_memory[i][1][0] - tracked_object_bbs_shared_memory[i][0][0]) * (tracked_object_bbs_shared_memory[i][1][1] - tracked_object_bbs_shared_memory[i][0][1])
+            #     for j in range(len(detected_bbs)):
+            #         if not IU.CheckIfPolygonsAreIntersectingTF(IU.GetFullBoundingBox(tracked_object_bbs_shared_memory[i]), IU.GetFullBoundingBox(detected_bbs[j])):
+            #             continue
+            #         reject = False
+            #         if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
+            #             reject = True
+            #
+            #         temp_new_bb_area = (detected_bbs[j][1][0] - detected_bbs[j][0][0]) * (detected_bbs[j][1][1] - detected_bbs[j][0][1])
+            #
+            #         if temp_tracked_bb_area > temp_new_bb_area:
+            #             temp_percentage_lower = float(temp_new_bb_area/temp_tracked_bb_area)
+            #         else:
+            #             temp_percentage_lower = float(temp_tracked_bb_area/temp_new_bb_area)
+            #
+            #         if float(100.00 * temp_percentage_lower) >= float(Constants.ot_bb_area_similarity_threshold):
+            #             tracked_indexes_to_pop.append(i)
+            #             detected_bbs.pop(j)
+            #             break
+            #
+            # if self.camera_id == 2:
+            #     print(tracked_indexes_to_pop)
+            # if len(detected_bbs) == 0:
+            #     return
             # Figure out the closest new bb to the old bbs to update their pos. Left over bbs are new objects
+            tracked_object_bbs_temp = copy.deepcopy(tracked_object_bbs_shared_memory)
+
+            # for idx in sorted(tracked_indexes_to_pop, reverse=True):
+            #     tracked_object_bbs_temp.pop(idx)
+
+            for i in range(len(tracked_object_bbs_temp)):
+                tracked_object_bbs_temp[i] = tracked_object_bbs_temp[i].tolist()
+                tracked_object_bbs_temp[i].append(i)
+
             bbs_to_be_updated = []
-            for i in range(len(tracked_object_bbs_shared_memory)):
-                reject_detected_bb = False
-
+            for i in range(len(tracked_object_bbs_temp)):
+                reject_new_bb = False
                 if tracked_object_movement_status[i] == TrackedObjectStatus.STATIONARY:
-                    reject_detected_bb = True
+                    reject_new_bb = True
 
-                temp_bb_centroid = IU.GetBoundingBoxCenter(tracked_object_bbs_shared_memory[i])
+                temp_bb_centroid = IU.GetBoundingBoxCenter((tracked_object_bbs_temp[i][0], tracked_object_bbs_temp[i][1]))
                 temp_closest_bb_dist = Constants.INT_MAX
                 temp_closest_bb_idx = -1
 
@@ -396,12 +398,11 @@ class Tracker(ShutDownEventListener):
                     if temp_dist < temp_closest_bb_dist:
                         temp_closest_bb_idx = j
                         temp_closest_bb_dist = temp_dist
-
-                        if not reject_detected_bb:
+                        if not reject_new_bb:
                             temp_closest_bb = detected_bbs[j][:]
-                            bbs_to_be_updated.append([tracked_object_pipes[i], temp_closest_bb])
+                            bbs_to_be_updated.append([tracked_object_pipes[tracked_object_bbs_temp[i][2]], temp_closest_bb])
 
-                if temp_closest_bb_idx != -1 or reject_detected_bb:
+                if temp_closest_bb_idx != -1:
                     detected_bbs.pop(temp_closest_bb_idx)
 
             for i in range(len(bbs_to_be_updated)):
@@ -410,6 +411,7 @@ class Tracker(ShutDownEventListener):
             if len(detected_bbs) == 0:
                 return
 
+            # Consider remaining detected objects as new entrants
             for i in range(len(detected_bbs)):
                 # Request for a tracked object to represent the new entrant from the tracked object pool
                 self.tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.GET_PROCESS, self.send_pipe))
@@ -418,8 +420,8 @@ class Tracker(ShutDownEventListener):
                 (temp_pipe, temp_shared_memory_bb_manager, temp_process_pool_idx) = self.receive_pipe.recv()
 
                 # Create an array reference to the tracked object's shared memory bounding box
-                temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.int32).shape,
-                                                      dtype=np.int32, buffer=temp_shared_memory_bb_manager.buf)
+                temp_shared_memory_array = np.ndarray(np.asarray(Constants.bb_example, dtype=np.float32).shape,
+                                                      dtype=np.float32, buffer=temp_shared_memory_bb_manager.buf)
 
                 # Send the tracked object instructions on the object it is supposed to represent
                 temp_pipe.send((self.camera_id, self.tracker_id, detected_bbs[i], self.shared_memory_manager_frame,

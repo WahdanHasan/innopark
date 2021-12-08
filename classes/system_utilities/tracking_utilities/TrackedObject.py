@@ -1,6 +1,7 @@
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.helper_utilities import Constants
-from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction, TrackedObjectStatus, TrackerToTrackedObjectInstruction, ShutDownEvent
+from classes.system_utilities.helper_utilities.Enums import ObjectToPoolManagerInstruction, TrackedObjectStatus, \
+    TrackerToTrackedObjectInstruction, ShutDownEvent, TrackedObjectToBrokerInstruction
 from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 
 import sys
@@ -15,12 +16,12 @@ from multiprocessing import Process, Pipe, shared_memory
 class TrackedObjectPoolManager(ShutDownEventListener):
     # Manages tracked object processes in a pool.
 
-    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, shutdown_event):
+    def __init__(self, tracked_object_pool_request_queue, new_tracked_object_process_event, initialized_event, shutdown_event, broker_request_queue):
         # Creates a pool of tracked object processes, their active status, and a pipe to communicate with each
         ShutDownEventListener.__init__(self, shutdown_event)
 
         self.tracked_object_pool_request_queue = tracked_object_pool_request_queue
-
+        self.broker_request_queue = broker_request_queue
         self.pool_process = 0
         self.pool_size = Constants.base_pool_size
         self.shutdown_event = shutdown_event
@@ -32,6 +33,7 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         self.tracked_object_process_active_statuses = []
         self.tracked_object_bb_shared_memory_managers = []
         self.tracked_object_id_shared_memory_managers = []
+        self.tracked_object_id_shared_memory = []
 
         self.process_listener_thread = 0
         self.process_listener_thread_stopped = 0
@@ -73,14 +75,42 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         while not self.process_listener_thread_stopped:
             (instructions) = self.tracked_object_pool_request_queue.get()
 
+
             if instructions == ShutDownEvent.SHUTDOWN:
                 print("[TrackedObjectPoolManager] Cleaning up.", file=sys.stderr)
                 self.cleanUp()
                 return
+
             elif instructions[0] == ObjectToPoolManagerInstruction.GET_PROCESS:
                 self.getTrackedObjectProcessRequest(instructions)
             elif instructions[0] == ObjectToPoolManagerInstruction.RETURN_PROCESS:
                 self.returnTrackedObjectProcessRequest(instructions)
+            elif instructions[0] == ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID:
+                self.setProcessNewId(instructions)
+
+    def setProcessNewId(self, instructions):
+        new_id = instructions[1]
+        old_id = instructions[2]
+
+        for i in range(len(self.tracked_object_id_shared_memory)):
+            temp_ids = self.integerTrackedObjectIdsToAscii(self.tracked_object_id_shared_memory[i])
+
+            if temp_ids[2] == old_id:
+                temp_list = np.array([ord(c) for c in new_id], dtype=np.uint8)
+
+                self.tracked_object_id_shared_memory[i][2: temp_list.shape[0] + 2] = temp_list
+                break
+
+    def integerTrackedObjectIdsToAscii(self, camera_id_and_license_in_shared_memory):
+        temp_list = camera_id_and_license_in_shared_memory.tolist()
+
+        # If object id is none, return only the camera id, else, return both
+        if temp_list[1] == Constants.tracked_process_ids_example[1]:
+            return [int(temp_list[0]), None]
+        else:
+            # Convert all non 0 integers to ascii only
+            return [int(temp_list[0]), int(temp_list[1]),
+                    ''.join('' if i == 0 else chr(i) for i in temp_list[2:])]
 
     def getTrackedObjectProcessRequest(self, instructions):
         (sender_pipe) = instructions[1]
@@ -119,11 +149,22 @@ class TrackedObjectPoolManager(ShutDownEventListener):
 
     def returnTrackedObjectProcessRequest(self, instructions):
         (process_idx) = instructions[1]
+        camera_id = instructions[2]
+        temp_exit_side = instructions[3]
+        # self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[temp_loop_counter], temp_exit_side))
+
+
+
+        self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER,
+                                       camera_id,
+                                       self.integerTrackedObjectIdsToAscii(self.tracked_object_id_shared_memory[process_idx])[2],
+                                       temp_exit_side))
 
         self.returnTrackedObjectProcess(process_idx)
 
     def returnTrackedObjectProcess(self, process_idx):
         self.tracked_object_process_active_statuses[process_idx] = False
+        self.tracked_object_process_pipes[process_idx].send(TrackerToTrackedObjectInstruction.STOP_TRACKING)
         print("[TrackedObjectPoolManager] Received return request for process with id " + str(process_idx + 1) + ".", file=sys.stderr)
 
         count = 0
@@ -133,6 +174,9 @@ class TrackedObjectPoolManager(ShutDownEventListener):
                 count += 1
 
         print("[TrackedObjectPoolManager] " + str(count) + " of " + str(self.pool_size) + " are currently active.", file=sys.stderr)
+
+    def getObjectIdsFromProcessId(self, process_idx):
+        return
 
     def createTrackedObjectProcess(self, process_number):
         # Creates a tracked object process and opens a pipe to it
@@ -145,13 +189,17 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         temp_bb_shared_memory_manager_name = Constants.bb_shared_memory_manager_prefix + str(process_number)
         bb_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                  name=temp_bb_shared_memory_manager_name,
-                                                                 size=np.asarray(Constants.bb_example, dtype=np.int32).nbytes)
+                                                                 size=np.asarray(Constants.bb_example, dtype=np.float32).nbytes)
 
         # Create a pair of ids in shared memory space
         temp_ids_shared_memory_manager_name = Constants.tracked_process_ids_shared_memory_prefix + str(process_number)
         ids_in_shared_memory_manager = shared_memory.SharedMemory(create=True,
                                                                   name=temp_ids_shared_memory_manager_name,
                                                                   size=np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8).nbytes)
+
+        self.tracked_object_id_shared_memory.append(np.ndarray(shape=np.asarray(Constants.tracked_process_ids_example, dtype=np.uint8).shape,
+                                                               dtype=np.uint8,
+                                                               buffer=ids_in_shared_memory_manager.buf))
 
         # Create a process for the tracked object and pass it the pipe and shared memory for its bounding box
         temp_tracked_object = TrackedObjectProcess()
@@ -245,8 +293,8 @@ class TrackedObjectProcess:
 
         # Create a reference to the bb in shared memory and its buffer
         self.bb_in_shared_memory_manager = bb_in_shared_memory_manager
-        self.bb_in_shared_memory = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.int32).shape,
-                                              dtype=np.int32,
+        self.bb_in_shared_memory = np.ndarray(shape=np.asarray(Constants.bb_example, dtype=np.float32).shape,
+                                              dtype=np.float32,
                                               buffer=bb_in_shared_memory_manager.buf)
 
         self.ids_in_shared_memory_manager = ids_in_shared_memory_manager
@@ -274,7 +322,6 @@ class TrackedObjectProcess:
         self.ids_in_shared_memory[1] = np.uint8(camera_id)
 
         self.initializeOpticalFlow(bb=self.bb)
-
 
     def initializeOpticalFlow(self, bb):
         # Optical flow LK params
@@ -321,6 +368,7 @@ class TrackedObjectProcess:
                         new_object_id = instruction[2]
                         self.writeObjectIdToSharedMemory(object_id=new_object_id)
                         instruction = instruction[1]
+
                         print("[TrackedObjectProcess] Started tracking " + str(new_object_id) + ".", file=sys.stderr)
                     elif instruction[0] == TrackerToTrackedObjectInstruction.STORE_NEW_BB:
                         self.initializeOpticalFlow(instruction[1])
@@ -392,7 +440,7 @@ class TrackedObjectProcess:
         self.old_points_cropped = copy.deepcopy(new_pts)
 
         # Write the new bounding box to shared memory
-        self.bb_in_shared_memory[:] = np.asarray(IU.FloatBBToIntBB(self.bb), dtype=np.int32)
+        self.bb_in_shared_memory[:] = np.asarray(self.bb, dtype=np.float32)
 
     def cleanUp(self):
         self.tracking_instruction_pipe.close()

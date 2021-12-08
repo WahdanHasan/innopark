@@ -270,6 +270,11 @@ class UI(QMainWindow):
         self.tracked_object_listener.initialize()
         self.ptm_listener.initialize()
 
+        # Debug variables
+        start_time = time.time()
+        seconds_before_display = 1
+        counter = 0
+
         while self.should_keep_updating_debug:
             try:
                 if self.is_debug_screen_active:
@@ -289,7 +294,7 @@ class UI(QMainWindow):
                                     temp_active_bbs = []
                                     for j in range(len(bbs)):
                                         if ids[1][j] == i:
-                                            temp_active_bbs.append(bbs[j])
+                                            temp_active_bbs.append(IU.FloatBBToIntBB(bbs[j]))
                                             temp_active_ids.append(ids[2][j])
 
                                     temp_frame = IU.DrawBoundingBoxAndClasses(image=temp_frame,
@@ -308,6 +313,12 @@ class UI(QMainWindow):
                         temp_q_img = QImage(temp_frame.data, temp_width, temp_height, temp_bytes_per_line, QImage.Format_RGB888)
                         if self.is_debug_screen_active:
                             self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
+
+                        counter += 1
+                        if (time.time() - start_time) > seconds_before_display:
+                            self.menu_label.setText("Debug")
+                            counter = 0
+                            start_time = time.time()
 
                 time.sleep(UIConstants.debug_refresh_rate)
             except:

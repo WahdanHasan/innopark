@@ -164,6 +164,9 @@ def FloatBBToIntBB(bb):
 
     return [[int(bb[0][0]), int(bb[0][1])], [int(bb[1][0]), int(bb[1][1])]]
 
+def IntBBToFloatBB(bb):
+    return [[float(bb[0][0]), float(bb[0][1])], [float(bb[1][0]), float(bb[1][1])]]
+
 def GetTLIncreasedBB(bbox, increase_factor=0.1):
     # Takes a bounding box and increases its TL while making sure the bounding box is not out of bounds of its image.
 
@@ -272,6 +275,12 @@ def GetBoundingBoxCenter(bounding_box):
     center_x = int((bounding_box[1][0] + bounding_box[0][0])/2)
     center_y = int((bounding_box[1][1] + bounding_box[0][1])/2)
 
+
+    return [center_x, center_y]
+
+def GetBoundingBoxCenterFloat(bounding_box):
+    center_x = float((bounding_box[1][0] + bounding_box[0][0])/2)
+    center_y = float((bounding_box[1][1] + bounding_box[0][1])/2)
 
     return [center_x, center_y]
 
@@ -440,6 +449,18 @@ def CheckIfBBAreSame(bb_a, bb_b):
 
     return True
 
+def IncreaseBBSizeByNumber(bb, number):
+    return [[bb[0][0] - number, bb[0][1] - number], [bb[1][0] + number, bb[1][1] + number]]
+
+# def IsBBaAboveBBb(bb_a, bb_b):
+#
+#     bb_a = GetFullBoundingBox(bb_a)
+#     bb_b = GetFullBoundingBox(bb_b)
+#
+#     if bb_a
+#
+#     return True
+
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 
     temp_image = image.copy()
@@ -503,7 +524,6 @@ def DrawParkingSideLines(image, bounding_box, color=(0,0,255), thickness=1):
     cv2.line(temp_image, (int(bounding_box[1][0]), int(bounding_box[1][1])), (int(bounding_box[3][0]), int(bounding_box[3][1])), color, thickness)
 
     return temp_image
-
 
 def DrawBoundingBoxAndClasses(image, class_names, bounding_boxes, probabilities=None, color=(255, 0, 255), thickness=2):
     # Takes an image and places class names, probabilities, and bounding boxes on it from the detections.
