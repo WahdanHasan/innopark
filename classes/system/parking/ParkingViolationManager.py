@@ -267,13 +267,13 @@ class ParkingViolationManager():
                     print("current_in loop active vehicle id is: ", vehicle_plate)
                     if parking_occupants[i] == vehicle_plate:
                         print("found the bbox of the occupant")
-                        cropped_vehicle_img = IU.CropImage(img=frame, bounding_set=current_parking_info.bounding_box)
-                        segmentation_result = self.segmentation_model.segmentFrameAsPascalvoc(frame=cropped_vehicle_img)
-                        segmented_vehicle_frame = segmentation_result[1]
-
-
-                        cv2.imshow("frame", segmented_vehicle_frame)
-                        cv2.waitKey(0)
+                        # cropped_vehicle_img = IU.CropImage(img=frame, bounding_set=current_parking_info.bounding_box)
+                        # segmentation_result = self.segmentation_model.segmentFrameAsPascalvoc(frame=cropped_vehicle_img)
+                        # segmented_vehicle_frame = segmentation_result[1]
+                        #
+                        #
+                        # cv2.imshow("frame", segmented_vehicle_frame)
+                        # cv2.waitKey(0)
 
             # print("occupants: ", parking_occupants[i])
 

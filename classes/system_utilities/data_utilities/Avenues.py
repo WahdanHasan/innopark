@@ -68,9 +68,6 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
     # call this method when vehicle enters innopark parking
     # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
-    print("remove the return to add session")
-    return
-
     vehicle_exists = VehicleExists(license_number=vehicle)
 
     if not vehicle_exists:
@@ -96,20 +93,14 @@ def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, d
     return document_ref[1].path.split("/")[3]
 
 def UpdateSession(avenue, session_id, end_datetime, tariff_amount):
-    print("remove return statement from updateSession in Avenues.py")
-    return
 
-    due_datetime = end_datetime+timedelta(hours=parking_due_in_hours)
+    due_datetime = end_datetime+timedelta(hours=Constants.parking_due_in_hours)
 
-    db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
-                  field_to_edit="due_datetime", new_data=due_datetime)
-
-    db.UpdateData(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
-                  field_to_edit="end_datetime", new_data=end_datetime)
-
-
-    db.UpdateData(collection=collection+"/"+avenue+"/sessions_info", document=session_id,
-                  field_to_edit="tariff_amount", new_data=tariff_amount)
+    db.UpdateDataThreeFields(collection=collection + "/" + avenue + "/sessions_info", document=session_id,
+                             field_to_edit1="due_datetime", new_data1=due_datetime,
+                             field_to_edit2="end_datetime", new_data2=end_datetime,
+                             field_to_edit3="tariff_amount", new_data3=tariff_amount
+                             )
 
 def GetAllParkings(avenue):
     docs_id, docs = db.GetAllDocuments(collection+"/"+avenue+"/parkings_info")
@@ -256,3 +247,10 @@ def GetFinesFromDb(avenue):
         return None, None
 
     return fines_id_extracted, fines_extracted
+
+
+def UpdateOccupancyStatus(avenue, parking_id, parking_occupancy_status):
+    db.UpdateData(collection=collection+"/"+avenue+"/"+Constants.parking_info_subcollection_name,
+                  document=parking_id, field_to_edit=Constants.is_occupied_key, new_data=parking_occupancy_status)
+
+    print("Successfully Updated the Occupancy of the Parking")
