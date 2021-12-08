@@ -1,9 +1,9 @@
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ReturnStatus
 from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.data_utilities import Avenues
 from threading import Thread
-from multiprocessing import shared_memory
+from multiprocessing import shared_memory, Pipe
 
 import numpy as np
 from datetime import timedelta, datetime
@@ -90,7 +90,7 @@ class ParkingSpace:
     def updateStatus(self, status):
         self.status = status
 
-    def checkAndUpdateIfConsideredParked(self):
+    def checkAndUpdateIfConsideredParked(self, recovery_input_queue):
 
         if (time.time() - self.occupant_park_time_start) >= self.seconds_before_considered_parked:
 
@@ -98,7 +98,15 @@ class ParkingSpace:
             self.shared_memory_items[1] = int(self.status.value)
             self.occupant_park_time_start = time.time()
             self.start_datetime = datetime.now()
-            if self.occupant_id is not None:
+            if self.occupant_id[0] == '?':
+                send_pipe, receive_pipe = Pipe()
+                recovery_input_queue.put([self.camera_id, self.ob, send_pipe])
+
+                receive_items = receive_pipe.recv()
+
+                if receive_items[0] == ReturnStatus.SUCCESS:
+                    self.occupant_id = receive_items[1]
+
                 self.writeObjectIdToSharedMemory(self.occupant_id)
             self.session_id = Avenues.AddSession(avenue=Constants.avenue_id,
                                                  vehicle=self.occupant_id,

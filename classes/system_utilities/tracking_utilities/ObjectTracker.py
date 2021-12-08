@@ -95,8 +95,8 @@ class Tracker(ShutDownEventListener):
                                                                      name=Constants.object_tracker_mask_shared_memory_prefix + str(self.camera_id),
                                                                      size=mask.nbytes)
 
-        if self.camera_id == 2:
-            self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 2, 'J71612', EntrantSide.RIGHT))
+        # if self.camera_id == 2:
+        #     self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 2, 'J71612', EntrantSide.RIGHT))
 
         frame = np.ndarray(frame.shape, dtype=np.uint8, buffer=self.shared_memory_manager_frame.buf)
         mask = np.ndarray(mask.shape, dtype=np.uint8, buffer=self.shared_memory_manager_mask.buf)

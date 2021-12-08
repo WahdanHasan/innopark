@@ -56,3 +56,7 @@ class YoloModel(Enum):
 
 class ODProcessInstruction(Enum):
     IMAGE_PROVIDED = 0
+
+class ReturnStatus(Enum):
+    SUCCESS = 0
+    FAIL = 1

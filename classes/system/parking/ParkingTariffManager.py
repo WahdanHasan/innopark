@@ -14,7 +14,7 @@ import time
 
 
 class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
-    def __init__(self, amount_of_trackers, new_object_in_pool_event, seconds_parked_before_charge, shutdown_event, start_system_event, ptm_initialized_event):
+    def __init__(self, amount_of_trackers, new_object_in_pool_event, seconds_parked_before_charge, shutdown_event, start_system_event, ptm_initialized_event, recovery_input_queue):
 
         TrackedObjectListener.__init__(self, amount_of_trackers, new_object_in_pool_event)
         ShutDownEventListener.__init__(self, shutdown_event)
@@ -23,6 +23,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
         self.shutdown_event = shutdown_event
         self.start_system_event = start_system_event
         self.ptm_initialized_event = ptm_initialized_event
+        self.recovery_input_queue = recovery_input_queue
         self.tariff_manager_process = 0
         self.should_keep_managing = True
         self.parking_spaces = []
@@ -140,7 +141,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
 
                     elif temp_parking.status == ParkingStatus.NOT_OCCUPIED:
                         if car_is_in_this_parking:
-                            temp_parking.checkAndUpdateIfConsideredParked()
+                            temp_parking.checkAndUpdateIfConsideredParked(self.recovery_input_queue)
                         else:
                             temp_parking.resetOccupant()
 
