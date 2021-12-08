@@ -53,6 +53,7 @@ class UI(QMainWindow):
         self.violation_review_page = self.findChild(QWidget, "violationReviewPage")
         self.screen_stacked_widget = self.findChild(QStackedWidget, "screenStackedWidget")
         self.debug_frames_layout = self.findChild(QHBoxLayout, "debugFrames")
+        self.debug_frame_options_layout = self.findChild(QHBoxLayout, "horizontalLayout_3")
         self.menu_label = self.findChild(QLabel, "screenPageLabel")
         self.review_fines_table_widget = self.findChild(QTableWidget, "tableWidget")
         self.violation_refresh_button = self.findChild(QPushButton, "violationRefreshButton")
@@ -274,7 +275,11 @@ class UI(QMainWindow):
         start_time = time.time()
         seconds_before_display = 1
         counter = 0
-
+        c1 = 0
+        temp_label = QLabel("test", self)
+        temp_label.setMaximumWidth(300)
+        temp_label.setMaximumHeight(300)
+        temp_label.setScaledContents(True)
         while self.should_keep_updating_debug:
             try:
                 if self.is_debug_screen_active:
@@ -316,7 +321,7 @@ class UI(QMainWindow):
 
                     counter += 1
                     if (time.time() - start_time) > seconds_before_display:
-                        self.debugButtonOnClick()
+
                         counter = 0
                         start_time = time.time()
 
