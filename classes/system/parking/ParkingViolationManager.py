@@ -294,7 +294,6 @@ class ParkingViolationManager():
 
             # print("occupants: ", parking_occupants[i])
 
-        print("checking and updating violation statuses", file=sys.stderr)
 
     def loadMaskRCNNModel(self):
         # from pixellib.semantic import semantic_segmentation

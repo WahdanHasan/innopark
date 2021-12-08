@@ -139,7 +139,6 @@ class UI(QMainWindow):
         self.start_system_event.set()
 
     def menuButtonOnClick(self):
-        self.is_debug_screen_active = False
         width = self.left_slide_menu.width()
 
         if width == self.left_slide_menu_min_width:
@@ -157,14 +156,13 @@ class UI(QMainWindow):
             self.animation.setEasingCurve(QEasingCurve.InOutQuart)
             self.animation.start()
 
-        self.is_debug_screen_active = True
-
     def dashboardButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.dashboard_page)
         self.resetAllMenuButtonColors()
 
         self.dashboard_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
         self.menu_label.setText("Dashboard")
+        self.is_debug_screen_active = False
 
     def setupButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.setup_page)
@@ -172,6 +170,7 @@ class UI(QMainWindow):
 
         self.setup_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
         self.menu_label.setText("Setup")
+        self.is_debug_screen_active = False
 
     def violationReviewButtonOnClick(self):
         self.screen_stacked_widget.setCurrentWidget(self.violation_review_page)
@@ -179,6 +178,7 @@ class UI(QMainWindow):
 
         self.violation_review_page_button.setStyleSheet("background-color:" + UIConstants.menu_button_color)
         self.menu_label.setText("Violation Review")
+        self.is_debug_screen_active = False
 
     def loadReviewFinesFromDb(self):
         print("coming in")
@@ -314,11 +314,11 @@ class UI(QMainWindow):
                         if self.is_debug_screen_active:
                             self.debug_frame_labels[i].setPixmap(QPixmap(temp_q_img))
 
-                        counter += 1
-                        if (time.time() - start_time) > seconds_before_display:
-                            self.menu_label.setText("Debug")
-                            counter = 0
-                            start_time = time.time()
+                    counter += 1
+                    if (time.time() - start_time) > seconds_before_display:
+                        self.debugButtonOnClick()
+                        counter = 0
+                        start_time = time.time()
 
                 time.sleep(UIConstants.debug_refresh_rate)
             except:
