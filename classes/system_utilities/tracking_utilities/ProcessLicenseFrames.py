@@ -1,4 +1,5 @@
 from classes.system_utilities.helper_utilities.Enums import TrackedObjectToBrokerInstruction, EntrantSide, ShutDownEvent, ODProcessInstruction
+from classes.system_utilities.helper_utilities import Constants
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 from classes.system_utilities.image_utilities import OCR
 
@@ -42,15 +43,20 @@ class ProcessLicenseFrames:
                 self.counter += 1
                 continue
             elif self.counter == 1:
-                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'W68133', EntrantSide.RIGHT))
+                if Constants.footage_set == 2:
+                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'W68133', EntrantSide.RIGHT))
+
                 self.counter += 1
                 continue
             elif self.counter == 2:
-                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'L94419', EntrantSide.RIGHT))
+                if Constants.footage_set == 2:
+                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'L94419', EntrantSide.RIGHT))
+
                 self.counter += 1
                 continue
             elif self.counter == 3:
-                self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'G98843', EntrantSide.RIGHT))
+                if Constants.footage_set == 2:
+                    self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, 'G98843', EntrantSide.RIGHT))
                 self.counter += 1
                 continue
             elif self.counter > 3:
@@ -83,11 +89,14 @@ class ProcessLicenseFrames:
 
             # crop the frame using bbox if a license is found in frame
             if license_return_status:
-                license_bounding_boxes_converted = license_bounding_boxes[0]
-                plate = IU.CropImage(latest_license_frames[i], license_bounding_boxes_converted)
+                try:
+                    license_bounding_boxes_converted = license_bounding_boxes[0]
+                    plate = IU.CropImage(latest_license_frames[i], license_bounding_boxes_converted)
+                    license_plates.append(plate)
+                except:
+                    x=10
 
                 # add the cropped frame containing only the license to the list of licenses
-                license_plates.append(plate)
 
         return license_plates
 

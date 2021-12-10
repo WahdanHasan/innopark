@@ -321,7 +321,7 @@ class UI(QMainWindow):
 
                     counter += 1
                     if (time.time() - start_time) > seconds_before_display:
-
+                        self.update()
                         counter = 0
                         start_time = time.time()
 

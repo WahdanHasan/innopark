@@ -105,8 +105,8 @@ def DetectObjectsInImage(image):
         index = index[0]
 
         # Filter detections by classes
-        # if yolo_class_names[class_ids[index]] != 'car' and yolo_class_names[class_ids[index]] != 'truck':
-        #     continue
+        if yolo_class_names[class_ids[index]] != 'car' and yolo_class_names[class_ids[index]] != 'truck':
+            continue
 
         box = bounding_boxes[index]
 

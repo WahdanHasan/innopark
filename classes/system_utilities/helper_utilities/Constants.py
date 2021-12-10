@@ -1,6 +1,8 @@
 from classes.system_utilities.helper_utilities.Enums import ImageResolution
 from datetime import datetime
 
+footage_set = 2
+
 base_pool_size = 10
 seconds_in_hour = 3600
 ot_bb_area_similarity_threshold = 90
@@ -31,14 +33,14 @@ ptm_debug_items_example = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 # [id, link]
 ENTRANCE_CAMERA_DETAILS = [
-                            [0, "data\\journeys\\set_2l\\et.mp4"],
-                            [1, "data\\journeys\\set_2l\\eb.mp4"]
+                            [0, "data\\journeys\\set_"+ str(footage_set) + "\\et.mp4"],
+                            [1, "data\\journeys\\set_"+ str(footage_set) + "\\eb.mp4"]
                           ]
 
 CAMERA_DETAILS = [
-                    [2, "data\\journeys\\set_2l\\l1.mp4"],
-                    [3, "data\\journeys\\set_2l\\l2.mp4"],
-                    [4, "data\\journeys\\set_2l\\l3.mp4"]
+                    [2, "data\\journeys\\set_"+ str(footage_set) + "\\l1.mp4"],
+                    [3, "data\\journeys\\set_"+ str(footage_set) + "\\l2.mp4"],
+                    [4, "data\\journeys\\set_"+ str(footage_set) + "\\l3.mp4"]
                  ]
 
 
@@ -49,6 +51,7 @@ default_camera_shape = (ImageResolution.NTSC.value[0], ImageResolution.NTSC.valu
 
 # Parking space file
 parking_spaces_json = "config\\parking\\parking_spaces.txt"
+parking_spaces_json_2 = "config\\parking\\parking_spaces_2.txt"
 
 gov_collection_key = "government-registered-drivers"
 gov_license_key = "licenseNumber"

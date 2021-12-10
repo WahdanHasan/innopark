@@ -1,0 +1,486 @@
+[
+  {
+    "internal_id": 0,
+    "is_occupied": true,
+    "camera_id": 4,
+    "parking_id": "632",
+    "parking_type": "a",
+    "rate_per_hour": 5,
+    "bounding_box": [
+      [
+        199,
+        130
+      ],
+      [
+        258,
+        128
+      ],
+      [
+        211,
+        159
+      ],
+      [
+        304,
+        158
+      ]
+    ],
+    "occupancy_box": [
+      [
+        201,
+        91
+      ],
+      [
+        300,
+        91
+      ],
+      [
+        201,
+        157
+      ],
+      [
+        300,
+        157
+      ]
+    ]
+  },
+  {
+    "internal_id": 1,
+    "is_occupied": false,
+    "camera_id": 4,
+    "parking_id": "633",
+    "parking_type": "a",
+    "rate_per_hour": 5,
+    "bounding_box": [
+      [
+        132,
+        128
+      ],
+      [
+        195,
+        129
+      ],
+      [
+        114,
+        157
+      ],
+      [
+        209,
+        157
+      ]
+    ],
+    "occupancy_box": [
+      [
+        89,
+        95
+      ],
+      [
+        155,
+        95
+      ],
+      [
+        89,
+        147
+      ],
+      [
+        155,
+        147
+      ]
+    ]
+  },
+  {
+    "internal_id": 2,
+    "is_occupied": true,
+    "camera_id": 4,
+    "parking_id": "634",
+    "parking_type": "a",
+    "rate_per_hour": 5,
+    "bounding_box": [
+      [
+        63,
+        126
+      ],
+      [
+        130,
+        127
+      ],
+      [
+        15,
+        154
+      ],
+      [
+        112,
+        158
+      ]
+    ],
+    "occupancy_box": [
+      [
+        89,
+        95
+      ],
+      [
+        155,
+        95
+      ],
+      [
+        89,
+        147
+      ],
+      [
+        155,
+        147
+      ]
+    ]
+  },
+  {
+    "internal_id": 3,
+    "is_occupied": false,
+    "camera_id": 3,
+    "parking_id": "635",
+    "parking_type": "b",
+    "rate_per_hour": 10,
+    "bounding_box": [
+      [
+        210,
+        156
+      ],
+      [
+        259,
+        161
+      ],
+      [
+        232,
+        184
+      ],
+      [
+        311,
+        187
+      ]
+    ],
+    "occupancy_box": [
+      [
+        192,
+        124
+      ],
+      [
+        267,
+        124
+      ],
+      [
+        192,
+        180
+      ],
+      [
+        267,
+        180
+      ]
+    ]
+  },
+  {
+    "internal_id": 4,
+    "is_occupied": true,
+    "camera_id": 3,
+    "parking_id": "636",
+    "parking_type": "b",
+    "rate_per_hour": 10,
+    "bounding_box": [
+      [
+        152,
+        156
+      ],
+      [
+        205,
+        157
+      ],
+      [
+        159,
+        179
+      ],
+      [
+        233,
+        181
+      ]
+    ],
+    "occupancy_box": [
+      [
+        192,
+        124
+      ],
+      [
+        267,
+        124
+      ],
+      [
+        192,
+        180
+      ],
+      [
+        267,
+        180
+      ]
+    ]
+  },
+  {
+    "internal_id": 5,
+    "is_occupied": false,
+    "camera_id": 3,
+    "parking_id": "637",
+    "parking_type": "b",
+    "rate_per_hour": 10,
+    "bounding_box": [
+      [
+        102,
+        149
+      ],
+      [
+        151,
+        154
+      ],
+      [
+        86,
+        173
+      ],
+      [
+        159,
+        179
+      ]
+    ],
+    "occupancy_box": [
+      [
+        121,
+        119
+      ],
+      [
+        169,
+        119
+      ],
+      [
+        121,
+        172
+      ],
+      [
+        169,
+        172
+      ]
+    ]
+  },
+  {
+    "internal_id": 6,
+    "is_occupied": false,
+    "camera_id": 3,
+    "parking_id": "638",
+    "parking_type": "b",
+    "rate_per_hour": 10,
+    "bounding_box": [
+      [
+        47,
+        147
+      ],
+      [
+        99,
+        151
+      ],
+      [
+        7,
+        169
+      ],
+      [
+        83,
+        173
+      ]
+    ],
+    "occupancy_box": [
+      [
+        36,
+        108
+      ],
+      [
+        90,
+        108
+      ],
+      [
+        36,
+        165
+      ],
+      [
+        90,
+        165
+      ]
+    ]
+  },
+  {
+    "internal_id": 7,
+    "is_occupied": false,
+    "camera_id": 2,
+    "parking_id": "639",
+    "parking_type": "c",
+    "rate_per_hour": 20,
+    "bounding_box": [
+      [
+        232,
+        156
+      ],
+      [
+        294,
+        158
+      ],
+      [
+        213,
+        177
+      ],
+      [
+        300,
+        181
+      ]
+    ],
+    "occupancy_box": [
+      [
+        223,
+        124
+      ],
+      [
+        287,
+        124
+      ],
+      [
+        223,
+        175
+      ],
+      [
+        287,
+        175
+      ]
+    ]
+  },
+  {
+    "internal_id": 8,
+    "is_occupied": false,
+    "camera_id": 2,
+    "parking_id": "640",
+    "parking_type": "c",
+    "rate_per_hour": 20,
+    "bounding_box": [
+      [
+        174,
+        154
+      ],
+      [
+        232,
+        156
+      ],
+      [
+        132,
+        175
+      ],
+      [
+        213,
+        177
+      ]
+    ],
+    "occupancy_box": [
+      [
+        143,
+        126
+      ],
+      [
+        216,
+        126
+      ],
+      [
+        143,
+        175
+      ],
+      [
+        216,
+        175
+      ]
+    ]
+  },
+  {
+    "internal_id": 9,
+    "is_occupied": false,
+    "camera_id": 2,
+    "parking_id": "641",
+    "parking_type": "c",
+    "rate_per_hour": 20,
+    "bounding_box": [
+      [
+        119,
+        152
+      ],
+      [
+        174,
+        154
+      ],
+      [
+        55,
+        171
+      ],
+      [
+        132,
+        174
+      ]
+    ],
+    "occupancy_box": [
+      [
+        72,
+        124
+      ],
+      [
+        157,
+        124
+      ],
+      [
+        72,
+        172
+      ],
+      [
+        157,
+        172
+      ]
+    ]
+  },
+  {
+    "internal_id": 10,
+    "is_occupied": true,
+    "camera_id": 2,
+    "parking_id": "642",
+    "parking_type": "c",
+    "rate_per_hour": 20,
+    "bounding_box": [
+      [
+        63,
+        151
+      ],
+      [
+        119,
+        152
+      ],
+      [
+        0,
+        166
+      ],
+      [
+        55,
+        171
+      ]
+    ],
+    "occupancy_box": [
+      [
+        19,
+        120
+      ],
+      [
+        96,
+        120
+      ],
+      [
+        19,
+        163
+      ],
+      [
+        96,
+        163
+      ]
+    ]
+  }
+]

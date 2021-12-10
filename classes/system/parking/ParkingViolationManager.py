@@ -333,7 +333,15 @@ class ParkingViolationManager():
         self.today_end_date = today_end
 
     def getParkingSpacesInfo(self):
-        with open(Constants.parking_spaces_json, 'r') as parking_json:
+
+        parking_json = ""
+
+        if Constants.footage_set == 2:
+            parking_json = Constants.parking_spaces_json
+        elif Constants.footage_set == 1:
+            parking_json = Constants.parking_spaces_json_2
+
+        with open(parking_json, 'r') as parking_json:
             parking_space_data = json.loads(parking_json.read())
             for parking_space in parking_space_data:
                 self.parking_spaces_info.append(ParkingSpace_Object(**parking_space))

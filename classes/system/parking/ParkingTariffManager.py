@@ -44,7 +44,7 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
             self.frames.append(temp_frame)
 
     def loadParkingSpacesFromJson(self):
-        with open(Constants.parking_spaces_json, 'r') as parking_json:
+        with open(Constants.parking_spaces_json_2, 'r') as parking_json:
             parking_space_data = json.loads(parking_json.read())
             for parking_space in parking_space_data:
                 self.parking_spaces.append(ParkingSpace(**parking_space))
@@ -91,8 +91,11 @@ class ParkingTariffManager(TrackedObjectListener, ShutDownEventListener):
     def startManaging(self):
         TrackedObjectListener.initialize(self)
         ShutDownEventListener.initialize(self)
-        # self.loadParkingSpacesFromJson()
-        self.loadParkingSpacesFromDb()
+        if Constants.footage_set == 2:
+            self.loadParkingSpacesFromDb()
+        elif Constants.footage_set == 1:
+            self.loadParkingSpacesFromJson()
+
         self.createSharedMemoryStuff(self.amount_of_trackers)
 
         self.ptm_initialized_event.set()

@@ -35,7 +35,7 @@ def main():
     detector_request_queue.put(ShutDownEvent.SHUTDOWN)
     license_detector_request_queue.put(ShutDownEvent.SHUTDOWN)
     broker_request_queue.put(ShutDownEvent.SHUTDOWN)
-    license_detector_queue(ShutDownEvent.SHUTDOWN)
+    license_detector_queue.put(ShutDownEvent.SHUTDOWN)
 
     return 0
 
