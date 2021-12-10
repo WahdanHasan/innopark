@@ -86,8 +86,8 @@ def GetAnchors(anchors_path):
     return anchors.reshape(3, 3, 2)
 
 def BuildModel():
-    from classes.system_utilities.image_utilities.LicenseDetectionModel import YOLO, decode, filterBoxes
-    from classes.system_utilities.image_utilities.LicenseDetectionConfig import LoadWeights
+    from classes.test.classes.LicenseDetectionModel import YOLO, decode, filterBoxes
+    from classes.test.classes.LicenseDetectionConfig import LoadWeights
 
     # All models and internal/external dependencies should be both loaded and initialized here
     input_size = cfg.VAR.INPUT_SIZE

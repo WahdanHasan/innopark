@@ -14,7 +14,7 @@ import copy
 import numpy as np
 from multiprocessing import Process, Pipe, shared_memory
 
-from classes.system_utilities.helper_utilities.Enums import ParkingStatus
+
 class Tracker(ShutDownEventListener):
 
     def __init__(self, tracked_object_pool_request_queue, broker_request_queue, detector_request_queue, tracker_initialized_event, detector_initialized_event, shutdown_event, start_system_event, ptm_initialized_event, seconds_between_detections):

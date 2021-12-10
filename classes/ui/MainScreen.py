@@ -182,18 +182,6 @@ class UI(QMainWindow):
         self.is_debug_screen_active = False
 
     def loadReviewFinesFromDb(self):
-        print("coming in")
-        # fines = [{self.review_fines_columns[0]:Constants.fine_type_double_parking, self.review_fines_columns[1]:"J71612",
-        #           self.review_fines_columns[2]:"29/11/2021", self.review_fines_columns[3]:"25/11/2021"},
-        #          {
-        #              self.review_fines_columns[0]: Constants.fine_type_double_parking,
-        #              self.review_fines_columns[1]: "A12345",
-        #              self.review_fines_columns[2]: "30/12/2021", self.review_fines_columns[3]: "05/02/2022"
-        #          }]
-        #
-        # for i in range (30):
-        #     fines.append({self.review_fines_columns[0]:Constants.fine_type_double_parking, self.review_fines_columns[1]:"J71612",
-        #           self.review_fines_columns[2]:"29/11/2021", self.review_fines_columns[3]:"25/11/2021"})
 
         self.fines_id, self.fines_data = GetFinesFromDb(Constants.avenue_id)
 
@@ -327,7 +315,7 @@ class UI(QMainWindow):
 
                 time.sleep(UIConstants.debug_refresh_rate)
             except:
-                x=10
+                pass
 
     def reviewButtonOnClick(self, row):
         # get fine data of the button row

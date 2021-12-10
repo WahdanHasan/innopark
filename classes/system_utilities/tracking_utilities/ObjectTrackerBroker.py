@@ -104,6 +104,9 @@ class ObjectTrackerBroker:
 
         (sender_camera_id, voyager_id, exit_direction) = instructions[1:4]
 
+        if voyager_id is None or len(voyager_id) == 0:
+            return
+
         recipient_camera_id = self.GetCameraByDirection(sender_camera_id, exit_direction)
 
         self.voyager_holding_list.append([sender_camera_id, recipient_camera_id, voyager_id])

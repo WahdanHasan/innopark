@@ -28,16 +28,7 @@ def main():
 	while True:
 		l = cv2.getTrackbarPos('L', 'image')
 		u = cv2.getTrackbarPos('U', 'image')
-		#
-		# canny_img = canny = cv2.Canny(frame_parking, l, u)
 
-		# med_val = np.median(img)
-		# print(med_val)
-		# lower = int(max(0, 0.7 * med_val))
-		# upper = int(min(255, 1.3 * med_val))
-		# print("lower", lower)
-		# print("upper", upper)
-		# edges = cv2.Canny(image=img, threshold1=lower, threshold2=upper)
 
 		# The standard stuff: image reading, grayscale conversion, inverting, morphology & edge detection
 		gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

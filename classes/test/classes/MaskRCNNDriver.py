@@ -26,7 +26,6 @@ y2 = int(box[6] * height)
 
 rcnn_output = parked_car.copy()
 
-# print(box)
 
 cv2.rectangle(rcnn_output, (x, y), (x2, y2), (255, 0, 0), 3)
 

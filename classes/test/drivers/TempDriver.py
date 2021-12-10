@@ -9,7 +9,7 @@ from classes.system_utilities.image_utilities import OCR
 
 OD.OnLoad(model=Enums.YoloModel.LICENSE_DETECTOR)
 
-img = cv2.imread("data\\reference footage\\images\\jatin.jpg")
+img = cv2.imread("data\\reference footage\\images\\nisa.jpg")
 
 height, width, _ = img.shape
 

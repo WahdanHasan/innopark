@@ -102,11 +102,7 @@ def SaveImage(image, name, extension='.png', path='data\\saves\\'):
     # Takes an image and saves it
     # It is recommended to use cv2.waitKey(0) when debugging after calling the function in order to prevent overwriting.
 
-    # print("Saving image to " + name + extension + " to " + path + "...")
-
     cv2.imwrite(path + name + extension, image)
-
-    # print("Finished saving.")
 
 def CalculatePointPositionAfterTransform(point, M):
     # Calculates the new position of a point after transformation with set M
@@ -451,15 +447,6 @@ def CheckIfBBAreSame(bb_a, bb_b):
 
 def IncreaseBBSizeByNumber(bb, number):
     return [[bb[0][0] - number, bb[0][1] - number], [bb[1][0] + number, bb[1][1] + number]]
-
-# def IsBBaAboveBBb(bb_a, bb_b):
-#
-#     bb_a = GetFullBoundingBox(bb_a)
-#     bb_b = GetFullBoundingBox(bb_b)
-#
-#     if bb_a
-#
-#     return True
 
 def DrawLine(image, point_a, point_b, color=(255, 0, 255), thickness=1):
 

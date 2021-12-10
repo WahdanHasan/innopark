@@ -140,7 +140,7 @@ def main():
             try:
                 cv2.destroyWindow(concatenated_window_name)
             except:
-                x=10
+                pass
 
         # Show single frame preview
         if is_fps_boost:
@@ -149,7 +149,7 @@ def main():
             try:
                 cv2.destroyWindow(preview_window_name)
             except:
-                x=10
+                pass
 
 
         # Log fps to console

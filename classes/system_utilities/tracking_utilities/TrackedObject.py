@@ -7,7 +7,6 @@ from classes.super_classes.ShutDownEventListener import ShutDownEventListener
 import sys
 import cv2
 import copy
-import time
 import numpy as np
 from threading import Thread
 from multiprocessing import Process, Pipe, shared_memory
@@ -151,7 +150,6 @@ class TrackedObjectPoolManager(ShutDownEventListener):
         (process_idx) = instructions[1]
         camera_id = instructions[2]
         temp_exit_side = instructions[3]
-        # self.broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, self.camera_id, tracked_object_ids[temp_loop_counter], temp_exit_side))
 
 
 
@@ -397,14 +395,7 @@ class TrackedObjectProcess:
                                ids_in_shared_memory_manager=None)
 
     def updateMovingObject(self):
-        self.calculateBoundingBoxResize(self.frame)
         self.calculateNewBoundingBox(self.frame)
-
-    def updateStationaryObject(self):
-        x=10
-
-    def calculateBoundingBoxResize(self, frame):
-        x=10
 
     def calculateNewBoundingBox(self, frame):
         # Takes the latest current frame and calculates the new bounding box from it

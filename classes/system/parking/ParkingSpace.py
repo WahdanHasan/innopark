@@ -1,5 +1,4 @@
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus, ReturnStatus, ObjectToPoolManagerInstruction
-from classes.system_utilities.data_utilities import SMS
 from classes.system_utilities.helper_utilities import Constants
 from classes.system_utilities.data_utilities import Avenues
 from threading import Thread
@@ -107,6 +106,9 @@ class ParkingSpace:
                 if receive_items[0] == ReturnStatus.SUCCESS:
                     self.occupant_id = receive_items[1]
                     tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID ,self.occupant_id, old_id))
+                else:
+                    self.occupant_id = old_id
+                    tracked_object_pool_request_queue.put((ObjectToPoolManagerInstruction.SET_PROCESS_NEW_ID ,self.occupant_id, old_id))
 
                 self.writeObjectIdToSharedMemory(self.occupant_id)
 
@@ -134,7 +136,7 @@ class ParkingSpace:
         occupant_id = self.occupant_id
         self.resetOccupant()
 
-        print("Occupant with id " + str(occupant_id) + " will now be charged", file=sys.stderr)
+        print("[ParkingTariffManager] Occupant with id " + str(occupant_id) + " will now be charged", file=sys.stderr)
 
 
         time_elapsed = end_datetime - start_datetime

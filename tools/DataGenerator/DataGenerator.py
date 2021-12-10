@@ -161,28 +161,28 @@ def GeneratePlates(blanks, characters, digits, plates, xmls, xml_extension, numb
             plates.append(temp_image)
             xmls.append(temp_xml)
 
-            # for k in range(len(SET_OF_BRIGHTNESS_POWERS)):
-            #     b_and_d = AugmentPlateBrightness(plate=temp_image,
-            #                                      base=BRIGHTNESS_BASE,
-            #                                      power=SET_OF_BRIGHTNESS_POWERS[k],
-            #                                      )
-            #
-            #     file_name = file_name + 1
-            #     temp_bright_xml = GenerateXML(bounding_box=temp_bounding_box,
-            #                            image_shape=temp_image.shape,
-            #                            name=file_name,
-            #                            extension=xml_extension)
-            #
-            #     file_name = file_name + 1
-            #     temp_dark_xml = GenerateXML(bounding_box=temp_bounding_box,
-            #                            image_shape=temp_image.shape,
-            #                            name=file_name,
-            #                            extension=xml_extension)
-            #
-            #     plates.append(b_and_d[0])
-            #     plates.append(b_and_d[1])
-            #     xmls.append(temp_bright_xml)
-            #     xmls.append(temp_dark_xml)
+            for k in range(len(SET_OF_BRIGHTNESS_POWERS)):
+                b_and_d = AugmentPlateBrightness(plate=temp_image,
+                                                 base=BRIGHTNESS_BASE,
+                                                 power=SET_OF_BRIGHTNESS_POWERS[k],
+                                                 )
+
+                file_name = file_name + 1
+                temp_bright_xml = GenerateXML(bounding_box=temp_bounding_box,
+                                       image_shape=temp_image.shape,
+                                       name=file_name,
+                                       extension=xml_extension)
+
+                file_name = file_name + 1
+                temp_dark_xml = GenerateXML(bounding_box=temp_bounding_box,
+                                       image_shape=temp_image.shape,
+                                       name=file_name,
+                                       extension=xml_extension)
+
+                plates.append(b_and_d[0])
+                plates.append(b_and_d[1])
+                xmls.append(temp_bright_xml)
+                xmls.append(temp_dark_xml)
 
             for k in range(len(SET_OF_TRANSFORM[0])):
                 file_name = file_name + 1
@@ -202,28 +202,28 @@ def GeneratePlates(blanks, characters, digits, plates, xmls, xml_extension, numb
                 plates.append(temp_augmented_image)
                 xmls.append(temp_augmented_xml)
 
-                # for l in range(len(SET_OF_BRIGHTNESS_POWERS)):
-                #     b_and_d = AugmentPlateBrightness(plate=temp_augmented_image,
-                #                                      base=BRIGHTNESS_BASE,
-                #                                      power=SET_OF_BRIGHTNESS_POWERS[l],
-                #                                      )
-                #
-                #     file_name = file_name + 1
-                #     temp_augmented_bright_xml = GenerateXML(bounding_box=temp_augmented_bounding_box,
-                #                                   image_shape=temp_augmented_image.shape,
-                #                                   name=file_name,
-                #                                   extension=xml_extension)
-                #
-                #     file_name = file_name + 1
-                #     temp_augmented_dark_xml = GenerateXML(bounding_box=temp_augmented_bounding_box,
-                #                                 image_shape=temp_augmented_image.shape,
-                #                                 name=file_name,
-                #                                 extension=xml_extension)
-                #
-                #     plates.append(b_and_d[0])
-                #     plates.append(b_and_d[1])
-                #     xmls.append(temp_augmented_bright_xml)
-                #     xmls.append(temp_augmented_dark_xml)
+                for l in range(len(SET_OF_BRIGHTNESS_POWERS)):
+                    b_and_d = AugmentPlateBrightness(plate=temp_augmented_image,
+                                                     base=BRIGHTNESS_BASE,
+                                                     power=SET_OF_BRIGHTNESS_POWERS[l],
+                                                     )
+
+                    file_name = file_name + 1
+                    temp_augmented_bright_xml = GenerateXML(bounding_box=temp_augmented_bounding_box,
+                                                  image_shape=temp_augmented_image.shape,
+                                                  name=file_name,
+                                                  extension=xml_extension)
+
+                    file_name = file_name + 1
+                    temp_augmented_dark_xml = GenerateXML(bounding_box=temp_augmented_bounding_box,
+                                                image_shape=temp_augmented_image.shape,
+                                                name=file_name,
+                                                extension=xml_extension)
+
+                    plates.append(b_and_d[0])
+                    plates.append(b_and_d[1])
+                    xmls.append(temp_augmented_bright_xml)
+                    xmls.append(temp_augmented_dark_xml)
 
             file_name = file_name + 1
 

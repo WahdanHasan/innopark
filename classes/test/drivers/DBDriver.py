@@ -17,5 +17,4 @@ time_elapsed = end - start
 print(type(time_elapsed.seconds))
 
 
-# Avenues.AddSession(avenue="O8483qKcEoQc6SPTDp5e", vehicle="J71612", parking_id=188, start_datetime=datetime.now())
 

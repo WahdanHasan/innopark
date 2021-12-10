@@ -71,10 +71,9 @@ class KalmanFilter2D(object):
         self._P = new_P
 
         # converting matrix to np array
-        #converted_x = np.asarray(self._x[:1]).reshape(-1)
 
         converted_x = self._x[:2].tolist()
-        #print("update set: ", converted_x)
+
         return converted_x
 
     @property

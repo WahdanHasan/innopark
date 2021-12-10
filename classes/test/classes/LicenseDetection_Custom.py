@@ -1,5 +1,4 @@
-from classes.system_utilities.image_utilities.LicenseDetectionConfig import cfg, LoadConfig, BuildModel
-import classes.system_utilities.image_utilities.ImageUtilities as IU
+from classes.test.classes.LicenseDetectionConfig import cfg, BuildModel
 
 import os
 # comment out below line to enable tensorflow outputs
@@ -10,7 +9,6 @@ import numpy as np
 import tesserocr
 from PIL import Image
 import re as regex
-from object_detection.utils import config_util
 from tensorflow import keras
 
 # Global variable declarations
@@ -61,7 +59,6 @@ def OnLoad():
 
 
     # Run blank detection to initialize model
-    from classes.system_utilities.helper_utilities import Constants
     # print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
     # print(DetectLicenseInImage(image=[np.zeros(shape=(Constants.default_camera_shape[1], Constants.default_camera_shape[0], Constants.default_camera_shape[2]), dtype=np.uint8)]))
 

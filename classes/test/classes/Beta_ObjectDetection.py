@@ -232,7 +232,6 @@ def IsCarInParkingBBN(parking_bounding_box, car_bounding_box):
 
     iou = polygon_intersection / polygon_union
 
-    # print(iou)
     if (iou > acceptable_threshold):
         return True
     else:

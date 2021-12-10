@@ -3,14 +3,11 @@ from PyQt5.QtCore import QUrl
 from classes.ui import MainScreen
 from classes.system import SystemLoader
 from classes.system_utilities.helper_utilities.Enums import ShutDownEvent
-
 from PyQt5.QtWidgets import QApplication
 from multiprocessing import Event
-# from PyQt5.QtWebEngineWidgets import *
 
 import sys
-import time
-import os
+
 
 def main():
 

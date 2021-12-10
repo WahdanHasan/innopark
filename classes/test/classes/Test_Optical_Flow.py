@@ -65,7 +65,6 @@ while True:
 
     avg_x = avg_x / len(new_pts)
     avg_y = avg_y / len(new_pts)
-    # print(str(avg_x) + " " + str(avg_y))
 
     bbox = [[bbox[0][0] + avg_x, bbox[0][1] + avg_y], [bbox[1][0] + avg_x, bbox[1][1] + avg_y]]
 

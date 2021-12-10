@@ -1,6 +1,5 @@
 from classes.system_utilities.helper_utilities import Constants
 from classes.super_classes.ObjectTrackerListener import ObjectTrackerListener
-from classes.system_utilities.image_utilities import ImageUtilities as IU
 
 from threading import Thread
 from multiprocessing import shared_memory

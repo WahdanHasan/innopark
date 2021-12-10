@@ -31,21 +31,6 @@ radio_count_BR = 0
 parking_id = StringVar()
 radio_var = IntVar()
 
-# def createTransparentMask(image):
-#     global output
-#
-#     for alpha in np.arange(0, 1.1, 0.1)[::-1]:
-#         # create two copies of the original image -- one for
-#         # the overlay and one for the final output image
-#         overlays = image.copy()
-#         output = image.copy()
-#
-#         dst = cv2.addWeighted(overlays, alpha, output, 1 - alpha,
-#                         0, output)
-#
-#         #cv2.imshow("Output", output)
-#
-#         return output
 
 def intersectionOverUnion(parking_bounding_box, car_bounding_box):
     #takes two full bounding boxes
@@ -73,7 +58,6 @@ def intersectionOverUnion(parking_bounding_box, car_bounding_box):
     car_bounding_box_area = (car_bounding_box[3][0] - car_bounding_box[0][0]) * (car_bounding_box[3][1] - car_bounding_box[0][1])
 
     #calculate IoU
-    #union = area - intersecting area
     iou = intersecting_area / float(parking_bounding_box_area + car_bounding_box_area - intersecting_area)
 
     # return the intersection over union value
@@ -128,23 +112,15 @@ def drawLine():
     global radio_count_BR
     global submitted
 
-    # if (point_counter % 1 == 0):
-    #     cv2.destroyWindow("image")
     print(f"in drawline: {temp_list}, point counter: {point_counter}")
     #draw a line using the last two clicks
 
-    # if (point_counter == 2):
-    #     print(f"in method: {temp_list}, point counter: {point_counter}")
-    #     cv2.line(img, temp_list[0], temp_list[1], (0, 0, 255), 1)
-    #     print(f"in drawline: {temp_list[-1], temp_list[-2]}, point counter: {point_counter}")
     if (point_counter >= 4 and counter == 4):
         coordinates_copy = coordinates.copy()
         getBoundingBoxCoordinates(coordinates_copy)
 
     if (point_counter >= 2):
-        #print(f"in method: {temp_list}, point counter: {point_counter}")
         cv2.line(img, temp_list[-2], temp_list[-1], (0, 0, 255), 1)
-        #print(f"in drawline: {temp_list[-1], temp_list[-2]}, point counter: {point_counter}")
 
     #after every 4 clicks, draw a line between the last and the first point to enclose it
     #copy the points to another list and pass that to bbox function and empty current list
@@ -194,12 +170,9 @@ def draw_circle(event, x, y, flags, param):
                     point_counter -=1
                     counter -= 1
                     print("Point counter in BL method: ", point_counter)
-                    #img = copy.deepcopy(cache)
-                    #cv2.imshow('image', img)
+
                 print(point_counter)
-                #coordinates.insert(0, (x, y))
-                #coordinates.pop()
-                #del coordinates[-1]
+
                 print(f" Before: {coordinates}")
                 coordinates.insert(0, (x, y))
                 coordinates.pop(-1)
@@ -289,12 +262,8 @@ def radioClicked():
 
 def reset():
 
-    # global image_reset
-    # global new_image
-
     print("Hi")
-    # cv2.destroyWindow("Image")
-    # image_reset = True
+
 
 
 def createMenu():
@@ -358,24 +327,7 @@ def loadGUI():
 
     createWindow()
     cv2.imshow("Image", img)
-    # print(image_reset)
-    # if image_reset is False:
-    #     cv2.imshow("Image", image_copy)
-    # else:
-    #     img_copy = img.copy()
-    #     temp = img_copy
-    #     cv2.imshow("Image", temp)
-     #   image_reset = False
-    # if image_reset is False:
-    #     cv2.imshow('image', img)
-    # elif image_reset is True:
-    #     image_copy = img.copy()
-    #     cv2.imshow("image", image_copy)
-    # while (1):
-    #     cv2.imshow('image', img)
-    #     k = cv2.waitKey(0) & 0xFF
-    #     if k == 27:
-    #         break
+
 
 def error():
     screen = Toplevel(root)

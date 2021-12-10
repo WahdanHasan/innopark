@@ -8,7 +8,6 @@ import numpy as np
 from object_detection.utils import config_util
 from object_detection.utils import label_map_util
 from object_detection.builders import model_builder
-from tensorflow import keras
 
 
 # Global variable declarations

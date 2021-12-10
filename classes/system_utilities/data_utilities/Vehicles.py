@@ -1,5 +1,4 @@
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
-from classes.system_utilities.helper_utilities import Constants
 
 conn = db.GetDbConnection()
 

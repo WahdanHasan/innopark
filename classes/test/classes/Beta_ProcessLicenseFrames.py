@@ -1,8 +1,7 @@
 import cv2
 # from multiprocessing import Process
-from classes.system_utilities.image_utilities import LicenseDetection_Custom
+from classes.test.classes import LicenseDetection_Custom
 import time
-import numpy as np
 import classes.system_utilities.image_utilities.ImageUtilities as IU
 
 

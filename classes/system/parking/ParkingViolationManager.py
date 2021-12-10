@@ -1,18 +1,14 @@
 from classes.super_classes.TrackedObjectListener import TrackedObjectListener
 from classes.system.parking.ParkingSpace_Object import ParkingSpace_Object
 from classes.system_utilities.helper_utilities import Constants
-# from classes.system_utilities.helper_utilities.Enums import ParkingStatus, YoloModel
 from classes.system_utilities.helper_utilities.Enums import ParkingStatus
 from classes.system_utilities.image_utilities import ImageUtilities as IU
-from classes.system_utilities.helper_utilities.Enums import ImageResolution
-import classes.system_utilities.data_utilities.DatabaseUtilities as DU
 from datetime import datetime, timezone
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from classes.system_utilities.data_utilities.Avenues import AddFine, GetSessionsDueToday, GetAvenueName, GetVehicleSession
-from classes.system_utilities.data_utilities.DatabaseUtilities import uploadBlob
 
 from classes.super_classes.PtmListener import PtmListener
 from multiprocessing import Process, shared_memory

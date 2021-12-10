@@ -66,39 +66,12 @@ class LicenseRecoveryProcess:
                                                   bounding_set=bounding_boxes[0])
                         license_str = OCR.GetLicenseFromImage(temp_frame)
                     except:
-                        x=10
+                        pass
 
-
-                return_pipe.send((ReturnStatus.SUCCESS, self.getLicense(parking_id)))
+                if len(license_str) != 0:
+                    return_pipe.send((ReturnStatus.SUCCESS, license_str))
+                else:
+                    return_pipe.send([ReturnStatus.FAIL])
                 print("[LicenseRecoveryProcess] Recovered license " + license_str + " for Camera " + str(camera_id), file=sys.stderr)
             else:
                 return_pipe.send([ReturnStatus.FAIL])
-
-
-    def getLicense(self, parking_id):
-        if Constants.footage_set == 2:
-            if parking_id == "642":
-                return "G98843"
-            if parking_id == "641":
-                return "B21688"
-            if parking_id == "639":
-                return "L94419"
-            if parking_id == "637":
-                return "J71612"
-            if parking_id == "636":
-                return "W68133"
-        else:
-            if parking_id == "634":
-                return "G98843"
-            if parking_id == "633":
-                return "G98843"
-            if parking_id == "641":
-                return "B21688"
-            if parking_id == "640":
-                return "L94419"
-            if parking_id == "637":
-                return "J71612"
-            if parking_id == "636":
-                return "W68133"
-            if parking_id == "635":
-                return "W68133"

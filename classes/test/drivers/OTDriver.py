@@ -31,7 +31,6 @@ def main():
     # tracker_2.AddParkingSpaceToTracker(187, [[483, 213], [604, 214], [718, 366], [718, 265]])
 
     # License camera goes here
-    broker_request_queue.put((TrackedObjectToBrokerInstruction.PUT_VOYAGER, 1, 'J71612', EntrantSide.LEFT))
 
     tracker_1.StartProcess(camera_rtsp="data\\reference footage\\test journey\\Leg_1.mp4",
                            camera_id=2)

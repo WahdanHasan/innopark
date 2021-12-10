@@ -128,11 +128,7 @@ while True:
     change = ((old_points[0][0][0] - new_points[0][0][0]), (old_points[0][0][1] - new_points[0][0][1]))
     if (int(change[0]) !=0): # if there's no significant change, don't move box
         bbox_tl, bbox_br = boundOpticalFlowPoints(frame, new_points)
-        # bbox_tl[0] = int(bbox_tl[0] - change[0])
-        # bbox_br[0] = int(bbox_br[0] - change[0])
-        # #bbox_tl[1] = int(bbox_tl[1] - change[1])
-        # #bbox_br[1] = int(bbox_br[1] - change[1])
-        # print("CHANGE HAPPENED")
+
     frame1 = IU.DrawBoundingBoxes(frame, [[bbox_tl, bbox_br]])
 
     #get rid of inconsistent points

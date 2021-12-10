@@ -1,12 +1,11 @@
 import sys
 
 import classes.system_utilities.data_utilities.DatabaseUtilities as db
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from classes.system_utilities.helper_utilities import Constants
 from dateutil.relativedelta import relativedelta
 from classes.system_utilities.data_utilities.Vehicles import VehicleExists, AddVehicle
 
-# now = datetime.now(timezone.utc).astimezone()
 
 conn = db.GetDbConnection()
 
@@ -14,7 +13,6 @@ collection = "avenues"
 
 def GetAllAvenues():
     doc = db.GetDocuments(collection)
-    print("Avenues: ", doc)
 
     return doc
 
@@ -66,7 +64,6 @@ def UpdateParkingRatePerHour(avenue, parking_type, rate_per_hour):
 
 def AddSession(avenue, vehicle, parking_id, start_datetime, end_datetime=None, due_datetime=None, tariff_amount=0, is_paid=False):
     # call this method when vehicle enters innopark parking
-    # AddSession(avenue=avenue_id, vehicle="J71612", parking_id="tFBKRtIKxIaUfygXBXfw")
 
     vehicle_exists = VehicleExists(license_number=vehicle)
 
