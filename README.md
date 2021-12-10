@@ -1,4 +1,7 @@
 # InnoPark
+ *********************Test footage*********************
+ Extract into the data folder
+ Link: https://drive.google.com/file/d/1jbgASwJOOyX9mPLXurYEcyZvRZtAYja8/view?usp=sharing
  
 *********************Required installations*********************
 
